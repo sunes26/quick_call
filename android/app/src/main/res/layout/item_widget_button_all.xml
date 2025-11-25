@@ -40,7 +40,7 @@
 
             </FrameLayout>
 
-            <!-- 이름 (2줄로 증가) -->
+            <!-- 🆕 AutoSizeText 적용 - 이름 (2줄로 증가) -->
             <TextView
                 android:id="@+id/button_name"
                 android:layout_width="match_parent"
@@ -52,9 +52,12 @@
                 android:gravity="center"
                 android:maxLines="2"
                 android:minLines="2"
-                android:ellipsize="end"
                 android:paddingTop="10dp"
-                android:lineSpacingExtra="2dp" />
+                android:lineSpacingExtra="2dp"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="9sp"
+                android:autoSizeMaxTextSize="13sp"
+                android:autoSizeStepGranularity="1sp" />
 
             <!-- 그룹 배지 -->
             <TextView

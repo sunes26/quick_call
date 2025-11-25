@@ -15,6 +15,7 @@ dependencies:
   flutter_screenutil: ^5.9.0
   intl: ^0.18.1  # 날짜 포맷팅용 추가
   reorderable_grid_view: ^2.2.8  # 드래그 앤 드롭 그리드뷰
+  auto_size_text: ^3.0.0  # 🆕 자동 텍스트 크기 조정 (... 방지)
   
   # State Management
   provider: ^6.1.1

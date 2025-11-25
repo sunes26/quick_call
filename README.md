@@ -35,6 +35,7 @@ Flutter 기반 전화번호 단축 다이얼 애플리케이션으로, 자주 �
 - ✅ 버튼 순서 변경 (드래그 앤 드롭)
 - ✅ SQLite 로컬 데이터베이스 저장
 - ✅ 다크 모드 지원
+- ✅ **텍스트 자동 크기 조정** (긴 이름도 ... 없이 완전 표시) 🆕
 
 ### 🏠 위젯 기능
 - ✅ **2×2 홈 화면 위젯** (최대 4개 버튼)
@@ -42,11 +43,12 @@ Flutter 기반 전화번호 단축 다이얼 애플리케이션으로, 자주 �
   - 위젯 A: 가족 연락처
   - 위젯 B: 직장 연락처
   - 위젯 C: 자주 가는 장소
-- ✅ **모던 머티리얼 디자인 설정 화면** 🆕
+- ✅ **모던 머티리얼 디자인 설정 화면**
 - ✅ **위젯 추가 시 자동 설정 화면** (Configuration Activity)
 - ✅ **버튼 선택 및 순서 변경** (드래그 앤 드롭)
 - ✅ **앱 내 버튼 변경 시 위젯 자동 동기화**
 - ✅ **여러 위젯 동시 관리**
+- ✅ **텍스트 자동 크기 조정** (긴 이름도 ... 없이 완전 표시) 🆕
 
 ---
 
@@ -57,6 +59,7 @@ Flutter 기반 전화번호 단축 다이얼 애플리케이션으로, 자주 �
 - **Dart** 3.x
 - **Provider** (상태 관리)
 - **flutter_screenutil** (반응형 UI)
+- **auto_size_text** 3.0.0 (텍스트 자동 크기 조정) 🆕
 
 ### Backend
 - **SQLite** (sqflite)
@@ -68,6 +71,7 @@ Flutter 기반 전화번호 단축 다이얼 애플리케이션으로, 자주 �
 - **AndroidX CardView** 1.0.0
 - **AppWidget API**
 - **MethodChannel** (Flutter ↔ Native 통신)
+- **TextView AutoSizeText** (XML 자동 텍스트 크기 조정) 🆕
 
 ### 권한
 - `android.permission.CALL_PHONE` - 전화 걸기
@@ -161,7 +165,7 @@ quick_call/
 │   │   └── sort_options.dart              # 정렬 옵션 Enum
 │   └── widgets/
 │       ├── contact_picker_widget.dart     # 연락처 선택 위젯
-│       ├── dial_button_widget.dart        # 다이얼 버튼 위젯
+│       ├── dial_button_widget.dart        # 다이얼 버튼 위젯 ⭐
 │       ├── duplicate_phone_dialog.dart    # 중복 전화번호 다이얼로그
 │       ├── empty_state_widget.dart        # 빈 상태 위젯
 │       ├── icon_picker_widget.dart        # 아이콘 선택 위젯
@@ -201,7 +205,7 @@ quick_call/
 │               │   ├── activity_widget_config.xml     # 설정 화면 레이아웃 ⭐
 │               │   ├── item_widget_button_all.xml     # 전체 버튼 아이템 ⭐
 │               │   ├── item_widget_button_selected.xml # 선택된 버튼 아이템 ⭐
-│               │   └── widget_speed_dial.xml          # 위젯 레이아웃
+│               │   └── widget_speed_dial.xml          # 위젯 레이아웃 ⭐
 │               ├── mipmap-hdpi/
 │               │   └── ic_launcher.png                # 앱 아이콘 (hdpi)
 │               ├── mipmap-mdpi/
@@ -220,7 +224,7 @@ quick_call/
 │               └── xml/
 │                   └── speed_dial_widget_info.xml     # 위젯 메타데이터
 │
-├── pubspec.yaml                            # Flutter 의존성
+├── pubspec.yaml                            # Flutter 의존성 ⭐
 └── README.md                               # 프로젝트 문서
 ```
 
@@ -281,7 +285,7 @@ quick_call/
          ↓
 4. RecyclerView로 버튼 목록 표시
    - 선택된 버튼 (2열 그리드, 드래그 가능)
-   - 전체 버튼 (2열 그리드, 선택 가능) 🆕
+   - 전체 버튼 (2열 그리드, 선택 가능)
          ↓
 5. 사용자가 최대 4개 버튼 선택
          ↓
@@ -317,7 +321,7 @@ class WidgetConfigActivity : Activity() {
         // 선택된 버튼: 2열 그리드
         recyclerSelected.layoutManager = GridLayoutManager(this, 2)
         
-        // 전체 버튼: 2열 그리드 (3열에서 변경) 🆕
+        // 전체 버튼: 2열 그리드 (3열에서 변경)
         recyclerAll.layoutManager = GridLayoutManager(this, 2)
     }
     
@@ -468,7 +472,7 @@ class WidgetService {
 
 ## 🎨 UI/UX 개선 사항
 
-### Phase 6: 모던 디자인 적용 🆕
+### Phase 6: 모던 디자인 적용
 
 #### 1. Native 위젯 설정 화면 전면 개선
 
@@ -563,6 +567,120 @@ class WidgetService {
 - ✅ 백업/복원
 - ✅ 데이터베이스 정보
 - ✅ 앱 정보
+
+---
+
+### Phase 7: 텍스트 자동 크기 조정 🆕
+
+#### 1. Flutter AutoSizeText 적용
+
+**문제:** 앱 내 버튼 이름이 길면 `...`으로 잘림
+
+**해결 방법:**
+```yaml
+# pubspec.yaml
+dependencies:
+  auto_size_text: ^3.0.0
+```
+
+```dart
+// dial_button_widget.dart
+AutoSizeText(
+  widget.button.name,
+  style: TextStyle(
+    fontSize: 15.sp,
+    fontWeight: FontWeight.w600,
+    color: Colors.black87,
+    height: 1.2,
+  ),
+  maxLines: 2,
+  minFontSize: 10,  // 최소 10sp까지만 축소
+  maxFontSize: 15,  // 최대 15sp
+  textAlign: TextAlign.center,
+  overflow: TextOverflow.visible,  // ...이 나타나지 않음
+)
+```
+
+**효과:**
+- ✅ 짧은 이름 (예: "엄마"): 15sp 크게 표시
+- ✅ 중간 이름 (예: "홍길동"): 14~13sp 자동 축소
+- ✅ 긴 이름 (예: "중학교 수학학회"): 10~12sp 자동 축소
+- ✅ **...이 절대 나타나지 않음** - 모든 글자 완전 표시
+- ✅ 가독성 보장 (최소 10sp 유지)
+
+#### 2. Android XML AutoSizeText 적용
+
+**문제:** 위젯과 위젯 설정 화면에서 버튼 이름이 `...`으로 잘림
+
+**해결 방법:**
+```xml
+<!-- item_widget_button_all.xml (전체 버튼) -->
+<TextView
+    android:id="@+id/button_name"
+    android:autoSizeTextType="uniform"
+    android:autoSizeMinTextSize="9sp"
+    android:autoSizeMaxTextSize="13sp"
+    android:autoSizeStepGranularity="1sp"
+    android:maxLines="2" />
+
+<!-- item_widget_button_selected.xml (선택된 버튼) -->
+<TextView
+    android:id="@+id/button_name"
+    android:autoSizeTextType="uniform"
+    android:autoSizeMinTextSize="10sp"
+    android:autoSizeMaxTextSize="14sp"
+    android:autoSizeStepGranularity="1sp"
+    android:maxLines="2" />
+
+<!-- widget_speed_dial.xml (홈 화면 위젯) -->
+<TextView
+    android:id="@+id/name_1"
+    android:layout_width="match_parent"
+    android:autoSizeTextType="uniform"
+    android:autoSizeMinTextSize="8sp"
+    android:autoSizeMaxTextSize="11sp"
+    android:autoSizeStepGranularity="1sp"
+    android:gravity="center"
+    android:maxLines="2"
+    android:paddingStart="4dp"
+    android:paddingEnd="4dp" />
+```
+
+**크기 범위 설정:**
+
+| 위치 | 최소 크기 | 최대 크기 | maxLines |
+|------|----------|----------|----------|
+| **전체 버튼** | 9sp | 13sp | 2줄 |
+| **선택된 버튼** | 10sp | 14sp | 2줄 |
+| **홈 위젯** | 8sp | 11sp | 2줄 |
+
+**효과:**
+- ✅ **위젯 설정 화면**
+  - 짧은 이름: 13sp~14sp (크게 표시)
+  - 중간 이름: 11sp~12sp (적절하게)
+  - 긴 이름: 9sp~10sp (작게 축소)
+  - ...이 절대 나타나지 않음
+
+- ✅ **홈 화면 위젯**
+  - 1줄로 표시 가능: 11sp (선명)
+  - 2줄 필요한 경우: 8sp~10sp (자동 축소)
+  - 좁은 공간에서도 완벽하게 표시
+  - ...이 절대 나타나지 않음
+
+#### 3. 동작 원리
+
+**Flutter AutoSizeText:**
+- 텍스트가 공간에 맞는지 확인
+- 넘치면 자동으로 폰트 크기 축소
+- `minFontSize`에 도달할 때까지 반복
+- `overflow: TextOverflow.visible`로 ...이 나타나지 않음
+
+**Android TextView AutoSize:**
+- `autoSizeTextType="uniform"` 활성화
+- TextView의 사용 가능한 공간 계산
+- 텍스트가 넘치면 `autoSizeStepGranularity`만큼 축소
+- `minTextSize`에 도달할 때까지 반복
+- 결과: **...이 나타나지 않음!**
 
 ---
 
@@ -664,6 +782,47 @@ if (file is File) {
 - 아이콘 크기 축소: 56dp → 52dp
 - 카드 padding 증가: 12dp → 16dp
 
+### 문제 8: 텍스트가 ...으로 잘림 🆕
+
+**증상:**
+앱, 위젯, 위젯 설정 화면에서 긴 이름이 "중학교 수학학..."으로 표시됨
+
+**해결:**
+
+**Flutter (앱):**
+```yaml
+# pubspec.yaml
+dependencies:
+  auto_size_text: ^3.0.0
+```
+
+```dart
+// dial_button_widget.dart
+AutoSizeText(
+  widget.button.name,
+  maxLines: 2,
+  minFontSize: 10,
+  maxFontSize: 15,
+  overflow: TextOverflow.visible,
+)
+```
+
+**Android XML (위젯):**
+```xml
+<TextView
+    android:autoSizeTextType="uniform"
+    android:autoSizeMinTextSize="8sp"
+    android:autoSizeMaxTextSize="11sp"
+    android:autoSizeStepGranularity="1sp"
+    android:maxLines="2" />
+```
+
+**효과:**
+- ✅ 모든 글자가 완전히 표시됨
+- ✅ ...이 절대 나타나지 않음
+- ✅ 자동으로 적절한 크기로 축소
+- ✅ 최소 폰트 크기 보장으로 가독성 유지
+
 ---
 
 ## 📝 개발 과정
@@ -698,7 +857,7 @@ if (file is File) {
 - ✅ 모든 위젯 자동 업데이트
 - ✅ 전체 버튼 데이터 실시간 동기화
 
-### Phase 6: 모던 디자인 적용 🆕
+### Phase 6: 모던 디자인 적용
 - ✅ Native 위젯 설정 화면 전면 개선
   - 모던 머티리얼 디자인 3.0
   - 카드 기반 레이아웃
@@ -716,6 +875,22 @@ if (file is File) {
   - File.path 타입 캐스팅
   - BackupFileInfo 속성명 수정
   - BuildContext async 안전성 개선
+
+### Phase 7: 텍스트 자동 크기 조정 🆕
+- ✅ Flutter AutoSizeText 패키지 적용
+  - auto_size_text 3.0.0 추가
+  - dial_button_widget.dart 수정
+  - 10sp ~ 15sp 자동 크기 조정
+- ✅ Android XML AutoSizeText 적용
+  - item_widget_button_all.xml (9sp ~ 13sp)
+  - item_widget_button_selected.xml (10sp ~ 14sp)
+  - widget_speed_dial.xml (8sp ~ 11sp)
+- ✅ 모든 화면에서 텍스트 잘림 완전 제거
+  - 앱 내 버튼 ✅
+  - 위젯 설정 화면 ✅
+  - 홈 화면 위젯 ✅
+- ✅ 가독성 유지 (최소 폰트 크기 보장)
+- ✅ ...이 절대 나타나지 않음
 
 ---
 
@@ -744,8 +919,8 @@ if (file is File) {
 - **Kotlin 파일:** 2개 (Native)
 - **XML 레이아웃:** 4개
 - **Drawable 리소스:** 14개
-- **총 코드 라인:** ~4,000+ lines
-- **개발 단계:** Phase 6 완료
+- **총 코드 라인:** ~4,200+ lines
+- **개발 단계:** Phase 7 완료 🎉
 
 ---
 

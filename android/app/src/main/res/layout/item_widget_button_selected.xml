@@ -38,7 +38,7 @@
 
             </FrameLayout>
 
-            <!-- 이름 -->
+            <!-- 🆕 AutoSizeText 적용 - 이름 -->
             <TextView
                 android:id="@+id/button_name"
                 android:layout_width="match_parent"
@@ -49,9 +49,12 @@
                 android:textStyle="bold"
                 android:gravity="center"
                 android:maxLines="2"
-                android:ellipsize="end"
                 android:paddingTop="12dp"
-                android:lineSpacingExtra="2dp" />
+                android:lineSpacingExtra="2dp"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="10sp"
+                android:autoSizeMaxTextSize="14sp"
+                android:autoSizeStepGranularity="1sp" />
 
             <!-- 전화번호 (선택사항) -->
             <TextView

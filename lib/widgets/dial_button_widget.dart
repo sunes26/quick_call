@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:quick_call/models/speed_dial_button.dart';
+import 'package:auto_size_text/auto_size_text.dart';  // 🆕 AutoSizeText import
 import 'dart:math' as math;
 
 class DialButtonWidget extends StatefulWidget {
@@ -140,10 +141,10 @@ class _DialButtonWidgetState extends State<DialButtonWidget>
                       // 아이콘과 이름 사이 간격
                       const Spacer(flex: 1),
 
-                      // 이름
+                      // 🆕 AutoSizeText로 변경 - ...이 절대 나타나지 않음
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8.w),
-                        child: Text(
+                        child: AutoSizeText(
                           widget.button.name,
                           style: TextStyle(
                             fontSize: 15.sp,
@@ -152,8 +153,10 @@ class _DialButtonWidgetState extends State<DialButtonWidget>
                             height: 1.2,
                           ),
                           maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                          minFontSize: 10,  // 최소 10sp까지만 축소
+                          maxFontSize: 15,  // 최대 15sp
                           textAlign: TextAlign.center,
+                          overflow: TextOverflow.visible,  // ...이 나타나지 않음
                         ),
                       ),
                       
