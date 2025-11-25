@@ -139,59 +139,86 @@ quick_call/
 ├── lib/
 │   ├── main.dart                          # 앱 진입점
 │   ├── models/
-│   │   ├── speed_dial_button.dart         # 버튼 데이터 모델
-│   │   └── backup_file_info.dart          # 백업 파일 정보 모델
+│   │   └── speed_dial_button.dart         # 버튼 데이터 모델
 │   ├── providers/
-│   │   ├── speed_dial_provider.dart       # 상태 관리 (Provider)
-│   │   └── settings_provider.dart         # 설정 관리
+│   │   ├── settings_provider.dart         # 설정 관리
+│   │   └── speed_dial_provider.dart       # 상태 관리 (Provider)
 │   ├── screens/
-│   │   ├── home_screen.dart               # 홈 화면
 │   │   ├── add_button_screen.dart         # 버튼 추가 화면
+│   │   ├── edit_button_screen.dart        # 버튼 편집 화면
+│   │   ├── home_screen.dart               # 홈 화면
 │   │   ├── settings_screen.dart           # 설정 화면 ⭐
 │   │   └── widget_config_screen.dart      # 위젯 설정 화면 (Flutter)
 │   ├── services/
+│   │   ├── backup_service.dart            # 백업/복원 서비스
 │   │   ├── database_service.dart          # SQLite 데이터베이스
-│   │   ├── widget_service.dart            # 위젯 MethodChannel
-│   │   └── backup_service.dart            # 백업/복원 서비스
+│   │   ├── permission_service.dart        # 권한 관리 서비스
+│   │   ├── phone_service.dart             # 전화 걸기 서비스
+│   │   └── widget_service.dart            # 위젯 MethodChannel
 │   ├── utils/
+│   │   ├── error_handler.dart             # 에러 처리 유틸
+│   │   ├── phone_formatter.dart           # 전화번호 포맷팅
 │   │   └── sort_options.dart              # 정렬 옵션 Enum
 │   └── widgets/
-│       └── speed_dial_button_widget.dart  # 버튼 위젯
+│       ├── contact_picker_widget.dart     # 연락처 선택 위젯
+│       ├── dial_button_widget.dart        # 다이얼 버튼 위젯
+│       ├── duplicate_phone_dialog.dart    # 중복 전화번호 다이얼로그
+│       ├── empty_state_widget.dart        # 빈 상태 위젯
+│       ├── icon_picker_widget.dart        # 아이콘 선택 위젯
+│       ├── loading_widget.dart            # 로딩 위젯
+│       └── permission_dialog.dart         # 권한 요청 다이얼로그
 │
 ├── android/
+│   ├── build.gradle.kts                    # Gradle 프로젝트 설정
+│   ├── settings.gradle.kts                 # Gradle 모듈 설정
 │   └── app/
-│       ├── build.gradle                    # Android 빌드 설정
+│       ├── build.gradle.kts                # Android 앱 빌드 설정
 │       └── src/main/
 │           ├── AndroidManifest.xml         # 앱 권한 및 컴포넌트 ⭐
 │           ├── kotlin/com/example/quick_call/
 │           │   ├── MainActivity.kt         # Flutter Activity
 │           │   └── widget/
 │           │       ├── SpeedDialWidgetProvider.kt     # 위젯 Provider
-│           │       ├── WidgetConfigActivity.kt        # 위젯 설정 Activity ⭐
-│           │       ├── SelectedButtonsAdapter.kt      # 선택된 버튼 어댑터
-│           │       ├── AllButtonsAdapter.kt           # 전체 버튼 어댑터
-│           │       └── WidgetButton.kt                # 버튼 데이터 클래스
+│           │       └── WidgetConfigActivity.kt        # 위젯 설정 Activity ⭐
 │           └── res/
-│               ├── layout/
-│               │   ├── speed_dial_widget.xml          # 위젯 레이아웃
-│               │   ├── activity_widget_config.xml     # 설정 화면 레이아웃 ⭐
-│               │   ├── item_widget_button_selected.xml # 선택된 버튼 아이템 ⭐
-│               │   └── item_widget_button_all.xml      # 전체 버튼 아이템 ⭐
 │               ├── drawable/
 │               │   ├── badge_circle.xml               # 카운터 배지
 │               │   ├── button_outline.xml             # 외곽선 버튼
 │               │   ├── button_primary.xml             # 주요 버튼 스타일
+│               │   ├── checkbox_selector.xml          # 체크박스
+│               │   ├── drag_indicator.xml             # 드래그 표시
+│               │   ├── group_badge.xml                # 그룹 배지
 │               │   ├── icon_circle_background.xml     # 큰 아이콘 배경 (72dp)
 │               │   ├── icon_small_background.xml      # 작은 아이콘 배경 (52dp)
-│               │   ├── drag_indicator.xml             # 드래그 표시
+│               │   ├── launch_background.xml          # 앱 시작 배경
 │               │   ├── remove_button_background.xml   # 삭제 버튼
 │               │   ├── selected_indicator.xml         # 선택 표시
-│               │   ├── group_badge.xml                # 그룹 배지
-│               │   └── checkbox_selector.xml          # 체크박스
-│               ├── xml/
-│               │   └── speed_dial_widget_info.xml     # 위젯 메타데이터
-│               └── values/
-│                   └── strings.xml                    # 문자열 리소스 ⭐
+│               │   ├── widget_background.xml          # 위젯 배경
+│               │   └── widget_button_background.xml   # 위젯 버튼 배경
+│               ├── drawable-v21/
+│               │   └── launch_background.xml          # API 21+ 시작 배경
+│               ├── layout/
+│               │   ├── activity_widget_config.xml     # 설정 화면 레이아웃 ⭐
+│               │   ├── item_widget_button_all.xml     # 전체 버튼 아이템 ⭐
+│               │   ├── item_widget_button_selected.xml # 선택된 버튼 아이템 ⭐
+│               │   └── widget_speed_dial.xml          # 위젯 레이아웃
+│               ├── mipmap-hdpi/
+│               │   └── ic_launcher.png                # 앱 아이콘 (hdpi)
+│               ├── mipmap-mdpi/
+│               │   └── ic_launcher.png                # 앱 아이콘 (mdpi)
+│               ├── mipmap-xhdpi/
+│               │   └── ic_launcher.png                # 앱 아이콘 (xhdpi)
+│               ├── mipmap-xxhdpi/
+│               │   └── ic_launcher.png                # 앱 아이콘 (xxhdpi)
+│               ├── mipmap-xxxhdpi/
+│               │   └── ic_launcher.png                # 앱 아이콘 (xxxhdpi)
+│               ├── values/
+│               │   ├── strings.xml                    # 문자열 리소스 ⭐
+│               │   └── styles.xml                     # 스타일 정의
+│               ├── values-night/
+│               │   └── styles.xml                     # 다크 테마 스타일
+│               └── xml/
+│                   └── speed_dial_widget_info.xml     # 위젯 메타데이터
 │
 ├── pubspec.yaml                            # Flutter 의존성
 └── README.md                               # 프로젝트 문서
@@ -200,23 +227,40 @@ quick_call/
 ### 📁 주요 디렉토리 설명
 
 #### `/lib` (Flutter 코드)
-- **models/**: 데이터 모델 클래스 (2개)
-- **providers/**: Provider 패턴 상태 관리 (2개)
-- **screens/**: 화면 UI 컴포넌트 (4개)
-- **services/**: 비즈니스 로직 - DB, 위젯, 백업 (3개)
-- **utils/**: 유틸리티 함수 및 상수 (1개)
-- **widgets/**: 재사용 가능한 위젯 (1개)
+- **models/** (1개): 데이터 모델 클래스
+- **providers/** (2개): Provider 패턴 상태 관리
+- **screens/** (5개): 화면 UI 컴포넌트
+  - 홈, 추가, 편집, 설정, 위젯 설정 화면
+- **services/** (5개): 비즈니스 로직
+  - 데이터베이스, 위젯, 백업, 권한, 전화 서비스
+- **utils/** (3개): 유틸리티 함수
+  - 에러 처리, 전화번호 포맷팅, 정렬 옵션
+- **widgets/** (7개): 재사용 가능한 UI 위젯
+  - 연락처 선택, 다이얼 버튼, 아이콘 선택, 로딩, 권한 다이얼로그 등
 
 #### `/android/app/src/main/kotlin` (Native 코드)
 - **MainActivity.kt**: Flutter 앱 진입점
-- **widget/**: 위젯 관련 Kotlin 코드 (5개)
-  - Provider, Activity, Adapter (2개), Data Class
+- **widget/** (2개): 위젯 관련 Kotlin 코드
+  - **SpeedDialWidgetProvider.kt**: 위젯 업데이트 및 관리
+  - **WidgetConfigActivity.kt**: 위젯 설정 화면 (2열 그리드, 드래그 앤 드롭)
 
 #### `/android/app/src/main/res` (Android 리소스)
-- **layout/**: XML 레이아웃 파일 (4개)
-- **drawable/**: 벡터 그래픽 및 shape drawable (10개)
-- **xml/**: 위젯 메타데이터 (1개)
-- **values/**: 문자열, 색상, 스타일 리소스 (1개)
+- **drawable/** (13개): 벡터 그래픽 및 shape drawable
+  - 배지, 버튼, 체크박스, 아이콘 배경, 인디케이터 등
+- **drawable-v21/** (1개): API 21+ 전용 drawable
+- **layout/** (4개): XML 레이아웃 파일
+  - 설정 화면, 버튼 아이템, 위젯 레이아웃
+- **mipmap-xxx/** (5개): 다양한 해상도의 앱 아이콘
+- **values/** (2개): 문자열, 스타일 리소스
+- **values-night/** (1개): 다크 테마 스타일
+- **xml/** (1개): 위젯 메타데이터
+
+### 📊 프로젝트 파일 통계
+- **Flutter 파일**: 23개 (Dart)
+- **Kotlin 파일**: 2개 (Native)
+- **XML 레이아웃**: 4개
+- **Drawable 리소스**: 14개
+- **총 코드 라인**: ~4,000+ lines
 
 ---
 
@@ -690,10 +734,17 @@ if (file is File) {
 ## 📊 프로젝트 통계
 
 - **총 개발 기간:** 진행중
-- **Flutter 코드:** ~3,000 lines
-- **Kotlin 코드:** ~800 lines
-- **XML 레이아웃:** 15+ files
-- **Drawable 리소스:** 10+ files
+- **Flutter 파일:** 23개 (Dart)
+  - Models: 1개
+  - Providers: 2개
+  - Screens: 5개
+  - Services: 5개
+  - Utils: 3개
+  - Widgets: 7개
+- **Kotlin 파일:** 2개 (Native)
+- **XML 레이아웃:** 4개
+- **Drawable 리소스:** 14개
+- **총 코드 라인:** ~4,000+ lines
 - **개발 단계:** Phase 6 완료
 
 ---
