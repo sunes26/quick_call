@@ -19,4 +19,8 @@
     <string name="widget_config_btn_save">저장</string>
     <string name="widget_config_btn_cancel">취소</string>
     <string name="widget_config_selected_count">%1$d</string>
+     <!-- 🆕 각 크기별 위젯 설명 -->
+    <string name="widget_description_1x1">빠른 전화 (1개 버튼)</string>
+    <string name="widget_description_2x3">빠른 전화 (6개 버튼, 세로)</string>
+    <string name="widget_description_3x2">빠른 전화 (6개 버튼, 가로)</string>
 </resources>

@@ -34,11 +34,33 @@
             </intent-filter>
         </activity>
         
-        <!-- 🎯 위젯 설정 Activity - NoActionBar 테마 추가 -->
+        <!-- 🎯 1×1 위젯 설정 Activity -->
         <activity
-            android:name=".widget.WidgetConfigActivity"
+            android:name=".widget.WidgetConfigActivity1x1"
             android:exported="true"
-            android:label="위젯 설정"
+            android:label="Quick Call 1×1 설정"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+        
+        <!-- 🎯 2×3 위젯 설정 Activity -->
+        <activity
+            android:name=".widget.WidgetConfigActivity2x3"
+            android:exported="true"
+            android:label="Quick Call 2×3 설정"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+        
+        <!-- 🎯 3×2 위젯 설정 Activity -->
+        <activity
+            android:name=".widget.WidgetConfigActivity3x2"
+            android:exported="true"
+            android:label="Quick Call 3×2 설정"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
@@ -49,17 +71,46 @@
             android:name="flutterEmbedding"
             android:value="2" />
         
-        <!-- 🆕 홈 화면 위젯 Provider -->
+        <!-- 🆕 1×1 위젯 Provider -->
         <receiver
-            android:name=".widget.SpeedDialWidgetProvider"
-            android:exported="true">
+            android:name=".widget.SpeedDialWidgetProvider1x1"
+            android:exported="true"
+            android:label="Quick Call 1×1">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.example.quick_call.ACTION_CALL" />
+                <action android:name="com.example.quick_call.ACTION_CALL_1X1" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/speed_dial_widget_info" />
+                android:resource="@xml/speed_dial_widget_info_1x1" />
+        </receiver>
+        
+        <!-- 🆕 2×3 위젯 Provider -->
+        <receiver
+            android:name=".widget.SpeedDialWidgetProvider2x3"
+            android:exported="true"
+            android:label="Quick Call 2×3">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.example.quick_call.ACTION_CALL_2X3" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/speed_dial_widget_info_2x3" />
+        </receiver>
+        
+        <!-- 🆕 3×2 위젯 Provider -->
+        <receiver
+            android:name=".widget.SpeedDialWidgetProvider3x2"
+            android:exported="true"
+            android:label="Quick Call 3×2">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.example.quick_call.ACTION_CALL_3X2" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/speed_dial_widget_info_3x2" />
         </receiver>
     </application>
     

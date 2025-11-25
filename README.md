@@ -1,396 +1,444 @@
-# Quick Call ⚡📞
+# 📱 Quick Call - Flutter 단축 전화 앱
 
-Flutter 기반 전화번호 단축 다이얼 애플리케이션으로, 자주 연락하는 사람들에게 빠르게 전화를 걸 수 있는 홈 화면 위젯을 제공합니다.
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white" />
-  <img src="https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" />
-  <img src="https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" />
-  <img src="https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white" />
-</p>
-
----
+빠른 전화 걸기를 위한 Flutter 앱과 Android 홈 화면 위젯
 
 ## 📋 목차
 
-- [주요 기능](#-주요-기능)
-- [기술 스택](#-기술-스택)
-- [설치 방법](#-설치-방법)
-- [프로젝트 구조](#-프로젝트-구조)
-- [위젯 구현 상세](#-위젯-구현-상세)
-- [사용 방법](#-사용-방법)
-- [UI/UX 개선 사항](#-uiux-개선-사항)
-- [트러블슈팅](#-트러블슈팅)
-- [개발 과정](#-개발-과정)
+- [프로젝트 개요](#프로젝트-개요)
+- [주요 기능](#주요-기능)
+- [프로젝트 구조](#프로젝트-구조)
+- [설치 및 실행](#설치-및-실행)
+- [위젯 시스템](#위젯-시스템)
+- [개발 히스토리](#개발-히스토리)
+- [기술 스택](#기술-스택)
+- [문제 해결](#문제-해결)
+
+---
+
+## 🎯 프로젝트 개요
+
+Quick Call은 자주 전화하는 연락처를 빠르게 관리하고, Android 홈 화면 위젯으로 원터치 전화 걸기를 가능하게 하는 앱입니다.
+
+### 개발 환경
+- **Flutter SDK**: 3.24.5
+- **Dart**: 3.5.4
+- **Android SDK**: API 21-34
+- **IDE**: Visual Studio Code / Android Studio
+- **위치**: `C:\Users\User\Documents\coding\quick_call\`
 
 ---
 
 ## ✨ 주요 기능
 
 ### 📱 앱 기능
-- ✅ 단축 다이얼 버튼 생성 및 관리
-- ✅ 연락처에서 전화번호 불러오기
-- ✅ 그룹별 버튼 분류 (가족, 친구, 직장 등)
-- ✅ 커스텀 아이콘 설정
-- ✅ 버튼 순서 변경 (드래그 앤 드롭)
-- ✅ SQLite 로컬 데이터베이스 저장
-- ✅ 다크 모드 지원
-- ✅ **텍스트 자동 크기 조정** (긴 이름도 ... 없이 완전 표시) 🆕
+- ✅ 연락처 추가/편집/삭제
+- ✅ 그룹별 관리 (가족, 친구, 회사 등)
+- ✅ 커스텀 아이콘 (25가지 이모지)
+- ✅ 원터치 전화 걸기
+- ✅ 위젯 동기화
 
 ### 🏠 위젯 기능
-- ✅ **2×2 홈 화면 위젯** (최대 4개 버튼)
-- ✅ **위젯별 독립적인 버튼 구성**
-  - 위젯 A: 가족 연락처
-  - 위젯 B: 직장 연락처
-  - 위젯 C: 자주 가는 장소
-- ✅ **모던 머티리얼 디자인 설정 화면**
-- ✅ **위젯 추가 시 자동 설정 화면** (Configuration Activity)
-- ✅ **버튼 선택 및 순서 변경** (드래그 앤 드롭)
-- ✅ **앱 내 버튼 변경 시 위젯 자동 동기화**
-- ✅ **여러 위젯 동시 관리**
-- ✅ **텍스트 자동 크기 조정** (긴 이름도 ... 없이 완전 표시) 🆕
+- ✅ **3가지 크기**: 1×1, 2×3, 3×2
+- ✅ **독립 위젯 시스템**: 각 크기별 독립 설정
+- ✅ **삼성 One UI 스타일**: 흰색 둥근 버튼
+- ✅ **이모지 아이콘**: 25가지 아이콘 지원
+- ✅ **AutoSizeText**: 자동 텍스트 크기 조정
 
 ---
 
-## 🛠️ 기술 스택
-
-### Frontend
-- **Flutter** 3.x
-- **Dart** 3.x
-- **Provider** (상태 관리)
-- **flutter_screenutil** (반응형 UI)
-- **auto_size_text** 3.0.0 (텍스트 자동 크기 조정) 🆕
-
-### Backend
-- **SQLite** (sqflite)
-- **SharedPreferences** (위젯 데이터 저장)
-
-### Android Native
-- **Kotlin** 1.x
-- **AndroidX RecyclerView** 1.3.2
-- **AndroidX CardView** 1.0.0
-- **AppWidget API**
-- **MethodChannel** (Flutter ↔ Native 통신)
-- **TextView AutoSizeText** (XML 자동 텍스트 크기 조정) 🆕
-
-### 권한
-- `android.permission.CALL_PHONE` - 전화 걸기
-- `android.permission.READ_CONTACTS` - 연락처 읽기
-- `android.permission.INTERNET` - 네트워크 통신
-
----
-
-## 📦 설치 방법
-
-### 요구사항
-- Flutter SDK 3.0 이상
-- Android Studio / VS Code
-- Android SDK (API 21 이상)
-- Kotlin 1.7 이상
-
-### 빌드 및 실행
-
-```bash
-# 1. 의존성 설치
-flutter pub get
-
-# 2. 디버그 모드 실행
-flutter run
-
-# 3. 릴리즈 APK 빌드
-flutter build apk --release
-
-# 4. 앱 완전 재설치
-flutter run --uninstall-first
-```
-
-### 필수 설정
-
-**1. `android/app/build.gradle`에 의존성 추가:**
-
-```gradle
-dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    
-    // RecyclerView & CardView 의존성 (필수!)
-    implementation 'androidx.recyclerview:recyclerview:1.3.2'
-    implementation 'androidx.cardview:cardview:1.0.0'
-}
-```
-
-**2. `AndroidManifest.xml` 설정:**
-
-```xml
-<activity
-    android:name=".widget.WidgetConfigActivity"
-    android:exported="true"
-    android:label="위젯 설정"
-    android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-    <intent-filter>
-        <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
-    </intent-filter>
-</activity>
-```
-
-> ⚠️ **중요:** `android:theme="@style/Theme.AppCompat.Light.NoActionBar"`를 사용하여 상단 ActionBar를 제거합니다.
-
----
-
-## 📂 프로젝트 구조
+## 📁 프로젝트 구조
 
 ```
 quick_call/
-├── lib/
-│   ├── main.dart                          # 앱 진입점
-│   ├── models/
-│   │   └── speed_dial_button.dart         # 버튼 데이터 모델
-│   ├── providers/
-│   │   ├── settings_provider.dart         # 설정 관리
-│   │   └── speed_dial_provider.dart       # 상태 관리 (Provider)
-│   ├── screens/
-│   │   ├── add_button_screen.dart         # 버튼 추가 화면
-│   │   ├── edit_button_screen.dart        # 버튼 편집 화면
-│   │   ├── home_screen.dart               # 홈 화면
-│   │   ├── settings_screen.dart           # 설정 화면 ⭐
-│   │   └── widget_config_screen.dart      # 위젯 설정 화면 (Flutter)
-│   ├── services/
-│   │   ├── backup_service.dart            # 백업/복원 서비스
-│   │   ├── database_service.dart          # SQLite 데이터베이스
-│   │   ├── permission_service.dart        # 권한 관리 서비스
-│   │   ├── phone_service.dart             # 전화 걸기 서비스
-│   │   └── widget_service.dart            # 위젯 MethodChannel
-│   ├── utils/
-│   │   ├── error_handler.dart             # 에러 처리 유틸
-│   │   ├── phone_formatter.dart           # 전화번호 포맷팅
-│   │   └── sort_options.dart              # 정렬 옵션 Enum
-│   └── widgets/
-│       ├── contact_picker_widget.dart     # 연락처 선택 위젯
-│       ├── dial_button_widget.dart        # 다이얼 버튼 위젯 ⭐
-│       ├── duplicate_phone_dialog.dart    # 중복 전화번호 다이얼로그
-│       ├── empty_state_widget.dart        # 빈 상태 위젯
-│       ├── icon_picker_widget.dart        # 아이콘 선택 위젯
-│       ├── loading_widget.dart            # 로딩 위젯
-│       └── permission_dialog.dart         # 권한 요청 다이얼로그
-│
 ├── android/
-│   ├── build.gradle.kts                    # Gradle 프로젝트 설정
-│   ├── settings.gradle.kts                 # Gradle 모듈 설정
-│   └── app/
-│       ├── build.gradle.kts                # Android 앱 빌드 설정
-│       └── src/main/
-│           ├── AndroidManifest.xml         # 앱 권한 및 컴포넌트 ⭐
-│           ├── kotlin/com/example/quick_call/
-│           │   ├── MainActivity.kt         # Flutter Activity
-│           │   └── widget/
-│           │       ├── SpeedDialWidgetProvider.kt     # 위젯 Provider
-│           │       └── WidgetConfigActivity.kt        # 위젯 설정 Activity ⭐
-│           └── res/
-│               ├── drawable/
-│               │   ├── badge_circle.xml               # 카운터 배지
-│               │   ├── button_outline.xml             # 외곽선 버튼
-│               │   ├── button_primary.xml             # 주요 버튼 스타일
-│               │   ├── checkbox_selector.xml          # 체크박스
-│               │   ├── drag_indicator.xml             # 드래그 표시
-│               │   ├── group_badge.xml                # 그룹 배지
-│               │   ├── icon_circle_background.xml     # 큰 아이콘 배경 (72dp)
-│               │   ├── icon_small_background.xml      # 작은 아이콘 배경 (52dp)
-│               │   ├── launch_background.xml          # 앱 시작 배경
-│               │   ├── remove_button_background.xml   # 삭제 버튼
-│               │   ├── selected_indicator.xml         # 선택 표시
-│               │   ├── widget_background.xml          # 위젯 배경
-│               │   └── widget_button_background.xml   # 위젯 버튼 배경
-│               ├── drawable-v21/
-│               │   └── launch_background.xml          # API 21+ 시작 배경
-│               ├── layout/
-│               │   ├── activity_widget_config.xml     # 설정 화면 레이아웃 ⭐
-│               │   ├── item_widget_button_all.xml     # 전체 버튼 아이템 ⭐
-│               │   ├── item_widget_button_selected.xml # 선택된 버튼 아이템 ⭐
-│               │   └── widget_speed_dial.xml          # 위젯 레이아웃 ⭐
-│               ├── mipmap-hdpi/
-│               │   └── ic_launcher.png                # 앱 아이콘 (hdpi)
-│               ├── mipmap-mdpi/
-│               │   └── ic_launcher.png                # 앱 아이콘 (mdpi)
-│               ├── mipmap-xhdpi/
-│               │   └── ic_launcher.png                # 앱 아이콘 (xhdpi)
-│               ├── mipmap-xxhdpi/
-│               │   └── ic_launcher.png                # 앱 아이콘 (xxhdpi)
-│               ├── mipmap-xxxhdpi/
-│               │   └── ic_launcher.png                # 앱 아이콘 (xxxhdpi)
-│               ├── values/
-│               │   ├── strings.xml                    # 문자열 리소스 ⭐
-│               │   └── styles.xml                     # 스타일 정의
-│               ├── values-night/
-│               │   └── styles.xml                     # 다크 테마 스타일
-│               └── xml/
-│                   └── speed_dial_widget_info.xml     # 위젯 메타데이터
-│
-├── pubspec.yaml                            # Flutter 의존성 ⭐
-└── README.md                               # 프로젝트 문서
+│   ├── app/
+│   │   ├── src/
+│   │   │   └── main/
+│   │   │       ├── kotlin/com/example/quick_call/
+│   │   │       │   ├── MainActivity.kt                    # 메인 Activity (3개 위젯 지원)
+│   │   │       │   └── widget/
+│   │   │       │       ├── WidgetUtils.kt                 # 공통 유틸리티
+│   │   │       │       ├── SpeedDialWidgetProvider1x1.kt  # 1×1 위젯 Provider
+│   │   │       │       ├── SpeedDialWidgetProvider2x3.kt  # 2×3 위젯 Provider
+│   │   │       │       ├── SpeedDialWidgetProvider3x2.kt  # 3×2 위젯 Provider
+│   │   │       │       ├── WidgetConfigActivity.kt        # 기존 설정 (사용 안 함)
+│   │   │       │       ├── WidgetConfigActivity1x1.kt     # 1×1 위젯 설정
+│   │   │       │       ├── WidgetConfigActivity2x3.kt     # 2×3 위젯 설정
+│   │   │       │       └── WidgetConfigActivity3x2.kt     # 3×2 위젯 설정
+│   │   │       ├── res/
+│   │   │       │   ├── drawable/
+│   │   │       │   │   ├── samsung_white_button.xml       # 흰색 버튼 배경
+│   │   │       │   │   ├── gradient_header.xml            # 헤더 그라데이션
+│   │   │       │   │   ├── button_outline.xml             # 아웃라인 버튼
+│   │   │       │   │   ├── button_primary.xml             # 프라이머리 버튼
+│   │   │       │   │   ├── badge_circle.xml               # 뱃지 원형
+│   │   │       │   │   └── widget_button_bg.xml           # 위젯 버튼 배경
+│   │   │       │   ├── layout/
+│   │   │       │   │   ├── widget_speed_dial_1x1.xml      # 1×1 위젯 레이아웃
+│   │   │       │   │   ├── widget_speed_dial_2x3.xml      # 2×3 위젯 레이아웃
+│   │   │       │   │   ├── widget_speed_dial_3x2.xml      # 3×2 위젯 레이아웃
+│   │   │       │   │   ├── activity_widget_config.xml     # 기존 설정 화면
+│   │   │       │   │   ├── activity_widget_config_simple.xml  # 간단한 설정 화면
+│   │   │       │   │   ├── item_widget_button_all.xml     # 버튼 아이템
+│   │   │       │   │   └── item_widget_button_selected.xml # 선택된 버튼 아이템
+│   │   │       │   ├── xml/
+│   │   │       │   │   ├── speed_dial_widget_info_1x1.xml # 1×1 위젯 메타데이터
+│   │   │       │   │   ├── speed_dial_widget_info_2x3.xml # 2×3 위젯 메타데이터
+│   │   │       │   │   └── speed_dial_widget_info_3x2.xml # 3×2 위젯 메타데이터
+│   │   │       │   ├── values/
+│   │   │       │   │   ├── strings.xml                    # 문자열 리소스
+│   │   │       │   │   ├── colors.xml                     # 색상 리소스
+│   │   │       │   │   └── styles.xml                     # 스타일 리소스
+│   │   │       │   └── mipmap-*/
+│   │   │       │       └── ic_launcher.png                # 앱 아이콘
+│   │   │       └── AndroidManifest.xml                    # Android 매니페스트
+│   │   ├── build.gradle                                   # 앱 빌드 설정
+│   │   └── proguard-rules.pro                             # ProGuard 규칙
+│   ├── build.gradle                                       # 프로젝트 빌드 설정
+│   ├── gradle.properties                                  # Gradle 속성
+│   └── settings.gradle                                    # Gradle 설정
+├── lib/
+│   ├── main.dart                                          # 앱 진입점
+│   ├── models/
+│   │   ├── speed_dial_button.dart                         # 버튼 모델
+│   │   └── button_group.dart                              # 그룹 모델
+│   ├── providers/
+│   │   └── button_provider.dart                           # 상태 관리
+│   ├── screens/
+│   │   ├── home_screen.dart                               # 홈 화면
+│   │   ├── add_button_screen.dart                         # 버튼 추가 화면
+│   │   └── edit_button_screen.dart                        # 버튼 편집 화면
+│   ├── widgets/
+│   │   ├── button_grid.dart                               # 버튼 그리드
+│   │   ├── button_card.dart                               # 버튼 카드
+│   │   ├── icon_picker.dart                               # 아이콘 선택기
+│   │   └── group_selector.dart                            # 그룹 선택기
+│   └── utils/
+│       ├── phone_helper.dart                              # 전화 헬퍼
+│       └── widget_helper.dart                             # 위젯 헬퍼
+├── test/
+│   └── widget_test.dart                                   # 위젯 테스트
+├── pubspec.yaml                                           # Flutter 의존성
+├── pubspec.lock                                           # 의존성 잠금
+├── README.md                                              # 프로젝트 문서
+└── .gitignore                                             # Git 무시 파일
 ```
-
-### 📁 주요 디렉토리 설명
-
-#### `/lib` (Flutter 코드)
-- **models/** (1개): 데이터 모델 클래스
-- **providers/** (2개): Provider 패턴 상태 관리
-- **screens/** (5개): 화면 UI 컴포넌트
-  - 홈, 추가, 편집, 설정, 위젯 설정 화면
-- **services/** (5개): 비즈니스 로직
-  - 데이터베이스, 위젯, 백업, 권한, 전화 서비스
-- **utils/** (3개): 유틸리티 함수
-  - 에러 처리, 전화번호 포맷팅, 정렬 옵션
-- **widgets/** (7개): 재사용 가능한 UI 위젯
-  - 연락처 선택, 다이얼 버튼, 아이콘 선택, 로딩, 권한 다이얼로그 등
-
-#### `/android/app/src/main/kotlin` (Native 코드)
-- **MainActivity.kt**: Flutter 앱 진입점
-- **widget/** (2개): 위젯 관련 Kotlin 코드
-  - **SpeedDialWidgetProvider.kt**: 위젯 업데이트 및 관리
-  - **WidgetConfigActivity.kt**: 위젯 설정 화면 (2열 그리드, 드래그 앤 드롭)
-
-#### `/android/app/src/main/res` (Android 리소스)
-- **drawable/** (13개): 벡터 그래픽 및 shape drawable
-  - 배지, 버튼, 체크박스, 아이콘 배경, 인디케이터 등
-- **drawable-v21/** (1개): API 21+ 전용 drawable
-- **layout/** (4개): XML 레이아웃 파일
-  - 설정 화면, 버튼 아이템, 위젯 레이아웃
-- **mipmap-xxx/** (5개): 다양한 해상도의 앱 아이콘
-- **values/** (2개): 문자열, 스타일 리소스
-- **values-night/** (1개): 다크 테마 스타일
-- **xml/** (1개): 위젯 메타데이터
-
-### 📊 프로젝트 파일 통계
-- **Flutter 파일**: 23개 (Dart)
-- **Kotlin 파일**: 2개 (Native)
-- **XML 레이아웃**: 4개
-- **Drawable 리소스**: 14개
-- **총 코드 라인**: ~4,000+ lines
 
 ---
 
-## 🔧 위젯 구현 상세
+## 🚀 설치 및 실행
 
-### Architecture: Configuration Activity 패턴
+### 필수 요구사항
+- Flutter SDK 3.24.5 이상
+- Android Studio 또는 VS Code
+- Android SDK (API 21-34)
+- 실제 Android 기기 (위젯 테스트용)
 
-위젯 추가 시 사용자가 버튼을 선택할 수 있도록 **Android AppWidget Configuration Activity**를 구현했습니다.
+### 설치 단계
 
-#### 동작 흐름
+```bash
+# 1. 저장소 클론 (또는 프로젝트 폴더로 이동)
+cd C:\Users\User\Documents\coding\quick_call
 
-```
-1. 사용자가 홈 화면에서 위젯 드래그
-         ↓
-2. WidgetConfigActivity 자동 실행
-         ↓
-3. SharedPreferences에서 전체 버튼 데이터 로드
-         ↓
-4. RecyclerView로 버튼 목록 표시
-   - 선택된 버튼 (2열 그리드, 드래그 가능)
-   - 전체 버튼 (2열 그리드, 선택 가능)
-         ↓
-5. 사용자가 최대 4개 버튼 선택
-         ↓
-6. 드래그 앤 드롭으로 순서 변경
-         ↓
-7. 저장 버튼 클릭
-         ↓
-8. 위젯 ID별로 데이터 저장
-   (widget_data_{appWidgetId})
-         ↓
-9. SpeedDialWidgetProvider 업데이트
-         ↓
-10. 위젯에 선택한 버튼 표시
+# 2. 의존성 설치
+flutter pub get
+
+# 3. Android 기기 연결 확인
+flutter devices
+
+# 4. 앱 실행
+flutter run
+
+# 5. 릴리즈 빌드 (APK 생성)
+flutter build apk --release
 ```
 
-### 주요 컴포넌트
+### 권한 설정
 
-#### 1. WidgetConfigActivity.kt
+앱이 다음 권한을 요청합니다:
+- `CALL_PHONE`: 전화 걸기
+- `READ_CONTACTS`: 연락처 읽기 (선택)
+
+---
+
+## 🏠 위젯 시스템
+
+### 위젯 종류
+
+#### 1. Quick Call 1×1 (단일 버튼)
+- **크기**: 1칸 × 1칸
+- **버튼 수**: 1개
+- **용도**: 가장 자주 사용하는 연락처 1개
+
+#### 2. Quick Call 2×3 (세로형)
+- **크기**: 2칸 × 3칸 (가로 2칸, 세로 3칸)
+- **버튼 수**: 6개
+- **배치**: 2열 × 3행
+
+#### 3. Quick Call 3×2 (가로형)
+- **크기**: 3칸 × 2칸 (가로 3칸, 세로 2칸)
+- **버튼 수**: 6개
+- **배치**: 3열 × 2행
+
+### 위젯 디자인 (삼성 One UI 스타일)
+
+```
+특징:
+✅ 흰색 단일색 배경 (#FFFFFF)
+✅ 둥근 정사각형 (18dp radius)
+✅ 가벼운 테두리 (#E0E0E0)
+✅ 이모지 아이콘
+✅ 검은색 텍스트 (#333333)
+✅ 그림자 효과 (elevation 4dp)
+```
+
+### 위젯 추가 방법
+
+1. 홈 화면 길게 누르기
+2. "위젯" 선택
+3. "Quick Call" 찾기
+4. 원하는 크기 선택 (1×1, 2×3, 3×2)
+5. 홈 화면에 배치
+6. 버튼 선택 화면에서 연락처 선택
+7. "저장" 버튼 클릭
+
+---
+
+## 📚 개발 히스토리
+
+### Phase 1-7: 기본 앱 개발 (완료)
+- ✅ Flutter 앱 기본 구조
+- ✅ 버튼 CRUD 기능
+- ✅ 그룹 관리
+- ✅ 아이콘 선택
+- ✅ 전화 걸기 기능
+- ✅ SharedPreferences 저장
+- ✅ Provider 상태 관리
+
+### Phase 8: 독립 위젯 시스템 (완료)
+
+#### 초기 계획 (변경됨)
+- 6가지 크기 지원 (2×2, 3×2, 4×2, 3×3, 4×3, 4×4)
+- 동적 크기 감지
+- 단일 Provider
+
+#### 최종 구현 (Gmail 스타일)
+- **3가지 독립 위젯** (1×1, 2×3, 3×2)
+- **각 위젯별 독립 Provider**
+- **각 위젯별 독립 설정 화면**
+- **고유 SharedPreferences 키**
+
+### 주요 문제 해결
+
+#### 1. 위젯 크기 인식 문제
+**문제**: 위젯 크기를 동적으로 감지하는 것이 불안정
+**해결**: Gmail 방식 채택 - 위젯 목록에서 크기별로 선택
+
+#### 2. WidgetButton 중복 선언
+**문제**: `WidgetConfigActivity.kt`와 `WidgetUtils.kt`에서 중복 선언
+**해결**: `WidgetUtils.kt`에만 선언, 다른 곳에서 import
+
+#### 3. MainActivity.kt 오류
+**문제**: 기존 `SpeedDialWidgetProvider` 참조
+**해결**: 3개 Provider를 모두 import하고 처리
+
+#### 4. 위젯 설정 화면 빈 문제
+**문제**: `item_widget_button_all.xml` 누락
+**해결**: RecyclerView 아이템 레이아웃 추가
+
+#### 5. disabled_overlay 오류
+**문제**: 존재하지 않는 View ID 참조
+**해결**: alpha 속성만으로 비활성화 표시
+
+#### 6. 위젯 크기 부정확
+**문제**: minWidth/minHeight 값이 너무 커서 실제보다 큰 크기로 표시
+**해결**: Android 크기 공식 적용
+```
+minWidth = (셀 개수 × 70dp) - 30dp
+minHeight = (셀 개수 × 70dp) - 30dp
+```
+
+#### 7. 디자인 최종 변경
+**문제**: 그라데이션 배경이 요구사항과 다름
+**해결**: 삼성 One UI 스타일 흰색 버튼으로 변경
+
+---
+
+## 🛠 기술 스택
+
+### Flutter/Dart
+```yaml
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.1.1              # 상태 관리
+  shared_preferences: ^2.2.2    # 로컬 저장
+  url_launcher: ^6.2.2          # 전화 걸기
+  permission_handler: ^11.1.0   # 권한 관리
+```
+
+### Android (Kotlin)
+- **Language**: Kotlin
+- **Min SDK**: 21 (Android 5.0 Lollipop)
+- **Target SDK**: 34 (Android 14)
+- **Compile SDK**: 34
+
+### 주요 Android 컴포넌트
+- `AppWidgetProvider`: 위젯 생명주기 관리
+- `RemoteViews`: 위젯 UI 업데이트
+- `SharedPreferences`: 위젯 데이터 저장
+- `PendingIntent`: 버튼 클릭 처리
+- `RecyclerView`: 버튼 목록 표시
+
+---
+
+## 🎨 UI/UX 디자인
+
+### 앱 화면
+- **Material Design 3** 스타일
+- **그라데이션 헤더** (블루 → 인디고)
+- **카드 기반 레이아웃**
+- **FAB (Floating Action Button)** 추가 버튼
+
+### 위젯 디자인 (삼성 스타일)
+
+#### 1×1 위젯
+```
+┌──────────────┐
+│              │
+│   📞 (32sp)  │  ← 이모지 아이콘
+│   엄마 (11sp) │  ← 이름
+│              │
+└──────────────┘
+```
+
+#### 2×3 & 3×2 위젯
+```
+각 버튼:
+┌─────────┐
+│ 📞 (22sp)│  ← 이모지 아이콘
+│ 이름 (9sp)│  ← 이름
+└─────────┘
+
+배경: 흰색 (#FFFFFF)
+테두리: 연한 회색 (#E0E0E0)
+텍스트: 진한 회색 (#333333)
+둥근 모서리: 18dp
+그림자: elevation 4dp
+```
+
+---
+
+## 🐛 문제 해결
+
+### 위젯이 목록에 나타나지 않음
+
+**원인**: AndroidManifest.xml에 receiver가 제대로 등록되지 않음
+
+**해결**:
+```xml
+<receiver
+    android:name=".widget.SpeedDialWidgetProvider1x1"
+    android:exported="true"
+    android:label="Quick Call 1×1">
+    <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+    </intent-filter>
+    <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/speed_dial_widget_info_1x1" />
+</receiver>
+```
+
+3개 위젯 모두 등록 확인 (1x1, 2x3, 3x2)
+
+### 위젯 크기가 이상함
+
+**원인**: 위젯 메타데이터의 minWidth/minHeight 값이 부정확
+
+**해결**: 올바른 크기 공식 적용
+```xml
+<!-- 1×1 -->
+<appwidget-provider
+    android:minWidth="40dp"
+    android:minHeight="40dp"
+    android:targetCellWidth="1"
+    android:targetCellHeight="1" />
+
+<!-- 2×3 -->
+<appwidget-provider
+    android:minWidth="110dp"
+    android:minHeight="180dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="3" />
+
+<!-- 3×2 -->
+<appwidget-provider
+    android:minWidth="180dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="2" />
+```
+
+### 위젯 설정 화면이 비어있음
+
+**원인**: `item_widget_button_all.xml` 레이아웃 파일 누락
+
+**해결**: RecyclerView 아이템 레이아웃 추가
+```
+android/app/src/main/res/layout/item_widget_button_all.xml
+```
+
+### 전화가 걸리지 않음
+
+**원인**: CALL_PHONE 권한 없음 또는 ACTION이 제대로 등록되지 않음
+
+**해결**:
+1. AndroidManifest.xml에 권한 추가
+```xml
+<uses-permission android:name="android.permission.CALL_PHONE" />
+```
+
+2. 각 위젯의 고유 ACTION 확인
+```kotlin
+// 1×1
+const val ACTION_CALL = "com.example.quick_call.ACTION_CALL_1X1"
+
+// 2×3
+const val ACTION_CALL = "com.example.quick_call.ACTION_CALL_2X3"
+
+// 3×2
+const val ACTION_CALL = "com.example.quick_call.ACTION_CALL_3X2"
+```
+
+### 빌드 오류 해결
+
+#### "Unresolved reference: SpeedDialWidgetProvider"
+**해결**: 기존 파일 삭제, 3개 Provider로 교체
+
+#### "Unresolved reference: WidgetButton"
+**해결**: WidgetUtils.kt에만 선언, 중복 제거
+
+#### "Unresolved reference: disabled_overlay"
+**해결**: alpha 속성만으로 비활성화 표시
+
+---
+
+## 📊 데이터 구조
+
+### SharedPreferences 키
 
 ```kotlin
-// 위젯 설정 Activity - 위젯 추가 시 자동 실행
-class WidgetConfigActivity : Activity() {
-    
-    private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
-    private val selectedButtons = mutableListOf<WidgetButton>()
-    private val allButtons = mutableListOf<WidgetButton>()
-    
-    // SharedPreferences에서 데이터 로드
-    private fun loadAllButtons() { ... }
-    
-    // RecyclerView 어댑터 설정 (2열 그리드)
-    private fun setupAdapters() {
-        // 선택된 버튼: 2열 그리드
-        recyclerSelected.layoutManager = GridLayoutManager(this, 2)
-        
-        // 전체 버튼: 2열 그리드 (3열에서 변경)
-        recyclerAll.layoutManager = GridLayoutManager(this, 2)
-    }
-    
-    // 설정 저장
-    private fun saveConfiguration() {
-        // JSON 변환
-        // SharedPreferences 저장
-        // 위젯 업데이트
-        // RESULT_OK 반환
-    }
-}
-```
-
-#### 2. SpeedDialWidgetProvider.kt
-
-```kotlin
-class SpeedDialWidgetProvider : AppWidgetReceiver() {
-    
-    companion object {
-        // 위젯 ID별 데이터 로드
-        fun updateAppWidget(
-            context: Context,
-            appWidgetManager: AppWidgetManager,
-            appWidgetId: Int
-        ) { ... }
-        
-        // 모든 위젯 새로고침
-        fun updateAllWidgets(context: Context) { ... }
-    }
-    
-    // 위젯 삭제 시 데이터 정리
-    override fun onDeleted(context: Context, appWidgetIds: IntArray) { ... }
-}
-```
-
-#### 3. WidgetService (Flutter ↔ Native)
-
-```dart
-class WidgetService {
-  static const MethodChannel _channel = MethodChannel('widget_channel');
-  
-  // 전체 버튼 데이터 저장 (위젯 설정 화면용)
-  Future<void> saveAllButtonsData(List<SpeedDialButton> buttons) async { ... }
-  
-  // 특정 위젯 데이터 업데이트
-  Future<void> updateWidgetData(int widgetId, List<SpeedDialButton> buttons) async { ... }
-  
-  // 모든 위젯 새로고침
-  Future<void> refreshAllWidgets() async { ... }
-  
-  // 위젯 ID 목록 조회
-  Future<List<int>> getWidgetIds() async { ... }
-}
-```
-
-### 데이터 저장 구조
-
-#### SharedPreferences
-
-```kotlin
-// 전체 버튼 데이터 (위젯 설정 화면용)
-"all_buttons_data" = "[{id:1, name:'엄마', ...}, ...]"
+// 전체 버튼 데이터 (앱에서 저장)
+"all_buttons_data" → JSON 배열
 
 // 위젯별 데이터
-"widget_data_13" = "[{id:1, ...}, {id:3, ...}]"  // 위젯 ID 13
-"widget_data_14" = "[{id:5, ...}, {id:7, ...}]"  // 위젯 ID 14
+"widget_data_1x1_{widgetId}" → JSON 배열 (최대 1개)
+"widget_data_2x3_{widgetId}" → JSON 배열 (최대 6개)
+"widget_data_3x2_{widgetId}" → JSON 배열 (최대 6개)
 ```
 
-#### JSON 형식
+### JSON 구조
 
 ```json
 [
@@ -403,545 +451,105 @@ class WidgetService {
   },
   {
     "id": 2,
-    "name": "아빠",
-    "phoneNumber": "010-8765-4321",
-    "iconCodePoint": 57549,
-    "group": "가족"
+    "name": "회사",
+    "phoneNumber": "02-1234-5678",
+    "iconCodePoint": 59574,
+    "group": "회사"
   }
 ]
 ```
 
-### 위젯별 독립 관리
-
-```
-📱 위젯 A (ID: 13)
-├─ 엄마 (010-1234-5678)
-├─ 아빠 (010-8765-4321)
-├─ 119
-└─ 112
-
-📱 위젯 B (ID: 14)
-├─ 직장 (02-1234-5678)
-├─ 동료 (010-1111-2222)
-├─ 고객센터 (1588-0000)
-└─ 택시 (1577-0000)
-
-📱 위젯 C (ID: 15)
-├─ 할머니 (010-9999-8888)
-├─ 할아버지 (010-7777-6666)
-├─ 이모 (010-5555-4444)
-└─ 삼촌 (010-3333-2222)
-```
-
 ---
 
-## 📖 사용 방법
+## 🔐 권한
 
-### 1️⃣ 앱에서 버튼 추가
+### Android 권한
 
-1. 앱 실행
-2. `+` 버튼 클릭
-3. 이름, 전화번호, 그룹, 아이콘 입력
-4. 저장
-
-### 2️⃣ 위젯 추가
-
-1. 홈 화면 길게 누르기
-2. "위젯" 선택
-3. "Quick Call" 위젯 찾기
-4. 2×2 위젯을 홈 화면에 드래그
-5. **자동으로 설정 화면 표시** (모던 디자인)
-6. 버튼 선택 (최대 4개)
-7. 드래그하여 순서 변경
-8. "저장" 버튼 클릭
-
-### 3️⃣ 위젯 재구성
-
-1. 위젯 길게 누르기
-2. "재구성" 선택
-3. 버튼 다시 선택
-4. 저장
-
-### 4️⃣ 앱 내 버튼 변경 시 자동 동기화
-
-- 앱에서 버튼 추가/수정/삭제 시
-- 모든 위젯이 자동으로 업데이트됩니다
-- 별도 조작 불필요
-
----
-
-## 🎨 UI/UX 개선 사항
-
-### Phase 6: 모던 디자인 적용
-
-#### 1. Native 위젯 설정 화면 전면 개선
-
-**설계 원칙:**
-- 모던 머티리얼 디자인 3.0
-- 카드 기반 레이아웃
-- 직관적인 시각적 계층 구조
-- 부드러운 애니메이션
-
-**주요 개선 사항:**
-
-##### 🎯 헤더 섹션
-- 블루 그라데이션 배경 (#2196F3)
-- 명확한 제목과 설명
-- Elevation 효과로 부각
-
-##### 📌 선택된 버튼 섹션
-- 카드 기반 레이아웃 (16dp corner radius)
-- 2열 그리드로 최적화
-- 원형 아이콘 배경 (블루 톤 #E3F2FD)
-- 빨간색 원형 삭제 버튼 (#F44336)
-- 좌측 상단 선택 인디케이터 (그린 #4CAF50)
-- 드래그 인디케이터 표시
-- 실시간 카운터 배지 (0~4)
-
-##### 📋 전체 버튼 섹션
-- **3열 → 2열 그리드로 변경** (가로 공간 50% 증가)
-- 원형 아이콘 배경 (그린 톤 #E8F5E9)
-- 커스텀 체크박스 디자인
-- 4개 초과 시 자동 비활성화 오버레이
-- 텍스트 2줄 확보 (긴 이름 완전 표시)
-- 아이콘 잘림 방지 (52dp 원형)
-
-##### 🎯 하단 액션 버튼
-- 취소 버튼 (외곽선 스타일)
-- 저장 버튼 (filled 스타일, 블루 #2196F3)
-- 활성화 상태에 따른 스타일 변경
-
-**색상 시스템:**
-- Primary: `#2196F3` (블루)
-- Success: `#4CAF50` (그린)
-- Error: `#F44336` (레드)
-- Background: `#FFFFFF` / `#FAFAFA`
-- Text: `#212121` / `#757575`
-
-#### 2. ActionBar 제거
-
-**문제:** 중복된 상단 바 (검은색 "위젯 설정" + 파란색 헤더)
-
-**해결:**
 ```xml
-<!-- AndroidManifest.xml -->
-<activity
-    android:name=".widget.WidgetConfigActivity"
-    android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+<uses-permission android:name="android.permission.CALL_PHONE" />
+<uses-permission android:name="android.permission.READ_CONTACTS" />
+<uses-permission android:name="android.permission.INTERNET" />
 ```
 
-#### 3. NestedScrollView 적용
+### 런타임 권한 요청
 
-**문제:** 전체 버튼 목록이 일부만 표시됨
-
-**해결:**
-- ScrollView → NestedScrollView로 변경
-- RecyclerView에 `nestedScrollingEnabled="false"` 추가
-- 모든 버튼이 한 번에 표시되고 부모로 스크롤 위임
-
-#### 4. 텍스트 잘림 방지
-
-**개선 사항:**
-- `android:minLines="2"` 추가 (항상 2줄 확보)
-- 텍스트 크기: 12sp → 13sp
-- 행간: 1dp → 2dp
-- "중학교 수학학..." → "중학교\n수학학회" (완전 표시)
-
-#### 5. 아이콘 잘림 방지
-
-**개선 사항:**
-- 아이콘 배경: 56dp → 52dp
-- 아이콘 크기: 32dp → 28dp
-- 카드 padding: 12dp → 16dp
-- 카드 margin: 4dp → 6dp
-
-#### 6. Flutter 설정 화면 최적화
-
-**삭제된 기능:**
-- ❌ 위젯 버튼 설정 타일 (Native 화면에서 처리)
-- ❌ 위젯 새로고침 타일 (자동 동기화)
-
-**유지된 기능:**
-- ✅ 다크 모드
-- ✅ 정렬 설정
-- ✅ 백업/복원
-- ✅ 데이터베이스 정보
-- ✅ 앱 정보
+앱 실행 시 다음 권한을 요청합니다:
+- **전화 걸기** (CALL_PHONE): 필수
+- **연락처 읽기** (READ_CONTACTS): 선택
 
 ---
 
-### Phase 7: 텍스트 자동 크기 조정 🆕
+## 📈 향후 계획
 
-#### 1. Flutter AutoSizeText 적용
-
-**문제:** 앱 내 버튼 이름이 길면 `...`으로 잘림
-
-**해결 방법:**
-```yaml
-# pubspec.yaml
-dependencies:
-  auto_size_text: ^3.0.0
-```
-
-```dart
-// dial_button_widget.dart
-AutoSizeText(
-  widget.button.name,
-  style: TextStyle(
-    fontSize: 15.sp,
-    fontWeight: FontWeight.w600,
-    color: Colors.black87,
-    height: 1.2,
-  ),
-  maxLines: 2,
-  minFontSize: 10,  // 최소 10sp까지만 축소
-  maxFontSize: 15,  // 최대 15sp
-  textAlign: TextAlign.center,
-  overflow: TextOverflow.visible,  // ...이 나타나지 않음
-)
-```
-
-**효과:**
-- ✅ 짧은 이름 (예: "엄마"): 15sp 크게 표시
-- ✅ 중간 이름 (예: "홍길동"): 14~13sp 자동 축소
-- ✅ 긴 이름 (예: "중학교 수학학회"): 10~12sp 자동 축소
-- ✅ **...이 절대 나타나지 않음** - 모든 글자 완전 표시
-- ✅ 가독성 보장 (최소 10sp 유지)
-
-#### 2. Android XML AutoSizeText 적용
-
-**문제:** 위젯과 위젯 설정 화면에서 버튼 이름이 `...`으로 잘림
-
-**해결 방법:**
-```xml
-<!-- item_widget_button_all.xml (전체 버튼) -->
-<TextView
-    android:id="@+id/button_name"
-    android:autoSizeTextType="uniform"
-    android:autoSizeMinTextSize="9sp"
-    android:autoSizeMaxTextSize="13sp"
-    android:autoSizeStepGranularity="1sp"
-    android:maxLines="2" />
-
-<!-- item_widget_button_selected.xml (선택된 버튼) -->
-<TextView
-    android:id="@+id/button_name"
-    android:autoSizeTextType="uniform"
-    android:autoSizeMinTextSize="10sp"
-    android:autoSizeMaxTextSize="14sp"
-    android:autoSizeStepGranularity="1sp"
-    android:maxLines="2" />
-
-<!-- widget_speed_dial.xml (홈 화면 위젯) -->
-<TextView
-    android:id="@+id/name_1"
-    android:layout_width="match_parent"
-    android:autoSizeTextType="uniform"
-    android:autoSizeMinTextSize="8sp"
-    android:autoSizeMaxTextSize="11sp"
-    android:autoSizeStepGranularity="1sp"
-    android:gravity="center"
-    android:maxLines="2"
-    android:paddingStart="4dp"
-    android:paddingEnd="4dp" />
-```
-
-**크기 범위 설정:**
-
-| 위치 | 최소 크기 | 최대 크기 | maxLines |
-|------|----------|----------|----------|
-| **전체 버튼** | 9sp | 13sp | 2줄 |
-| **선택된 버튼** | 10sp | 14sp | 2줄 |
-| **홈 위젯** | 8sp | 11sp | 2줄 |
-
-**효과:**
-- ✅ **위젯 설정 화면**
-  - 짧은 이름: 13sp~14sp (크게 표시)
-  - 중간 이름: 11sp~12sp (적절하게)
-  - 긴 이름: 9sp~10sp (작게 축소)
-  - ...이 절대 나타나지 않음
-
-- ✅ **홈 화면 위젯**
-  - 1줄로 표시 가능: 11sp (선명)
-  - 2줄 필요한 경우: 8sp~10sp (자동 축소)
-  - 좁은 공간에서도 완벽하게 표시
-  - ...이 절대 나타나지 않음
-
-#### 3. 동작 원리
-
-**Flutter AutoSizeText:**
-- 텍스트가 공간에 맞는지 확인
-- 넘치면 자동으로 폰트 크기 축소
-- `minFontSize`에 도달할 때까지 반복
-- `overflow: TextOverflow.visible`로 ...이 나타나지 않음
-
-**Android TextView AutoSize:**
-- `autoSizeTextType="uniform"` 활성화
-- TextView의 사용 가능한 공간 계산
-- 텍스트가 넘치면 `autoSizeStepGranularity`만큼 축소
-- `minTextSize`에 도달할 때까지 반복
-- 결과: **...이 나타나지 않음!**
-
----
-
-## 🐛 트러블슈팅
-
-### 문제 1: RecyclerView 의존성 에러
-
-**증상:**
-```
-Unresolved reference 'RecyclerView'
-Unresolved reference 'GridLayoutManager'
-```
-
-**해결:**
-```gradle
-// android/app/build.gradle
-dependencies {
-    implementation 'androidx.recyclerview:recyclerview:1.3.2'
-    implementation 'androidx.cardview:cardview:1.0.0'
-}
-```
-
-### 문제 2: XML 파싱 에러
-
-**증상:**
-```
-[xX][mM][lL]과 일치하는 처리 명령 대상은 허용되지 않습니다
-```
-
-**해결:**
-- XML 파일 첫 줄이 `<?xml`로 시작하는지 확인
-- 앞에 공백이나 BOM(Byte Order Mark) 제거
-- UTF-8 인코딩 확인
-
-### 문제 3: 위젯 추가 시 앱 크래시
-
-**증상:**
-```
-android.view.InflateException: Error inflating class <unknown>
-Failed to resolve attribute: selectableItemBackground
-```
-
-**해결:**
-```xml
-<!-- AndroidManifest.xml -->
-<activity
-    android:name=".widget.WidgetConfigActivity"
-    android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-```
-
-### 문제 4: supportActionBar 에러
-
-**증상:**
-```
-Unresolved reference 'supportActionBar'
-```
-
-**해결:**
-- `supportActionBar?.hide()` 코드 제거
-- AndroidManifest.xml의 NoActionBar 테마로 충분
-
-### 문제 5: File.path 타입 에러
-
-**증상:**
-```
-The getter 'path' isn't defined for the type 'String'
-```
-
-**해결:**
-```dart
-// 명시적 타입 캐스팅
-if (file is File) {
-  final f = file as File;
-  fileName = f.path.split('/').last;
-}
-```
-
-### 문제 6: RecyclerView가 일부만 보임
-
-**증상:**
-전체 버튼 중 3개만 보이고 나머지는 숨겨짐
-
-**해결:**
-```xml
-<!-- NestedScrollView 사용 -->
-<androidx.core.widget.NestedScrollView ...>
-    <RecyclerView
-        android:nestedScrollingEnabled="false"
-        android:layout_height="wrap_content" />
-</androidx.core.widget.NestedScrollView>
-```
-
-### 문제 7: 아이콘 양옆 잘림
-
-**증상:**
-초록색 원형 배경이 카드 밖으로 튀어나옴
-
-**해결:**
-- 아이콘 크기 축소: 56dp → 52dp
-- 카드 padding 증가: 12dp → 16dp
-
-### 문제 8: 텍스트가 ...으로 잘림 🆕
-
-**증상:**
-앱, 위젯, 위젯 설정 화면에서 긴 이름이 "중학교 수학학..."으로 표시됨
-
-**해결:**
-
-**Flutter (앱):**
-```yaml
-# pubspec.yaml
-dependencies:
-  auto_size_text: ^3.0.0
-```
-
-```dart
-// dial_button_widget.dart
-AutoSizeText(
-  widget.button.name,
-  maxLines: 2,
-  minFontSize: 10,
-  maxFontSize: 15,
-  overflow: TextOverflow.visible,
-)
-```
-
-**Android XML (위젯):**
-```xml
-<TextView
-    android:autoSizeTextType="uniform"
-    android:autoSizeMinTextSize="8sp"
-    android:autoSizeMaxTextSize="11sp"
-    android:autoSizeStepGranularity="1sp"
-    android:maxLines="2" />
-```
-
-**효과:**
-- ✅ 모든 글자가 완전히 표시됨
-- ✅ ...이 절대 나타나지 않음
-- ✅ 자동으로 적절한 크기로 축소
-- ✅ 최소 폰트 크기 보장으로 가독성 유지
-
----
-
-## 📝 개발 과정
-
-### Phase 1: 기본 앱 개발
-- ✅ Flutter UI 구현
-- ✅ SQLite 데이터베이스 연동
-- ✅ 버튼 CRUD 기능
-- ✅ 연락처 권한 처리
-
-### Phase 2: 위젯 기본 구현
-- ✅ 2×2 위젯 레이아웃
-- ✅ SpeedDialWidgetProvider 작성
-- ✅ MethodChannel 통신
-- ✅ 위젯 클릭 시 전화 걸기
-
-### Phase 3: Configuration Activity 구현
-- ✅ WidgetConfigActivity 작성
-- ✅ RecyclerView 어댑터 구현
-- ✅ 드래그 앤 드롭 기능
-- ✅ 위젯별 독립 데이터 관리
-- ✅ SharedPreferences 저장
-
-### Phase 4: 에러 해결
-- ✅ RecyclerView 의존성 추가
-- ✅ XML 파싱 에러 수정
-- ✅ Dialog 테마 이슈 해결
-- ✅ 레이아웃 속성 호환성 개선
-
-### Phase 5: 자동 동기화
-- ✅ 앱 내 버튼 변경 감지
-- ✅ 모든 위젯 자동 업데이트
-- ✅ 전체 버튼 데이터 실시간 동기화
-
-### Phase 6: 모던 디자인 적용
-- ✅ Native 위젯 설정 화면 전면 개선
-  - 모던 머티리얼 디자인 3.0
-  - 카드 기반 레이아웃
-  - 블루 그라데이션 헤더
-  - 원형 아이콘 배경
-  - 커스텀 체크박스
-  - 드래그 인디케이터
-- ✅ ActionBar 제거 (중복 해결)
-- ✅ NestedScrollView 적용
-- ✅ 그리드 최적화 (3열 → 2열)
-- ✅ 아이콘 잘림 방지
-- ✅ 텍스트 잘림 방지
-- ✅ Flutter 설정 화면 최적화
-- ✅ settings_screen.dart 에러 수정
-  - File.path 타입 캐스팅
-  - BackupFileInfo 속성명 수정
-  - BuildContext async 안전성 개선
-
-### Phase 7: 텍스트 자동 크기 조정 🆕
-- ✅ Flutter AutoSizeText 패키지 적용
-  - auto_size_text 3.0.0 추가
-  - dial_button_widget.dart 수정
-  - 10sp ~ 15sp 자동 크기 조정
-- ✅ Android XML AutoSizeText 적용
-  - item_widget_button_all.xml (9sp ~ 13sp)
-  - item_widget_button_selected.xml (10sp ~ 14sp)
-  - widget_speed_dial.xml (8sp ~ 11sp)
-- ✅ 모든 화면에서 텍스트 잘림 완전 제거
-  - 앱 내 버튼 ✅
-  - 위젯 설정 화면 ✅
-  - 홈 화면 위젯 ✅
-- ✅ 가독성 유지 (최소 폰트 크기 보장)
-- ✅ ...이 절대 나타나지 않음
-
----
-
-## 🔮 향후 계획
-
-- [ ] 3×3, 4×2 등 다양한 위젯 크기 지원
-- [ ] 다크/라이트 테마 위젯 스타일
-- [ ] 위젯별 배경색 설정
-- [ ] 클라우드 백업 기능
-- [ ] iOS 위젯 지원
+### 예정된 기능
+- [ ] 위젯 배경 색상 커스터마이징
+- [ ] 더 많은 아이콘 추가
+- [ ] 위젯 크기 조정 (resizable)
+- [ ] 다크 모드 지원
+- [ ] 백업 및 복원 기능
+- [ ] 클라우드 동기화
 - [ ] 통화 기록 통계
-- [ ] 즐겨찾기 기능
+- [ ] 위젯 테마 선택
+
+### 개선 예정
+- [ ] 위젯 미리보기 추가
+- [ ] 더 나은 오류 처리
+- [ ] 성능 최적화
+- [ ] 접근성 개선
+- [ ] 다국어 지원
 
 ---
 
-## 📊 프로젝트 통계
+## 🤝 기여
 
-- **총 개발 기간:** 진행중
-- **Flutter 파일:** 23개 (Dart)
-  - Models: 1개
-  - Providers: 2개
-  - Screens: 5개
-  - Services: 5개
-  - Utils: 3개
-  - Widgets: 7개
-- **Kotlin 파일:** 2개 (Native)
-- **XML 레이아웃:** 4개
-- **Drawable 리소스:** 14개
-- **총 코드 라인:** ~4,200+ lines
-- **개발 단계:** Phase 7 완료 🎉
+이 프로젝트는 개인 프로젝트입니다. 개선 제안이나 버그 리포트는 환영합니다!
 
 ---
 
 ## 📄 라이선스
 
-이 프로젝트는 개인 학습 목적으로 제작되었습니다.
-
----
-
-## 👨‍💻 개발자
-
-Quick Call 개발팀
+이 프로젝트는 개인 용도로 개발되었습니다.
 
 ---
 
 ## 📞 연락처
 
-문의사항이나 버그 리포트는 이슈로 남겨주세요.
+프로젝트 관련 문의:
+- **프로젝트**: Quick Call
+- **개발자**: [Your Name]
+- **위치**: Gwangju, Gyeonggi-do, KR
 
 ---
 
-<p align="center">
-  Made with ❤️ using Flutter & Kotlin
-</p>
+## 🙏 감사의 말
+
+- Flutter 팀에게 훌륭한 프레임워크 제공에 감사드립니다
+- Material Design 팀에게 디자인 가이드라인 제공에 감사드립니다
+- 삼성 One UI 디자인에 영감을 받았습니다
+
+---
+
+## 📝 변경 로그
+
+### v1.0.0 (2024-11-26)
+- ✅ 3개 독립 위젯 시스템 구현 (1×1, 2×3, 3×2)
+- ✅ 삼성 One UI 스타일 디자인 적용
+- ✅ 이모지 아이콘 25가지 지원
+- ✅ AutoSizeText 자동 크기 조정
+- ✅ 독립 설정 화면 (각 위젯별)
+- ✅ 안정적인 데이터 저장/로드
+- ✅ 전화 걸기 기능 완성
+
+### 개발 중 해결한 주요 이슈
+1. 위젯 크기 인식 → 독립 위젯으로 해결
+2. WidgetButton 중복 선언 → WidgetUtils에 통합
+3. MainActivity 참조 오류 → 3개 Provider 지원
+4. 설정 화면 빈 문제 → 레이아웃 추가
+5. 위젯 크기 부정확 → 크기 공식 적용
+6. 디자인 요구사항 → 흰색 버튼으로 변경
+
+---
+
+**마지막 업데이트**: 2024-11-26  
+**버전**: 1.0.0  
+**상태**: ✅ 개발 완료

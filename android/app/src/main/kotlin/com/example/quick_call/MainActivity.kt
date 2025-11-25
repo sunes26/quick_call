@@ -7,7 +7,9 @@ import android.content.Context
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import com.example.quick_call.widget.SpeedDialWidgetProvider
+import com.example.quick_call.widget.SpeedDialWidgetProvider1x1
+import com.example.quick_call.widget.SpeedDialWidgetProvider2x3
+import com.example.quick_call.widget.SpeedDialWidgetProvider3x2
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.example.quick_call/widget"
@@ -43,11 +45,33 @@ class MainActivity: FlutterActivity() {
                         
                         if (widgetId != null && data != null) {
                             val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                            prefs.edit().putString("widget_data_$widgetId", data).apply()
                             
-                            // 해당 위젯만 업데이트
+                            // 위젯 타입 확인하여 적절한 키로 저장
                             val appWidgetManager = AppWidgetManager.getInstance(this)
-                            SpeedDialWidgetProvider.updateAppWidget(this, appWidgetManager, widgetId)
+                            val provider1x1Ids = appWidgetManager.getAppWidgetIds(
+                                ComponentName(this, SpeedDialWidgetProvider1x1::class.java)
+                            )
+                            val provider2x3Ids = appWidgetManager.getAppWidgetIds(
+                                ComponentName(this, SpeedDialWidgetProvider2x3::class.java)
+                            )
+                            val provider3x2Ids = appWidgetManager.getAppWidgetIds(
+                                ComponentName(this, SpeedDialWidgetProvider3x2::class.java)
+                            )
+                            
+                            when {
+                                provider1x1Ids.contains(widgetId) -> {
+                                    prefs.edit().putString("widget_data_1x1_$widgetId", data).apply()
+                                    SpeedDialWidgetProvider1x1.updateAppWidget(this, appWidgetManager, widgetId)
+                                }
+                                provider2x3Ids.contains(widgetId) -> {
+                                    prefs.edit().putString("widget_data_2x3_$widgetId", data).apply()
+                                    SpeedDialWidgetProvider2x3.updateAppWidget(this, appWidgetManager, widgetId)
+                                }
+                                provider3x2Ids.contains(widgetId) -> {
+                                    prefs.edit().putString("widget_data_3x2_$widgetId", data).apply()
+                                    SpeedDialWidgetProvider3x2.updateAppWidget(this, appWidgetManager, widgetId)
+                                }
+                            }
                             
                             result.success(true)
                         } else {
@@ -61,21 +85,32 @@ class MainActivity: FlutterActivity() {
                 // 모든 위젯 새로고침
                 "refreshAllWidgets" -> {
                     try {
-                        SpeedDialWidgetProvider.updateAllWidgets(this)
+                        SpeedDialWidgetProvider1x1.updateAllWidgets(this)
+                        SpeedDialWidgetProvider2x3.updateAllWidgets(this)
+                        SpeedDialWidgetProvider3x2.updateAllWidgets(this)
                         result.success(true)
                     } catch (e: Exception) {
                         result.error("REFRESH_ERROR", e.message, null)
                     }
                 }
                 
-                // 설치된 위젯 ID 목록 가져오기
+                // 설치된 위젯 ID 목록 가져오기 (3개 Provider 모두)
                 "getWidgetIds" -> {
                     try {
                         val appWidgetManager = AppWidgetManager.getInstance(this)
-                        val ids = appWidgetManager.getAppWidgetIds(
-                            ComponentName(this, SpeedDialWidgetProvider::class.java)
+                        
+                        val ids1x1 = appWidgetManager.getAppWidgetIds(
+                            ComponentName(this, SpeedDialWidgetProvider1x1::class.java)
                         )
-                        result.success(ids.toList())
+                        val ids2x3 = appWidgetManager.getAppWidgetIds(
+                            ComponentName(this, SpeedDialWidgetProvider2x3::class.java)
+                        )
+                        val ids3x2 = appWidgetManager.getAppWidgetIds(
+                            ComponentName(this, SpeedDialWidgetProvider3x2::class.java)
+                        )
+                        
+                        val allIds = ids1x1.toList() + ids2x3.toList() + ids3x2.toList()
+                        result.success(allIds)
                     } catch (e: Exception) {
                         result.error("GET_IDS_ERROR", e.message, null)
                     }
@@ -87,7 +122,12 @@ class MainActivity: FlutterActivity() {
                         val widgetId = call.argument<Int>("widgetId")
                         if (widgetId != null) {
                             val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                            val data = prefs.getString("widget_data_$widgetId", null)
+                            
+                            // 3개 키를 모두 확인
+                            val data = prefs.getString("widget_data_1x1_$widgetId", null)
+                                ?: prefs.getString("widget_data_2x3_$widgetId", null)
+                                ?: prefs.getString("widget_data_3x2_$widgetId", null)
+                            
                             result.success(data)
                         } else {
                             result.error("INVALID_ID", "Widget ID is null", null)
@@ -97,14 +137,63 @@ class MainActivity: FlutterActivity() {
                     }
                 }
                 
+                // 특정 위젯의 크기 정보 가져오기
+                "getWidgetSize" -> {
+                    try {
+                        val widgetId = call.argument<Int>("widgetId")
+                        if (widgetId != null) {
+                            val appWidgetManager = AppWidgetManager.getInstance(this)
+                            
+                            // 위젯 타입 확인
+                            val provider1x1Ids = appWidgetManager.getAppWidgetIds(
+                                ComponentName(this, SpeedDialWidgetProvider1x1::class.java)
+                            )
+                            val provider2x3Ids = appWidgetManager.getAppWidgetIds(
+                                ComponentName(this, SpeedDialWidgetProvider2x3::class.java)
+                            )
+                            val provider3x2Ids = appWidgetManager.getAppWidgetIds(
+                                ComponentName(this, SpeedDialWidgetProvider3x2::class.java)
+                            )
+                            
+                            val maxButtons = when {
+                                provider1x1Ids.contains(widgetId) -> 1
+                                provider2x3Ids.contains(widgetId) -> 6
+                                provider3x2Ids.contains(widgetId) -> 6
+                                else -> 4 // 기본값
+                            }
+                            
+                            val sizeInfo = mapOf(
+                                "width" to 180,
+                                "height" to 180,
+                                "maxButtons" to maxButtons
+                            )
+                            
+                            result.success(sizeInfo)
+                        } else {
+                            result.error("INVALID_ID", "Widget ID is null", null)
+                        }
+                    } catch (e: Exception) {
+                        result.error("GET_SIZE_ERROR", e.message, null)
+                    }
+                }
+                
                 // 위젯이 있는지 확인
                 "hasWidgets" -> {
                     try {
                         val appWidgetManager = AppWidgetManager.getInstance(this)
-                        val ids = appWidgetManager.getAppWidgetIds(
-                            ComponentName(this, SpeedDialWidgetProvider::class.java)
+                        
+                        val ids1x1 = appWidgetManager.getAppWidgetIds(
+                            ComponentName(this, SpeedDialWidgetProvider1x1::class.java)
                         )
-                        result.success(ids.isNotEmpty())
+                        val ids2x3 = appWidgetManager.getAppWidgetIds(
+                            ComponentName(this, SpeedDialWidgetProvider2x3::class.java)
+                        )
+                        val ids3x2 = appWidgetManager.getAppWidgetIds(
+                            ComponentName(this, SpeedDialWidgetProvider3x2::class.java)
+                        )
+                        
+                        val hasAnyWidget = ids1x1.isNotEmpty() || ids2x3.isNotEmpty() || ids3x2.isNotEmpty()
+                        result.success(hasAnyWidget)
                     } catch (e: Exception) {
                         result.error("CHECK_ERROR", e.message, null)
                     }
@@ -125,7 +214,12 @@ class MainActivity: FlutterActivity() {
                         }
                         
                         editor.apply()
-                        SpeedDialWidgetProvider.updateAllWidgets(this)
+                        
+                        // 모든 위젯 새로고침
+                        SpeedDialWidgetProvider1x1.updateAllWidgets(this)
+                        SpeedDialWidgetProvider2x3.updateAllWidgets(this)
+                        SpeedDialWidgetProvider3x2.updateAllWidgets(this)
+                        
                         result.success(true)
                     } catch (e: Exception) {
                         result.error("CLEAR_ERROR", e.message, null)

@@ -9,7 +9,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.CheckBox
@@ -22,98 +21,80 @@ import org.json.JSONObject
 import java.util.Collections
 
 /**
- * 위젯 버튼 데이터 클래스
- */
-data class WidgetButton(
-    val id: Int,
-    val name: String,
-    val phoneNumber: String,
-    val iconCodePoint: Int,
-    val group: String
-)
-
-/**
- * 위젯 설정 Activity
- * 위젯 추가 시 자동으로 실행되어 사용자가 버튼을 선택할 수 있도록 함
+ * 위젯 설정 Activity (기존 - 사용 안 함)
+ * 새로운 3개 위젯 시스템에서는 사용하지 않습니다.
  */
 class WidgetConfigActivity : Activity() {
     
     private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
+    private var maxButtons = 4
     
-    // 선택된 버튼 리스트 (최대 4개)
     private val selectedButtons = mutableListOf<WidgetButton>()
-    
-    // 전체 버튼 리스트
     private val allButtons = mutableListOf<WidgetButton>()
     
-    // RecyclerView 어댑터
     private lateinit var selectedAdapter: SelectedButtonsAdapter
     private lateinit var allButtonsAdapter: AllButtonsAdapter
     
-    // Views
     private lateinit var recyclerSelected: RecyclerView
     private lateinit var recyclerAll: RecyclerView
     private lateinit var btnSave: Button
     private lateinit var btnCancel: Button
     private lateinit var emptyView: View
     private lateinit var selectedCount: TextView
+    private lateinit var maxCountText: TextView
     private lateinit var emptySelectedHint: TextView
+    private lateinit var widgetSizeInfo: TextView
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // AndroidManifest.xml에서 NoActionBar 테마로 이미 설정되어 있음
-        // supportActionBar는 AppCompatActivity에서만 사용 가능
-        
-        // 기본 결과를 CANCELED로 설정
         setResult(RESULT_CANCELED)
         
-        // Intent에서 위젯 ID 가져오기
         appWidgetId = intent?.extras?.getInt(
             AppWidgetManager.EXTRA_APPWIDGET_ID,
             AppWidgetManager.INVALID_APPWIDGET_ID
         ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
         
-        // 위젯 ID가 유효하지 않으면 Activity 종료
         if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
             finish()
             return
         }
         
+        maxButtons = 4
+        
         setContentView(R.layout.activity_widget_config)
         
-        // View 초기화
         recyclerSelected = findViewById(R.id.recycler_selected_buttons)
         recyclerAll = findViewById(R.id.recycler_all_buttons)
         btnSave = findViewById(R.id.btn_save)
         btnCancel = findViewById(R.id.btn_cancel)
         emptyView = findViewById(R.id.empty_view)
         selectedCount = findViewById(R.id.selected_count)
+        maxCountText = findViewById(R.id.max_count_text)
         emptySelectedHint = findViewById(R.id.empty_selected_hint)
+        widgetSizeInfo = findViewById(R.id.widget_size_info)
         
-        // 데이터 로드
+        maxCountText.text = " / $maxButtons"
+        updateWidgetSizeInfo()
+        
         loadAllButtons()
-        
-        // RecyclerView 설정
         setupAdapters()
         
-        // 저장 버튼 클릭
         btnSave.setOnClickListener {
             saveConfiguration()
         }
         
-        // 취소 버튼 클릭
         btnCancel.setOnClickListener {
             finish()
         }
         
-        // UI 업데이트
         updateUI()
     }
     
-    /**
-     * SharedPreferences에서 전체 버튼 데이터 로드
-     */
+    private fun updateWidgetSizeInfo() {
+        widgetSizeInfo.text = "기존 위젯 (사용 안 함)"
+    }
+    
     private fun loadAllButtons() {
         val prefs = getSharedPreferences("QuickCallWidgetPrefs", Context.MODE_PRIVATE)
         val jsonString = prefs.getString("all_buttons_data", null) ?: return
@@ -138,12 +119,8 @@ class WidgetConfigActivity : Activity() {
         }
     }
     
-    /**
-     * 버튼 선택 추가
-     */
     private fun addButton(button: WidgetButton) {
-        if (selectedButtons.size >= 4) {
-            // 최대 4개까지만 선택 가능
+        if (selectedButtons.size >= maxButtons) {
             return
         }
         
@@ -155,9 +132,6 @@ class WidgetConfigActivity : Activity() {
         }
     }
     
-    /**
-     * 버튼 선택 제거
-     */
     private fun removeButton(button: WidgetButton) {
         selectedButtons.removeAll { it.id == button.id }
         selectedAdapter.notifyDataSetChanged()
@@ -165,11 +139,7 @@ class WidgetConfigActivity : Activity() {
         updateUI()
     }
     
-    /**
-     * RecyclerView 어댑터 설정
-     */
     private fun setupAdapters() {
-        // 선택된 버튼 RecyclerView (2열 그리드, 드래그 가능)
         selectedAdapter = SelectedButtonsAdapter(selectedButtons) { button ->
             removeButton(button)
         }
@@ -179,7 +149,6 @@ class WidgetConfigActivity : Activity() {
             adapter = selectedAdapter
         }
         
-        // 드래그 앤 드롭 설정
         val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
             ItemTouchHelper.UP or ItemTouchHelper.DOWN or 
             ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT,
@@ -202,16 +171,15 @@ class WidgetConfigActivity : Activity() {
             }
             
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                // 스와이프는 사용하지 않음
             }
         })
         
         itemTouchHelper.attachToRecyclerView(recyclerSelected)
         
-        // 전체 버튼 RecyclerView (2열 그리드로 변경하여 가로 공간 확보)
         allButtonsAdapter = AllButtonsAdapter(
             allButtons,
-            selectedButtons
+            selectedButtons,
+            maxButtons
         ) { button ->
             if (selectedButtons.any { it.id == button.id }) {
                 removeButton(button)
@@ -226,27 +194,21 @@ class WidgetConfigActivity : Activity() {
         }
     }
     
-    /**
-     * UI 업데이트
-     */
     private fun updateUI() {
-        // 선택된 버튼 개수 표시
         selectedCount.text = selectedButtons.size.toString()
         
-        // 저장 버튼 활성화/비활성화
         btnSave.isEnabled = selectedButtons.isNotEmpty()
         btnSave.alpha = if (selectedButtons.isNotEmpty()) 1.0f else 0.5f
         
-        // 빈 상태 표시 (선택된 버튼)
         if (selectedButtons.isEmpty()) {
             emptySelectedHint.visibility = View.VISIBLE
+            emptySelectedHint.text = "최대 ${maxButtons}개 버튼 선택 가능"
             recyclerSelected.visibility = View.GONE
         } else {
             emptySelectedHint.visibility = View.GONE
             recyclerSelected.visibility = View.VISIBLE
         }
         
-        // 빈 상태 표시 (전체 버튼)
         if (allButtons.isEmpty()) {
             emptyView.visibility = View.VISIBLE
             recyclerAll.visibility = View.GONE
@@ -256,49 +218,11 @@ class WidgetConfigActivity : Activity() {
         }
     }
     
-    /**
-     * 설정 저장
-     */
     private fun saveConfiguration() {
-        // 선택된 버튼을 JSON으로 변환
-        val jsonArray = JSONArray()
-        selectedButtons.forEach { button ->
-            val json = JSONObject().apply {
-                put("id", button.id)
-                put("name", button.name)
-                put("phoneNumber", button.phoneNumber)
-                put("iconCodePoint", button.iconCodePoint)
-                put("group", button.group)
-            }
-            jsonArray.put(json)
-        }
-        
-        // SharedPreferences에 저장
-        val prefs = getSharedPreferences("QuickCallWidgetPrefs", Context.MODE_PRIVATE)
-        prefs.edit()
-            .putString("widget_data_$appWidgetId", jsonArray.toString())
-            .apply()
-        
-        // 위젯 업데이트
-        val appWidgetManager = AppWidgetManager.getInstance(this)
-        SpeedDialWidgetProvider.updateAppWidget(
-            this,
-            appWidgetManager,
-            appWidgetId
-        )
-        
-        // 결과 반환
-        val resultValue = Intent().apply {
-            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-        }
-        setResult(RESULT_OK, resultValue)
         finish()
     }
 }
 
-/**
- * 선택된 버튼 어댑터
- */
 class SelectedButtonsAdapter(
     private val buttons: List<WidgetButton>,
     private val onRemove: (WidgetButton) -> Unit
@@ -330,19 +254,17 @@ class SelectedButtonsAdapter(
     
     private fun getIconResource(codePoint: Int): Int {
         return when (codePoint) {
-            0xe7fd -> android.R.drawable.ic_menu_call  // phone
-            0xe7ef -> android.R.drawable.ic_dialog_email  // email
+            0xe7fd -> android.R.drawable.ic_menu_call
+            0xe7ef -> android.R.drawable.ic_dialog_email
             else -> android.R.drawable.ic_menu_call
         }
     }
 }
 
-/**
- * 전체 버튼 어댑터
- */
 class AllButtonsAdapter(
     private val allButtons: List<WidgetButton>,
     private val selectedButtons: List<WidgetButton>,
+    private val maxButtons: Int,
     private val onToggle: (WidgetButton) -> Unit
 ) : RecyclerView.Adapter<AllButtonsAdapter.ViewHolder>() {
     
@@ -350,7 +272,6 @@ class AllButtonsAdapter(
         val icon: ImageView = view.findViewById(R.id.button_icon)
         val name: TextView = view.findViewById(R.id.button_name)
         val checkbox: CheckBox = view.findViewById(R.id.checkbox)
-        val disabledOverlay: View? = view.findViewById(R.id.disabled_overlay)
     }
     
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -367,11 +288,9 @@ class AllButtonsAdapter(
         holder.name.text = button.name
         holder.checkbox.isChecked = isSelected
         
-        // 최대 4개 제한 - 비활성화 오버레이 표시
-        val canSelect = isSelected || selectedButtons.size < 4
+        val canSelect = isSelected || selectedButtons.size < maxButtons
         holder.itemView.isEnabled = canSelect
         holder.itemView.alpha = if (canSelect) 1.0f else 0.5f
-        holder.disabledOverlay?.visibility = if (canSelect) View.GONE else View.VISIBLE
         
         holder.itemView.setOnClickListener {
             if (canSelect) {
@@ -384,8 +303,8 @@ class AllButtonsAdapter(
     
     private fun getIconResource(codePoint: Int): Int {
         return when (codePoint) {
-            0xe7fd -> android.R.drawable.ic_menu_call  // phone
-            0xe7ef -> android.R.drawable.ic_dialog_email  // email
+            0xe7fd -> android.R.drawable.ic_menu_call
+            0xe7ef -> android.R.drawable.ic_dialog_email
             else -> android.R.drawable.ic_menu_call
         }
     }

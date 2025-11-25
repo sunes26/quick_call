@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="4dp"
+    android:background="#F5F5F5">
+
+    <!-- 단일 버튼 (전체) -->
+    <LinearLayout
+        android:id="@+id/button_1"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@drawable/samsung_white_button"
+        android:elevation="4dp"
+        android:padding="8dp">
+
+        <!-- 이모지 아이콘 -->
+        <TextView
+            android:id="@+id/icon_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📞"
+            android:textSize="32sp"
+            android:gravity="center" />
+
+        <!-- 이름 -->
+        <TextView
+            android:id="@+id/name_1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="전화"
+            android:textSize="11sp"
+            android:textColor="#333333"
+            android:gravity="center"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:layout_marginTop="4dp"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="8sp"
+            android:autoSizeMaxTextSize="11sp"
+            android:autoSizeStepGranularity="1sp" />
+    </LinearLayout>
+
+    <!-- 빈 상태 메시지 -->
+    <TextView
+        android:id="@+id/empty_message"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:text="앱에서\n추가"
+        android:textSize="11sp"
+        android:textColor="#999999"
+        android:gravity="center"
+        android:visibility="gone"
+        android:background="@drawable/samsung_white_button" />
+</FrameLayout>
