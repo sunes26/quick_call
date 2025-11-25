@@ -5,8 +5,7 @@ import 'package:quick_call/providers/settings_provider.dart';
 import 'package:quick_call/providers/speed_dial_provider.dart';
 import 'package:quick_call/services/backup_service.dart';
 import 'package:quick_call/utils/sort_options.dart';
-import 'package:quick_call/services/database_service.dart';
-import 'package:quick_call/screens/widget_config_screen.dart'; // 🆕 추가
+import 'dart:io';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -44,13 +43,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           return ListView(
             padding: EdgeInsets.symmetric(vertical: 8.h),
             children: [
-              // 🆕 위젯 섹션
-              _buildSectionHeader('위젯'),
-              _buildWidgetConfigTile(),
-              _buildWidgetRefreshTile(),
-              
-              SizedBox(height: 16.h),
-              
               // 화면 설정
               _buildSectionHeader('화면'),
               _buildThemeModeTile(settings),
@@ -60,13 +52,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // 정렬 설정
               _buildSectionHeader('정렬'),
               _buildSortOptionTile(),
-              _buildShowLastCalledTile(settings),
               
               SizedBox(height: 16.h),
               
               // 백업/복원
               _buildSectionHeader('데이터'),
-              _buildAutoBackupTile(settings),
               _buildBackupTile(),
               _buildRestoreTile(),
               _buildBackupListTile(),
@@ -102,99 +92,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
-  }
-
-  // 🆕 위젯 설정 타일
-  Widget _buildWidgetConfigTile() {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: Consumer<SpeedDialProvider>(
-        builder: (context, provider, child) {
-          return ListTile(
-            leading: Icon(Icons.widgets, color: Colors.purple[700]),
-            title: const Text('위젯 버튼 설정'),
-            subtitle: Text(
-              '위젯에 표시할 버튼 선택 (${provider.widgetButtons.length}/4)',
-              style: TextStyle(fontSize: 13.sp),
-            ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const WidgetConfigScreen(),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  // 🆕 위젯 새로고침 타일
-  Widget _buildWidgetRefreshTile() {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: ListTile(
-        leading: Icon(Icons.refresh, color: Colors.green[700]),
-        title: const Text('위젯 새로고침'),
-        subtitle: Text(
-          '홈 화면 위젯 수동 업데이트',
-          style: TextStyle(fontSize: 13.sp),
-        ),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: _refreshWidget,
-      ),
-    );
-  }
-
-  // 🆕 위젯 새로고침 실행
-  Future<void> _refreshWidget() async {
-    try {
-      await context.read<SpeedDialProvider>().initialize();
-      
-      if (!mounted) return;
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.white, size: 20.sp),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Text(
-                  '위젯이 새로고침되었습니다',
-                  style: TextStyle(fontSize: 16.sp),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.green[700],
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '위젯 새로고침 실패: $e',
-            style: TextStyle(fontSize: 16.sp),
-          ),
-          backgroundColor: Colors.red[700],
-        ),
-      );
-    }
   }
 
   Widget _buildThemeModeTile(SettingsProvider settings) {
@@ -247,52 +144,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildShowLastCalledTile(SettingsProvider settings) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: ListTile(
-        leading: Icon(Icons.phone_callback, color: Colors.blue[700]),
-        title: const Text('최근 통화 표시'),
-        subtitle: Text(
-          '마지막 통화 시간 표시',
-          style: TextStyle(fontSize: 13.sp),
-        ),
-        trailing: Switch(
-          value: settings.showLastCalled,
-          onChanged: (value) => settings.setShowLastCalled(value),
-          activeThumbColor: Colors.blue[700],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAutoBackupTile(SettingsProvider settings) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: ListTile(
-        leading: Icon(Icons.cloud_upload, color: Colors.blue[700]),
-        title: const Text('자동 백업'),
-        subtitle: Text(
-          '앱 종료 시 자동으로 백업',
-          style: TextStyle(fontSize: 13.sp),
-        ),
-        trailing: Switch(
-          value: settings.autoBackupEnabled,
-          onChanged: (value) => settings.setAutoBackup(value),
-          activeThumbColor: Colors.blue[700],
-        ),
-      ),
-    );
-  }
-
   Widget _buildBackupTile() {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w),
@@ -301,19 +152,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: ListTile(
-        leading: Icon(Icons.backup, color: Colors.green[700]),
-        title: const Text('지금 백업하기'),
+        leading: _isBackingUp
+            ? SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[700]!),
+                ),
+              )
+            : Icon(Icons.save_alt, color: Colors.blue[700]),
+        title: const Text('백업하기'),
         subtitle: Text(
-          '현재 데이터를 백업합니다',
+          '현재 단축키를 파일로 저장',
           style: TextStyle(fontSize: 13.sp),
         ),
-        trailing: _isBackingUp
-            ? SizedBox(
-                width: 20.w,
-                height: 20.h,
-                child: CircularProgressIndicator(strokeWidth: 2.w),
-              )
-            : const Icon(Icons.chevron_right),
+        trailing: const Icon(Icons.chevron_right),
         onTap: _isBackingUp ? null : _performBackup,
       ),
     );
@@ -327,19 +181,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: ListTile(
-        leading: Icon(Icons.restore, color: Colors.orange[700]),
-        title: const Text('백업에서 복원'),
+        leading: _isRestoring
+            ? SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.orange[700]!),
+                ),
+              )
+            : Icon(Icons.restore, color: Colors.orange[700]),
+        title: const Text('복원하기'),
         subtitle: Text(
-          '저장된 백업에서 복원합니다',
+          '백업 파일에서 복원',
           style: TextStyle(fontSize: 13.sp),
         ),
-        trailing: _isRestoring
-            ? SizedBox(
-                width: 20.w,
-                height: 20.h,
-                child: CircularProgressIndicator(strokeWidth: 2.w),
-              )
-            : const Icon(Icons.chevron_right),
+        trailing: const Icon(Icons.chevron_right),
         onTap: _isRestoring ? null : _showRestoreDialog,
       ),
     );
@@ -353,10 +210,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: ListTile(
-        leading: Icon(Icons.folder, color: Colors.blue[700]),
+        leading: Icon(Icons.folder_open, color: Colors.purple[700]),
         title: const Text('백업 파일 관리'),
         subtitle: Text(
-          '저장된 백업 파일을 관리합니다',
+          '저장된 백업 파일 보기',
           style: TextStyle(fontSize: 13.sp),
         ),
         trailing: const Icon(Icons.chevron_right),
@@ -374,21 +231,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       child: Consumer<SpeedDialProvider>(
         builder: (context, provider, child) {
-          return FutureBuilder<int>(
-            future: DatabaseService().getButtonCount(),
-            builder: (context, snapshot) {
-              final count = snapshot.data ?? 0;
-              final widgetCount = provider.widgetButtons.length; // 🆕
-              
-              return ListTile(
-                leading: Icon(Icons.info_outline, color: Colors.blue[700]),
-                title: const Text('데이터베이스 정보'),
-                subtitle: Text(
-                  '총 $count개의 단축키 • 위젯 $widgetCount/4개', // 🆕 수정
-                  style: TextStyle(fontSize: 13.sp),
-                ),
-              );
-            },
+          return ListTile(
+            leading: Icon(Icons.storage, color: Colors.blue[700]),
+            title: const Text('데이터베이스 정보'),
+            subtitle: Text(
+              '단축키: ${provider.buttons.length}개 | 그룹: ${provider.groups.length}개',
+              style: TextStyle(fontSize: 13.sp),
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _showDatabaseInfoDialog,
           );
         },
       ),
@@ -403,7 +254,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: ListTile(
-        leading: Icon(Icons.refresh, color: Colors.red[700]),
+        leading: Icon(Icons.refresh, color: Colors.orange[700]),
         title: const Text('설정 초기화'),
         subtitle: Text(
           '모든 설정을 기본값으로',
@@ -423,12 +274,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: ListTile(
-        leading: Icon(Icons.info, color: Colors.blue[700]),
+        leading: Icon(Icons.info_outline, color: Colors.blue[700]),
         title: const Text('앱 정보'),
         subtitle: Text(
-          'Quick Call v1.1.0', // 🆕 버전 업데이트 (1.0.0 → 1.1.0)
+          'Quick Call v1.0.0',
           style: TextStyle(fontSize: 13.sp),
         ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: _showAppInfoDialog,
       ),
     );
   }
@@ -442,12 +295,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20.r),
           ),
-          title: Text(
-            '정렬 방식 선택',
-            style: TextStyle(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.bold,
-            ),
+          title: Row(
+            children: [
+              Icon(Icons.sort, color: Colors.blue[700]),
+              SizedBox(width: 12.w),
+              Text(
+                '정렬 방식',
+                style: TextStyle(
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -455,26 +314,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
               final isSelected = provider.currentSortOption == option;
               return ListTile(
                 title: Text(option.displayName),
-                subtitle: Text(
-                  option.description,
-                  style: TextStyle(fontSize: 12.sp),
+                leading: Radio<SortOption>(
+                  value: option,
+                  groupValue: provider.currentSortOption,
+                  activeColor: Colors.blue[700],
+                  onChanged: (value) {
+                    if (value != null) {
+                      provider.setSortOption(value);
+                      Navigator.pop(dialogContext);
+                    }
+                  },
                 ),
-                trailing: isSelected
-                    ? Icon(Icons.check, color: Colors.blue[700])
-                    : null,
                 selected: isSelected,
                 onTap: () {
                   provider.setSortOption(option);
                   Navigator.pop(dialogContext);
-                  
-                  // SettingsProvider에도 저장 (mounted 체크 추가)
-                  if (context.mounted) {
-                    context.read<SettingsProvider>().setSortOption(option);
-                  }
                 },
               );
             }).toList(),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('닫기'),
+            ),
+          ],
         );
       },
     );
@@ -485,9 +349,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _isBackingUp = true);
 
     try {
-      await _backupService.createBackup();
+      final file = await _backupService.createBackup();
       
       if (!mounted) return;
+      
+      // File 객체에서 경로 추출
+      String fileName;
+      if (file is File) {
+        final f = file as File;
+        fileName = f.path.split('/').last;
+      } else {
+        fileName = file.toString().split('/').last;
+      }
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -497,14 +370,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               SizedBox(width: 12.w),
               Expanded(
                 child: Text(
-                  '백업이 완료되었습니다',
+                  '백업 완료: $fileName',
                   style: TextStyle(fontSize: 16.sp),
                 ),
               ),
             ],
           ),
           backgroundColor: Colors.green[700],
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 3),
+          action: SnackBarAction(
+            label: '공유',
+            textColor: Colors.white,
+            onPressed: () {
+              // 파일 공유 기능 (선택사항)
+            },
+          ),
         ),
       );
     } catch (e) {
@@ -536,7 +416,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '저장된 백업 파일이 없습니다',
+            '복원할 백업 파일이 없습니다',
             style: TextStyle(fontSize: 16.sp),
           ),
           backgroundColor: Colors.orange[700],
@@ -545,6 +425,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
 
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (dialogContext) {
@@ -552,12 +434,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20.r),
           ),
-          title: Text(
-            '백업 선택',
-            style: TextStyle(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.bold,
-            ),
+          title: Row(
+            children: [
+              Icon(Icons.restore, color: Colors.orange[700]),
+              SizedBox(width: 12.w),
+              Text(
+                '백업 선택',
+                style: TextStyle(
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
           content: SizedBox(
             width: double.maxFinite,
@@ -566,15 +454,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               itemCount: backups.length,
               itemBuilder: (context, index) {
                 final backup = backups[index];
-                return ListTile(
-                  leading: Icon(Icons.backup, color: Colors.blue[700]),
-                  title: Text(backup.timestampFormatted),
-                  subtitle: Text('${backup.buttonCount}개 단축키'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.pop(dialogContext);
-                    _performRestore(backup.path);
-                  },
+                return Card(
+                  margin: EdgeInsets.symmetric(vertical: 4.h),
+                  child: ListTile(
+                    leading: Icon(Icons.backup, color: Colors.blue[700]),
+                    title: Text(
+                      backup.timestampFormatted,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      '${backup.buttonCount}개 단축키 • ${backup.fileSizeFormatted}',
+                      style: TextStyle(fontSize: 12.sp),
+                    ),
+                    onTap: () {
+                      Navigator.pop(dialogContext);
+                      _performRestore(backup.path);
+                    },
+                  ),
                 );
               },
             ),
@@ -638,6 +534,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // 프로바이더 다시 로드
       if (!mounted) return;
       await context.read<SpeedDialProvider>().loadButtons();
+      
+      if (!mounted) return;
       await context.read<SpeedDialProvider>().loadGroups();
       
       if (!mounted) return;
@@ -686,6 +584,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
 
     if (backups.isEmpty) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -697,6 +596,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
       return;
     }
+
+    if (!mounted) return;
 
     showDialog(
       context: context,
@@ -765,8 +666,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                         if (confirmed == true) {
                           await _backupService.deleteBackup(backup.path);
-                          Navigator.pop(dialogContext);
-                          _showBackupListDialog(); // 다시 열기
+                          if (dialogContext.mounted) {
+                            Navigator.pop(dialogContext);
+                          }
+                          if (mounted) {
+                            _showBackupListDialog(); // 다시 열기
+                          }
                         }
                       },
                     ),
@@ -774,6 +679,134 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
               },
             ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('닫기'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 데이터베이스 정보 다이얼로그
+  Future<void> _showDatabaseInfoDialog() async {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.storage, color: Colors.blue[700]),
+              SizedBox(width: 12.w),
+              const Text('데이터베이스 정보'),
+            ],
+          ),
+          content: Consumer<SpeedDialProvider>(
+            builder: (context, provider, child) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '저장된 데이터:',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  _buildInfoRow('단축키', '${provider.buttons.length}개'),
+                  SizedBox(height: 8.h),
+                  _buildInfoRow('그룹', '${provider.groups.length}개'),
+                  SizedBox(height: 16.h),
+                  Text(
+                    'SQLite 데이터베이스를 사용하여\n로컬에 안전하게 저장됩니다.',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('닫기'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontSize: 14.sp),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue[700],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 앱 정보 다이얼로그
+  void _showAppInfoDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.phone_android, color: Colors.blue[700]),
+              SizedBox(width: 12.w),
+              const Text('앱 정보'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Quick Call',
+                style: TextStyle(
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                '버전: 1.0.0',
+                style: TextStyle(fontSize: 14.sp),
+              ),
+              SizedBox(height: 16.h),
+              Text(
+                '빠른 전화 걸기를 위한 단축 다이얼 앱',
+                style: TextStyle(fontSize: 14.sp),
+              ),
+            ],
           ),
           actions: [
             TextButton(

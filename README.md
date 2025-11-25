@@ -19,6 +19,7 @@ Flutter 기반 전화번호 단축 다이얼 애플리케이션으로, 자주 �
 - [프로젝트 구조](#-프로젝트-구조)
 - [위젯 구현 상세](#-위젯-구현-상세)
 - [사용 방법](#-사용-방법)
+- [UI/UX 개선 사항](#-uiux-개선-사항)
 - [트러블슈팅](#-트러블슈팅)
 - [개발 과정](#-개발-과정)
 
@@ -33,6 +34,7 @@ Flutter 기반 전화번호 단축 다이얼 애플리케이션으로, 자주 �
 - ✅ 커스텀 아이콘 설정
 - ✅ 버튼 순서 변경 (드래그 앤 드롭)
 - ✅ SQLite 로컬 데이터베이스 저장
+- ✅ 다크 모드 지원
 
 ### 🏠 위젯 기능
 - ✅ **2×2 홈 화면 위젯** (최대 4개 버튼)
@@ -40,6 +42,7 @@ Flutter 기반 전화번호 단축 다이얼 애플리케이션으로, 자주 �
   - 위젯 A: 가족 연락처
   - 위젯 B: 직장 연락처
   - 위젯 C: 자주 가는 장소
+- ✅ **모던 머티리얼 디자인 설정 화면** 🆕
 - ✅ **위젯 추가 시 자동 설정 화면** (Configuration Activity)
 - ✅ **버튼 선택 및 순서 변경** (드래그 앤 드롭)
 - ✅ **앱 내 버튼 변경 시 위젯 자동 동기화**
@@ -53,6 +56,7 @@ Flutter 기반 전화번호 단축 다이얼 애플리케이션으로, 자주 �
 - **Flutter** 3.x
 - **Dart** 3.x
 - **Provider** (상태 관리)
+- **flutter_screenutil** (반응형 UI)
 
 ### Backend
 - **SQLite** (sqflite)
@@ -61,6 +65,7 @@ Flutter 기반 전화번호 단축 다이얼 애플리케이션으로, 자주 �
 ### Android Native
 - **Kotlin** 1.x
 - **AndroidX RecyclerView** 1.3.2
+- **AndroidX CardView** 1.0.0
 - **AppWidget API**
 - **MethodChannel** (Flutter ↔ Native 통신)
 
@@ -97,31 +102,33 @@ flutter run --uninstall-first
 
 ### 필수 설정
 
-**1. `android/app/build.gradle`에 RecyclerView 의존성 추가:**
+**1. `android/app/build.gradle`에 의존성 추가:**
 
 ```gradle
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     
-    // RecyclerView 의존성 (필수!)
+    // RecyclerView & CardView 의존성 (필수!)
     implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'androidx.cardview:cardview:1.0.0'
 }
 ```
 
-**2. `AndroidManifest.xml` 확인:**
+**2. `AndroidManifest.xml` 설정:**
 
 ```xml
 <activity
     android:name=".widget.WidgetConfigActivity"
     android:exported="true"
-    android:label="위젯 설정">
+    android:label="위젯 설정"
+    android:theme="@style/Theme.AppCompat.Light.NoActionBar">
     <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
     </intent-filter>
 </activity>
 ```
 
-> ⚠️ **중요:** `android:theme` 속성을 사용하지 마세요! Dialog 테마는 레이아웃 인플레이션 에러를 일으킬 수 있습니다.
+> ⚠️ **중요:** `android:theme="@style/Theme.AppCompat.Light.NoActionBar"`를 사용하여 상단 ActionBar를 제거합니다.
 
 ---
 
@@ -132,41 +139,84 @@ quick_call/
 ├── lib/
 │   ├── main.dart                          # 앱 진입점
 │   ├── models/
-│   │   └── speed_dial_button.dart         # 버튼 데이터 모델
+│   │   ├── speed_dial_button.dart         # 버튼 데이터 모델
+│   │   └── backup_file_info.dart          # 백업 파일 정보 모델
 │   ├── providers/
-│   │   └── speed_dial_provider.dart       # 상태 관리 (Provider)
+│   │   ├── speed_dial_provider.dart       # 상태 관리 (Provider)
+│   │   └── settings_provider.dart         # 설정 관리
 │   ├── screens/
 │   │   ├── home_screen.dart               # 홈 화면
 │   │   ├── add_button_screen.dart         # 버튼 추가 화면
+│   │   ├── settings_screen.dart           # 설정 화면 ⭐
 │   │   └── widget_config_screen.dart      # 위젯 설정 화면 (Flutter)
 │   ├── services/
 │   │   ├── database_service.dart          # SQLite 데이터베이스
-│   │   └── widget_service.dart            # 위젯 MethodChannel
+│   │   ├── widget_service.dart            # 위젯 MethodChannel
+│   │   └── backup_service.dart            # 백업/복원 서비스
+│   ├── utils/
+│   │   └── sort_options.dart              # 정렬 옵션 Enum
 │   └── widgets/
 │       └── speed_dial_button_widget.dart  # 버튼 위젯
 │
 ├── android/
 │   └── app/
+│       ├── build.gradle                    # Android 빌드 설정
 │       └── src/main/
-│           ├── AndroidManifest.xml         # 앱 권한 및 컴포넌트
+│           ├── AndroidManifest.xml         # 앱 권한 및 컴포넌트 ⭐
 │           ├── kotlin/com/example/quick_call/
 │           │   ├── MainActivity.kt         # Flutter Activity
 │           │   └── widget/
 │           │       ├── SpeedDialWidgetProvider.kt     # 위젯 Provider
-│           │       └── WidgetConfigActivity.kt        # 위젯 설정 Activity ⭐
+│           │       ├── WidgetConfigActivity.kt        # 위젯 설정 Activity ⭐
+│           │       ├── SelectedButtonsAdapter.kt      # 선택된 버튼 어댑터
+│           │       ├── AllButtonsAdapter.kt           # 전체 버튼 어댑터
+│           │       └── WidgetButton.kt                # 버튼 데이터 클래스
 │           └── res/
 │               ├── layout/
 │               │   ├── speed_dial_widget.xml          # 위젯 레이아웃
 │               │   ├── activity_widget_config.xml     # 설정 화면 레이아웃 ⭐
 │               │   ├── item_widget_button_selected.xml # 선택된 버튼 아이템 ⭐
 │               │   └── item_widget_button_all.xml      # 전체 버튼 아이템 ⭐
+│               ├── drawable/
+│               │   ├── badge_circle.xml               # 카운터 배지
+│               │   ├── button_outline.xml             # 외곽선 버튼
+│               │   ├── button_primary.xml             # 주요 버튼 스타일
+│               │   ├── icon_circle_background.xml     # 큰 아이콘 배경 (72dp)
+│               │   ├── icon_small_background.xml      # 작은 아이콘 배경 (52dp)
+│               │   ├── drag_indicator.xml             # 드래그 표시
+│               │   ├── remove_button_background.xml   # 삭제 버튼
+│               │   ├── selected_indicator.xml         # 선택 표시
+│               │   ├── group_badge.xml                # 그룹 배지
+│               │   └── checkbox_selector.xml          # 체크박스
 │               ├── xml/
 │               │   └── speed_dial_widget_info.xml     # 위젯 메타데이터
 │               └── values/
-│                   └── strings.xml                    # 문자열 리소스
+│                   └── strings.xml                    # 문자열 리소스 ⭐
 │
-└── pubspec.yaml                            # Flutter 의존성
+├── pubspec.yaml                            # Flutter 의존성
+└── README.md                               # 프로젝트 문서
 ```
+
+### 📁 주요 디렉토리 설명
+
+#### `/lib` (Flutter 코드)
+- **models/**: 데이터 모델 클래스 (2개)
+- **providers/**: Provider 패턴 상태 관리 (2개)
+- **screens/**: 화면 UI 컴포넌트 (4개)
+- **services/**: 비즈니스 로직 - DB, 위젯, 백업 (3개)
+- **utils/**: 유틸리티 함수 및 상수 (1개)
+- **widgets/**: 재사용 가능한 위젯 (1개)
+
+#### `/android/app/src/main/kotlin` (Native 코드)
+- **MainActivity.kt**: Flutter 앱 진입점
+- **widget/**: 위젯 관련 Kotlin 코드 (5개)
+  - Provider, Activity, Adapter (2개), Data Class
+
+#### `/android/app/src/main/res` (Android 리소스)
+- **layout/**: XML 레이아웃 파일 (4개)
+- **drawable/**: 벡터 그래픽 및 shape drawable (10개)
+- **xml/**: 위젯 메타데이터 (1개)
+- **values/**: 문자열, 색상, 스타일 리소스 (1개)
 
 ---
 
@@ -187,7 +237,7 @@ quick_call/
          ↓
 4. RecyclerView로 버튼 목록 표시
    - 선택된 버튼 (2열 그리드, 드래그 가능)
-   - 전체 버튼 (3열 그리드, 선택 가능)
+   - 전체 버튼 (2열 그리드, 선택 가능) 🆕
          ↓
 5. 사용자가 최대 4개 버튼 선택
          ↓
@@ -218,8 +268,14 @@ class WidgetConfigActivity : Activity() {
     // SharedPreferences에서 데이터 로드
     private fun loadAllButtons() { ... }
     
-    // RecyclerView 어댑터 설정
-    private fun setupAdapters() { ... }
+    // RecyclerView 어댑터 설정 (2열 그리드)
+    private fun setupAdapters() {
+        // 선택된 버튼: 2열 그리드
+        recyclerSelected.layoutManager = GridLayoutManager(this, 2)
+        
+        // 전체 버튼: 2열 그리드 (3열에서 변경) 🆕
+        recyclerAll.layoutManager = GridLayoutManager(this, 2)
+    }
     
     // 설정 저장
     private fun saveConfiguration() {
@@ -346,7 +402,7 @@ class WidgetService {
 2. "위젯" 선택
 3. "Quick Call" 위젯 찾기
 4. 2×2 위젯을 홈 화면에 드래그
-5. **자동으로 설정 화면 표시**
+5. **자동으로 설정 화면 표시** (모던 디자인)
 6. 버튼 선택 (최대 4개)
 7. 드래그하여 순서 변경
 8. "저장" 버튼 클릭
@@ -366,6 +422,106 @@ class WidgetService {
 
 ---
 
+## 🎨 UI/UX 개선 사항
+
+### Phase 6: 모던 디자인 적용 🆕
+
+#### 1. Native 위젯 설정 화면 전면 개선
+
+**설계 원칙:**
+- 모던 머티리얼 디자인 3.0
+- 카드 기반 레이아웃
+- 직관적인 시각적 계층 구조
+- 부드러운 애니메이션
+
+**주요 개선 사항:**
+
+##### 🎯 헤더 섹션
+- 블루 그라데이션 배경 (#2196F3)
+- 명확한 제목과 설명
+- Elevation 효과로 부각
+
+##### 📌 선택된 버튼 섹션
+- 카드 기반 레이아웃 (16dp corner radius)
+- 2열 그리드로 최적화
+- 원형 아이콘 배경 (블루 톤 #E3F2FD)
+- 빨간색 원형 삭제 버튼 (#F44336)
+- 좌측 상단 선택 인디케이터 (그린 #4CAF50)
+- 드래그 인디케이터 표시
+- 실시간 카운터 배지 (0~4)
+
+##### 📋 전체 버튼 섹션
+- **3열 → 2열 그리드로 변경** (가로 공간 50% 증가)
+- 원형 아이콘 배경 (그린 톤 #E8F5E9)
+- 커스텀 체크박스 디자인
+- 4개 초과 시 자동 비활성화 오버레이
+- 텍스트 2줄 확보 (긴 이름 완전 표시)
+- 아이콘 잘림 방지 (52dp 원형)
+
+##### 🎯 하단 액션 버튼
+- 취소 버튼 (외곽선 스타일)
+- 저장 버튼 (filled 스타일, 블루 #2196F3)
+- 활성화 상태에 따른 스타일 변경
+
+**색상 시스템:**
+- Primary: `#2196F3` (블루)
+- Success: `#4CAF50` (그린)
+- Error: `#F44336` (레드)
+- Background: `#FFFFFF` / `#FAFAFA`
+- Text: `#212121` / `#757575`
+
+#### 2. ActionBar 제거
+
+**문제:** 중복된 상단 바 (검은색 "위젯 설정" + 파란색 헤더)
+
+**해결:**
+```xml
+<!-- AndroidManifest.xml -->
+<activity
+    android:name=".widget.WidgetConfigActivity"
+    android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+```
+
+#### 3. NestedScrollView 적용
+
+**문제:** 전체 버튼 목록이 일부만 표시됨
+
+**해결:**
+- ScrollView → NestedScrollView로 변경
+- RecyclerView에 `nestedScrollingEnabled="false"` 추가
+- 모든 버튼이 한 번에 표시되고 부모로 스크롤 위임
+
+#### 4. 텍스트 잘림 방지
+
+**개선 사항:**
+- `android:minLines="2"` 추가 (항상 2줄 확보)
+- 텍스트 크기: 12sp → 13sp
+- 행간: 1dp → 2dp
+- "중학교 수학학..." → "중학교\n수학학회" (완전 표시)
+
+#### 5. 아이콘 잘림 방지
+
+**개선 사항:**
+- 아이콘 배경: 56dp → 52dp
+- 아이콘 크기: 32dp → 28dp
+- 카드 padding: 12dp → 16dp
+- 카드 margin: 4dp → 6dp
+
+#### 6. Flutter 설정 화면 최적화
+
+**삭제된 기능:**
+- ❌ 위젯 버튼 설정 타일 (Native 화면에서 처리)
+- ❌ 위젯 새로고침 타일 (자동 동기화)
+
+**유지된 기능:**
+- ✅ 다크 모드
+- ✅ 정렬 설정
+- ✅ 백업/복원
+- ✅ 데이터베이스 정보
+- ✅ 앱 정보
+
+---
+
 ## 🐛 트러블슈팅
 
 ### 문제 1: RecyclerView 의존성 에러
@@ -381,6 +537,7 @@ Unresolved reference 'GridLayoutManager'
 // android/app/build.gradle
 dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'androidx.cardview:cardview:1.0.0'
 }
 ```
 
@@ -402,63 +559,66 @@ dependencies {
 ```
 android.view.InflateException: Error inflating class <unknown>
 Failed to resolve attribute: selectableItemBackground
-theme={...Theme.Material.Light.Dialog...}
 ```
-
-**근본 원인:**
-- `WidgetConfigActivity`가 Dialog 테마를 사용
-- 레이아웃 파일이 `selectableItemBackground` 속성 사용
-- Dialog 테마는 이 속성을 지원하지 않음
 
 **해결:**
 ```xml
 <!-- AndroidManifest.xml -->
-<!-- ❌ 이전 -->
 <activity
     android:name=".widget.WidgetConfigActivity"
-    android:theme="@android:style/Theme.Material.Light.Dialog">
-
-<!-- ✅ 수정 -->
-<activity
-    android:name=".widget.WidgetConfigActivity"
-    android:label="위젯 설정">
+    android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 ```
 
-```xml
-<!-- item_widget_button_all.xml -->
-<!-- ❌ 이전 -->
-<LinearLayout
-    android:background="?android:attr/selectableItemBackground">
-
-<!-- ✅ 수정 -->
-<LinearLayout
-    android:clickable="true"
-    android:focusable="true">
-```
-
-### 문제 4: jsonDecode 미정의 에러
+### 문제 4: supportActionBar 에러
 
 **증상:**
 ```
-The method 'jsonDecode' isn't defined for the type 'SpeedDialProvider'
+Unresolved reference 'supportActionBar'
+```
+
+**해결:**
+- `supportActionBar?.hide()` 코드 제거
+- AndroidManifest.xml의 NoActionBar 테마로 충분
+
+### 문제 5: File.path 타입 에러
+
+**증상:**
+```
+The getter 'path' isn't defined for the type 'String'
 ```
 
 **해결:**
 ```dart
-// speed_dial_provider.dart 상단에 추가
-import 'dart:convert';
+// 명시적 타입 캐스팅
+if (file is File) {
+  final f = file as File;
+  fileName = f.path.split('/').last;
+}
 ```
 
-### 문제 5: 중복 리소스 에러
+### 문제 6: RecyclerView가 일부만 보임
 
 **증상:**
-```
-Found item String/widget_description more than one time
-```
+전체 버튼 중 3개만 보이고 나머지는 숨겨짐
 
 **해결:**
-- `strings.xml`에서 중복된 항목 제거
-- 각 리소스는 한 번만 정의되어야 함
+```xml
+<!-- NestedScrollView 사용 -->
+<androidx.core.widget.NestedScrollView ...>
+    <RecyclerView
+        android:nestedScrollingEnabled="false"
+        android:layout_height="wrap_content" />
+</androidx.core.widget.NestedScrollView>
+```
+
+### 문제 7: 아이콘 양옆 잘림
+
+**증상:**
+초록색 원형 배경이 카드 밖으로 튀어나옴
+
+**해결:**
+- 아이콘 크기 축소: 56dp → 52dp
+- 카드 padding 증가: 12dp → 16dp
 
 ---
 
@@ -476,7 +636,7 @@ Found item String/widget_description more than one time
 - ✅ MethodChannel 통신
 - ✅ 위젯 클릭 시 전화 걸기
 
-### Phase 3: Configuration Activity 구현 ⭐
+### Phase 3: Configuration Activity 구현
 - ✅ WidgetConfigActivity 작성
 - ✅ RecyclerView 어댑터 구현
 - ✅ 드래그 앤 드롭 기능
@@ -494,6 +654,25 @@ Found item String/widget_description more than one time
 - ✅ 모든 위젯 자동 업데이트
 - ✅ 전체 버튼 데이터 실시간 동기화
 
+### Phase 6: 모던 디자인 적용 🆕
+- ✅ Native 위젯 설정 화면 전면 개선
+  - 모던 머티리얼 디자인 3.0
+  - 카드 기반 레이아웃
+  - 블루 그라데이션 헤더
+  - 원형 아이콘 배경
+  - 커스텀 체크박스
+  - 드래그 인디케이터
+- ✅ ActionBar 제거 (중복 해결)
+- ✅ NestedScrollView 적용
+- ✅ 그리드 최적화 (3열 → 2열)
+- ✅ 아이콘 잘림 방지
+- ✅ 텍스트 잘림 방지
+- ✅ Flutter 설정 화면 최적화
+- ✅ settings_screen.dart 에러 수정
+  - File.path 타입 캐스팅
+  - BackupFileInfo 속성명 수정
+  - BuildContext async 안전성 개선
+
 ---
 
 ## 🔮 향후 계획
@@ -501,9 +680,21 @@ Found item String/widget_description more than one time
 - [ ] 3×3, 4×2 등 다양한 위젯 크기 지원
 - [ ] 다크/라이트 테마 위젯 스타일
 - [ ] 위젯별 배경색 설정
-- [ ] Flutter에서 위젯 관리 화면
 - [ ] 클라우드 백업 기능
 - [ ] iOS 위젯 지원
+- [ ] 통화 기록 통계
+- [ ] 즐겨찾기 기능
+
+---
+
+## 📊 프로젝트 통계
+
+- **총 개발 기간:** 진행중
+- **Flutter 코드:** ~3,000 lines
+- **Kotlin 코드:** ~800 lines
+- **XML 레이아웃:** 15+ files
+- **Drawable 리소스:** 10+ files
+- **개발 단계:** Phase 6 완료
 
 ---
 

@@ -54,10 +54,16 @@ class WidgetConfigActivity : Activity() {
     private lateinit var recyclerSelected: RecyclerView
     private lateinit var recyclerAll: RecyclerView
     private lateinit var btnSave: Button
+    private lateinit var btnCancel: Button
     private lateinit var emptyView: View
+    private lateinit var selectedCount: TextView
+    private lateinit var emptySelectedHint: TextView
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // AndroidManifest.xml에서 NoActionBar 테마로 이미 설정되어 있음
+        // supportActionBar는 AppCompatActivity에서만 사용 가능
         
         // 기본 결과를 CANCELED로 설정
         setResult(RESULT_CANCELED)
@@ -80,7 +86,10 @@ class WidgetConfigActivity : Activity() {
         recyclerSelected = findViewById(R.id.recycler_selected_buttons)
         recyclerAll = findViewById(R.id.recycler_all_buttons)
         btnSave = findViewById(R.id.btn_save)
+        btnCancel = findViewById(R.id.btn_cancel)
         emptyView = findViewById(R.id.empty_view)
+        selectedCount = findViewById(R.id.selected_count)
+        emptySelectedHint = findViewById(R.id.empty_selected_hint)
         
         // 데이터 로드
         loadAllButtons()
@@ -91,6 +100,11 @@ class WidgetConfigActivity : Activity() {
         // 저장 버튼 클릭
         btnSave.setOnClickListener {
             saveConfiguration()
+        }
+        
+        // 취소 버튼 클릭
+        btnCancel.setOnClickListener {
+            finish()
         }
         
         // UI 업데이트
@@ -194,7 +208,7 @@ class WidgetConfigActivity : Activity() {
         
         itemTouchHelper.attachToRecyclerView(recyclerSelected)
         
-        // 전체 버튼 RecyclerView (3열 그리드)
+        // 전체 버튼 RecyclerView (2열 그리드로 변경하여 가로 공간 확보)
         allButtonsAdapter = AllButtonsAdapter(
             allButtons,
             selectedButtons
@@ -207,7 +221,7 @@ class WidgetConfigActivity : Activity() {
         }
         
         recyclerAll.apply {
-            layoutManager = GridLayoutManager(this@WidgetConfigActivity, 3)
+            layoutManager = GridLayoutManager(this@WidgetConfigActivity, 2)
             adapter = allButtonsAdapter
         }
     }
@@ -216,10 +230,23 @@ class WidgetConfigActivity : Activity() {
      * UI 업데이트
      */
     private fun updateUI() {
+        // 선택된 버튼 개수 표시
+        selectedCount.text = selectedButtons.size.toString()
+        
         // 저장 버튼 활성화/비활성화
         btnSave.isEnabled = selectedButtons.isNotEmpty()
+        btnSave.alpha = if (selectedButtons.isNotEmpty()) 1.0f else 0.5f
         
-        // 빈 상태 표시
+        // 빈 상태 표시 (선택된 버튼)
+        if (selectedButtons.isEmpty()) {
+            emptySelectedHint.visibility = View.VISIBLE
+            recyclerSelected.visibility = View.GONE
+        } else {
+            emptySelectedHint.visibility = View.GONE
+            recyclerSelected.visibility = View.VISIBLE
+        }
+        
+        // 빈 상태 표시 (전체 버튼)
         if (allButtons.isEmpty()) {
             emptyView.visibility = View.VISIBLE
             recyclerAll.visibility = View.GONE
@@ -280,7 +307,7 @@ class SelectedButtonsAdapter(
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val icon: ImageView = view.findViewById(R.id.button_icon)
         val name: TextView = view.findViewById(R.id.button_name)
-        val removeBtn: ImageButton = view.findViewById(R.id.btn_remove)
+        val removeContainer: View = view.findViewById(R.id.btn_remove_container)
     }
     
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -294,7 +321,7 @@ class SelectedButtonsAdapter(
         holder.icon.setImageResource(getIconResource(button.iconCodePoint))
         holder.name.text = button.name
         
-        holder.removeBtn.setOnClickListener {
+        holder.removeContainer.setOnClickListener {
             onRemove(button)
         }
     }
@@ -323,6 +350,7 @@ class AllButtonsAdapter(
         val icon: ImageView = view.findViewById(R.id.button_icon)
         val name: TextView = view.findViewById(R.id.button_name)
         val checkbox: CheckBox = view.findViewById(R.id.checkbox)
+        val disabledOverlay: View? = view.findViewById(R.id.disabled_overlay)
     }
     
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -339,12 +367,16 @@ class AllButtonsAdapter(
         holder.name.text = button.name
         holder.checkbox.isChecked = isSelected
         
-        // 최대 4개 제한
-        holder.itemView.isEnabled = isSelected || selectedButtons.size < 4
-        holder.checkbox.isEnabled = isSelected || selectedButtons.size < 4
+        // 최대 4개 제한 - 비활성화 오버레이 표시
+        val canSelect = isSelected || selectedButtons.size < 4
+        holder.itemView.isEnabled = canSelect
+        holder.itemView.alpha = if (canSelect) 1.0f else 0.5f
+        holder.disabledOverlay?.visibility = if (canSelect) View.GONE else View.VISIBLE
         
         holder.itemView.setOnClickListener {
-            onToggle(button)
+            if (canSelect) {
+                onToggle(button)
+            }
         }
     }
     

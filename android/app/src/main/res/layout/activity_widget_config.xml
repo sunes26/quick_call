@@ -1,107 +1,292 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
-    android:background="#FFFFFF">
+    android:background="@android:color/white">
 
-    <!-- 제목 -->
-    <TextView
+    <!-- 🎨 헤더 섹션 (그라데이션 배경) -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/widget_configure_title"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:textColor="#000000"
-        android:paddingBottom="8dp" />
+        android:orientation="vertical"
+        android:background="#2196F3"
+        android:padding="24dp"
+        android:elevation="4dp">
 
-    <!-- 설명 -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/widget_configure_description"
-        android:textSize="14sp"
-        android:textColor="#666666"
-        android:paddingBottom="16dp" />
+        <!-- 타이틀 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="위젯 설정"
+            android:textSize="28sp"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:letterSpacing="0.02" />
 
-    <!-- 선택된 버튼 섹션 -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="선택된 버튼 (드래그로 순서 변경)"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:textColor="#000000"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp" />
+        <!-- 설명 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="위젯에 표시할 버튼을 선택하세요 (최대 4개)"
+            android:textSize="14sp"
+            android:textColor="#E3F2FD"
+            android:layout_marginTop="8dp"
+            android:lineSpacingExtra="2dp" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler_selected_buttons"
+    </LinearLayout>
+
+    <!-- 메인 콘텐츠 -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:minHeight="120dp" />
+        android:fillViewport="true">
 
-    <!-- 구분선 -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#CCCCCC"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="16dp" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
 
-    <!-- 전체 버튼 섹션 -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="전체 버튼 목록"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:textColor="#000000"
-        android:paddingBottom="8dp" />
+            <!-- 📌 선택된 버튼 섹션 -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:cardUseCompatPadding="true">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler_all_buttons"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="2"
-        android:minHeight="200dp" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-    <!-- 빈 상태 뷰 -->
+                    <!-- 섹션 헤더 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingBottom="12dp">
+
+                        <!-- 아이콘 -->
+                        <View
+                            android:layout_width="4dp"
+                            android:layout_height="24dp"
+                            android:background="#2196F3"
+                            android:layout_marginEnd="12dp" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="선택된 버튼"
+                            android:textSize="18sp"
+                            android:textColor="#212121"
+                            android:textStyle="bold" />
+
+                        <!-- 카운터 배지 -->
+                        <TextView
+                            android:id="@+id/selected_count"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:text="0"
+                            android:textSize="14sp"
+                            android:textColor="#FFFFFF"
+                            android:textStyle="bold"
+                            android:background="@drawable/badge_circle"
+                            android:gravity="center" />
+
+                    </LinearLayout>
+
+                    <!-- 선택된 버튼 RecyclerView -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/recycler_selected_buttons"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="120dp"
+                        android:nestedScrollingEnabled="false"
+                        android:clipToPadding="false"
+                        android:padding="4dp" />
+
+                    <!-- 안내 문구 (비어있을 때) -->
+                    <TextView
+                        android:id="@+id/empty_selected_hint"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="아래에서 버튼을 선택해주세요"
+                        android:textSize="14sp"
+                        android:textColor="#9E9E9E"
+                        android:gravity="center"
+                        android:padding="32dp"
+                        android:visibility="gone" />
+
+                    <!-- 드래그 안내 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:padding="12dp"
+                        android:background="#F5F5F5"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@android:drawable/ic_menu_sort_by_size"
+                            android:tint="#757575" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="길게 눌러서 순서 변경"
+                            android:textSize="12sp"
+                            android:textColor="#757575"
+                            android:layout_marginStart="8dp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+            <!-- 📋 전체 버튼 섹션 -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:cardUseCompatPadding="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <!-- 섹션 헤더 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingBottom="12dp">
+
+                        <!-- 아이콘 -->
+                        <View
+                            android:layout_width="4dp"
+                            android:layout_height="24dp"
+                            android:background="#4CAF50"
+                            android:layout_marginEnd="12dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="전체 버튼"
+                            android:textSize="18sp"
+                            android:textColor="#212121"
+                            android:textStyle="bold" />
+
+                    </LinearLayout>
+
+                    <!-- 전체 버튼 RecyclerView -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/recycler_all_buttons"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"
+                        android:clipToPadding="false"
+                        android:padding="4dp" />
+
+                    <!-- 빈 상태 -->
+                    <LinearLayout
+                        android:id="@+id/empty_view"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:padding="48dp"
+                        android:visibility="gone">
+
+                        <ImageView
+                            android:layout_width="64dp"
+                            android:layout_height="64dp"
+                            android:src="@android:drawable/ic_dialog_info"
+                            android:tint="#BDBDBD"
+                            android:alpha="0.5" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="단축키가 없습니다"
+                            android:textSize="16sp"
+                            android:textColor="#9E9E9E"
+                            android:layout_marginTop="16dp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="앱에서 단축키를 먼저 추가해주세요"
+                            android:textSize="14sp"
+                            android:textColor="#BDBDBD"
+                            android:layout_marginTop="8dp"
+                            android:gravity="center" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- 🎯 하단 버튼 섹션 -->
     <LinearLayout
-        android:id="@+id/empty_view"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="2"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:visibility="gone">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="등록된 버튼이 없습니다"
-            android:textSize="16sp"
-            android:textColor="#999999" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="앱에서 버튼을 먼저 추가해주세요"
-            android:textSize="14sp"
-            android:textColor="#BBBBBB"
-            android:paddingTop="8dp" />
-    </LinearLayout>
-
-    <!-- 저장 버튼 -->
-    <Button
-        android:id="@+id/btn_save"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="저장"
-        android:textSize="16sp"
-        android:layout_marginTop="16dp"
-        android:enabled="false" />
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:background="#FAFAFA"
+        android:elevation="8dp">
+
+        <!-- 취소 버튼 -->
+        <Button
+            android:id="@+id/btn_cancel"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:text="취소"
+            android:textSize="16sp"
+            android:textColor="#757575"
+            android:background="@drawable/button_outline"
+            android:layout_marginEnd="8dp"
+            style="?android:attr/borderlessButtonStyle" />
+
+        <!-- 저장 버튼 -->
+        <Button
+            android:id="@+id/btn_save"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:text="저장"
+            android:textSize="16sp"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:background="@drawable/button_primary"
+            android:layout_marginStart="8dp"
+            android:enabled="false" />
+
+    </LinearLayout>
 
 </LinearLayout>

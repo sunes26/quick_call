@@ -34,11 +34,12 @@
             </intent-filter>
         </activity>
         
-        <!-- 🆕 위젯 설정 Activity - Dialog 테마 제거 -->
+        <!-- 🎯 위젯 설정 Activity - NoActionBar 테마 추가 -->
         <activity
             android:name=".widget.WidgetConfigActivity"
             android:exported="true"
-            android:label="위젯 설정">
+            android:label="위젯 설정"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
