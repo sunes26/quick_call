@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="8dp"
+    android:gravity="center"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- 아이콘 -->
+    <ImageView
+        android:id="@+id/button_icon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:src="@android:drawable/ic_menu_call"
+        android:contentDescription="Button icon" />
+
+    <!-- 이름 -->
+    <TextView
+        android:id="@+id/button_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="버튼"
+        android:textSize="11sp"
+        android:gravity="center"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:paddingTop="4dp" />
+
+    <!-- 체크박스 -->
+    <CheckBox
+        android:id="@+id/checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="false"
+        android:focusable="false" />
+
+</LinearLayout>
