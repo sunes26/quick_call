@@ -25,75 +25,140 @@ Quick Call은 자주 연락하는 사람에게 빠르게 전화를 걸 수 있�
 
 ```
 quick_call/
+├── .flutter-plugins-dependencies     # Flutter 플러그인 의존성 정보
+├── .gitignore                        # Git 무시 파일 목록
+├── .metadata                         # Flutter 프로젝트 메타데이터
+├── analysis_options.yaml             # Dart 정적 분석 설정
+├── pubspec.yaml                      # Flutter 패키지 의존성
+├── pubspec.lock                      # 의존성 버전 잠금 파일
+├── README.md                         # 프로젝트 문서
+│
 ├── android/                          # Android Native 코드
-│   └── app/
-│       ├── build.gradle.kts          # Android 빌드 설정
+│   ├── .gitignore                    # Android 빌드 무시 파일
+│   ├── build.gradle.kts              # 프로젝트 수준 Gradle 설정
+│   ├── settings.gradle.kts           # Gradle 설정
+│   ├── gradle.properties             # Gradle 속성
+│   ├── local.properties              # 로컬 SDK 경로 (gitignore)
+│   ├── gradlew                       # Gradle Wrapper (Unix)
+│   ├── gradlew.bat                   # Gradle Wrapper (Windows)
+│   │
+│   ├── gradle/                       # Gradle Wrapper 파일
+│   │   └── wrapper/
+│   │       ├── gradle-wrapper.jar
+│   │       └── gradle-wrapper.properties
+│   │
+│   └── app/                          # 앱 모듈
+│       ├── build.gradle.kts          # 앱 모듈 빌드 설정
 │       ├── proguard-rules.pro        # ProGuard 난독화 규칙
-│       └── src/main/
-│           ├── AndroidManifest.xml   # 앱 매니페스트 (권한, 위젯 등록)
-│           ├── kotlin/               # Kotlin 네이티브 코드
-│           │   └── com/example/quick_call/
-│           │       ├── MainActivity.kt                    # Flutter ↔ Native 브릿지
-│           │       └── widget/                           # 위젯 관련 코드
-│           │           ├── SpeedDialWidgetProvider1x1.kt  # 1×1 위젯
-│           │           ├── SpeedDialWidgetProvider2x3.kt  # 2×3 위젯
-│           │           ├── SpeedDialWidgetProvider3x2.kt  # 3×2 위젯
-│           │           ├── WidgetConfigActivity1x1.kt     # 1×1 위젯 설정 화면
-│           │           ├── WidgetConfigActivity2x3.kt     # 2×3 위젯 설정 화면
-│           │           ├── WidgetConfigActivity3x2.kt     # 3×2 위젯 설정 화면
-│           │           └── WidgetUtils.kt                 # 위젯 공통 유틸리티
-│           └── res/                  # Android 리소스
-│               ├── drawable/         # 드로어블 리소스
-│               ├── layout/           # 레이아웃 XML
-│               │   ├── activity_widget_config_simple.xml  # 위젯 설정 화면
-│               │   ├── item_widget_button_all.xml         # 버튼 선택 아이템
-│               │   ├── widget_speed_dial_1x1.xml          # 1×1 위젯 레이아웃
-│               │   ├── widget_speed_dial_2x3.xml          # 2×3 위젯 레이아웃
-│               │   └── widget_speed_dial_3x2.xml          # 3×2 위젯 레이아웃
-│               ├── values/           # 문자열, 스타일 등
-│               └── xml/              # 위젯 메타데이터
-│                   ├── speed_dial_widget_info_1x1.xml
-│                   ├── speed_dial_widget_info_2x3.xml
-│                   └── speed_dial_widget_info_3x2.xml
+│       │
+│       └── src/
+│           ├── debug/                # 디버그 빌드 설정
+│           │   └── AndroidManifest.xml
+│           │
+│           ├── profile/              # 프로파일 빌드 설정
+│           │   └── AndroidManifest.xml
+│           │
+│           └── main/                 # 메인 소스
+│               ├── AndroidManifest.xml   # 앱 매니페스트 (권한, 위젯 등록)
+│               │
+│               ├── java/             # Java 생성 파일
+│               │   └── io/flutter/plugins/
+│               │       └── GeneratedPluginRegistrant.java
+│               │
+│               ├── kotlin/           # Kotlin 네이티브 코드
+│               │   └── com/example/quick_call/
+│               │       ├── MainActivity.kt                    # Flutter ↔ Native 브릿지
+│               │       │
+│               │       └── widget/                           # 위젯 관련 코드
+│               │           ├── SpeedDialWidgetProvider1x1.kt  # 1×1 위젯
+│               │           ├── SpeedDialWidgetProvider2x3.kt  # 2×3 위젯
+│               │           ├── SpeedDialWidgetProvider3x2.kt  # 3×2 위젯
+│               │           ├── WidgetConfigActivity1x1.kt     # 1×1 위젯 설정 화면
+│               │           ├── WidgetConfigActivity2x3.kt     # 2×3 위젯 설정 화면
+│               │           ├── WidgetConfigActivity3x2.kt     # 3×2 위젯 설정 화면
+│               │           └── WidgetUtils.kt                 # 위젯 공통 유틸리티
+│               │
+│               └── res/              # Android 리소스
+│                   ├── drawable/     # 드로어블 리소스
+│                   │   ├── button_outline.xml
+│                   │   ├── button_primary.xml
+│                   │   ├── gradient_header.xml
+│                   │   ├── launch_background.xml
+│                   │   └── samsung_white_button.xml
+│                   │
+│                   ├── drawable-v21/  # API 21+ 드로어블
+│                   │   └── launch_background.xml
+│                   │
+│                   ├── layout/       # 레이아웃 XML
+│                   │   ├── activity_widget_config_simple.xml  # 위젯 설정 화면
+│                   │   ├── item_widget_button_all.xml         # 버튼 선택 아이템
+│                   │   ├── widget_speed_dial_1x1.xml          # 1×1 위젯 레이아웃
+│                   │   ├── widget_speed_dial_2x3.xml          # 2×3 위젯 레이아웃
+│                   │   └── widget_speed_dial_3x2.xml          # 3×2 위젯 레이아웃
+│                   │
+│                   ├── mipmap-hdpi/      # 앱 아이콘 (hdpi)
+│                   │   └── ic_launcher.png
+│                   │
+│                   ├── mipmap-mdpi/      # 앱 아이콘 (mdpi)
+│                   │   └── ic_launcher.png
+│                   │
+│                   ├── mipmap-xhdpi/     # 앱 아이콘 (xhdpi)
+│                   │   └── ic_launcher.png
+│                   │
+│                   ├── mipmap-xxhdpi/    # 앱 아이콘 (xxhdpi)
+│                   │   └── ic_launcher.png
+│                   │
+│                   ├── mipmap-xxxhdpi/   # 앱 아이콘 (xxxhdpi)
+│                   │   └── ic_launcher.png
+│                   │
+│                   ├── values/       # 기본 리소스 값
+│                   │   ├── strings.xml
+│                   │   └── styles.xml
+│                   │
+│                   ├── values-night/  # 다크 모드 리소스
+│                   │   └── styles.xml
+│                   │
+│                   └── xml/          # 위젯 메타데이터
+│                       ├── speed_dial_widget_info_1x1.xml
+│                       ├── speed_dial_widget_info_2x3.xml
+│                       └── speed_dial_widget_info_3x2.xml
 │
-├── lib/                              # Flutter 코드
-│   ├── main.dart                     # 앱 진입점
-│   │
-│   ├── models/                       # 데이터 모델
-│   │   └── speed_dial_button.dart    # 단축 버튼 모델
-│   │
-│   ├── providers/                    # 상태 관리 (Provider)
-│   │   ├── settings_provider.dart    # 앱 설정 관리
-│   │   └── speed_dial_provider.dart  # 단축키 데이터 관리
-│   │
-│   ├── screens/                      # 화면 UI
-│   │   ├── home_screen.dart          # 메인 홈 화면
-│   │   ├── add_button_screen.dart    # 단축키 추가 화면
-│   │   ├── edit_button_screen.dart   # 단축키 편집 화면
-│   │   └── settings_screen.dart      # 설정 화면
-│   │
-│   ├── services/                     # 비즈니스 로직
-│   │   ├── database_service.dart     # SQLite 데이터베이스 관리
-│   │   ├── phone_service.dart        # 전화 걸기 기능
-│   │   ├── permission_service.dart   # 권한 관리
-│   │   ├── widget_service.dart       # 위젯 통신
-│   │   └── backup_service.dart       # 백업/복원 기능
-│   │
-│   ├── utils/                        # 유틸리티
-│   │   ├── phone_formatter.dart      # 전화번호 포맷팅
-│   │   ├── error_handler.dart        # 에러 처리
-│   │   └── sort_options.dart         # 정렬 옵션
-│   │
-│   └── widgets/                      # 재사용 가능한 위젯
-│       ├── dial_button_widget.dart       # 단축키 버튼 UI
-│       ├── icon_picker_widget.dart       # 아이콘 선택 위젯
-│       ├── contact_picker_widget.dart    # 연락처 선택 위젯
-│       ├── empty_state_widget.dart       # 빈 상태 UI
-│       ├── loading_widget.dart           # 로딩 UI
-│       ├── permission_dialog.dart        # 권한 안내 다이얼로그
-│       └── duplicate_phone_dialog.dart   # 중복 전화번호 확인 다이얼로그
-│
-└── pubspec.yaml                      # Flutter 패키지 의존성
+└── lib/                              # Flutter 코드
+    ├── main.dart                     # 앱 진입점
+    │
+    ├── models/                       # 데이터 모델
+    │   └── speed_dial_button.dart    # 단축 버튼 모델
+    │
+    ├── providers/                    # 상태 관리 (Provider)
+    │   ├── settings_provider.dart    # 앱 설정 관리
+    │   └── speed_dial_provider.dart  # 단축키 데이터 관리
+    │
+    ├── screens/                      # 화면 UI
+    │   ├── home_screen.dart          # 메인 홈 화면
+    │   ├── add_button_screen.dart    # 단축키 추가 화면
+    │   ├── edit_button_screen.dart   # 단축키 편집 화면
+    │   └── settings_screen.dart      # 설정 화면
+    │
+    ├── services/                     # 비즈니스 로직
+    │   ├── database_service.dart     # SQLite 데이터베이스 관리
+    │   ├── phone_service.dart        # 전화 걸기 기능
+    │   ├── permission_service.dart   # 권한 관리
+    │   ├── widget_service.dart       # 위젯 통신
+    │   └── backup_service.dart       # 백업/복원 기능
+    │
+    ├── utils/                        # 유틸리티
+    │   ├── phone_formatter.dart      # 전화번호 포맷팅
+    │   ├── error_handler.dart        # 에러 처리
+    │   └── sort_options.dart         # 정렬 옵션
+    │
+    └── widgets/                      # 재사용 가능한 위젯
+        ├── dial_button_widget.dart       # 단축키 버튼 UI
+        ├── icon_picker_widget.dart       # 아이콘 선택 위젯
+        ├── contact_picker_widget.dart    # 연락처 선택 위젯
+        ├── empty_state_widget.dart       # 빈 상태 UI
+        ├── loading_widget.dart           # 로딩 UI
+        ├── permission_dialog.dart        # 권한 안내 다이얼로그
+        └── duplicate_phone_dialog.dart   # 중복 전화번호 확인 다이얼로그
 
 ```
 
