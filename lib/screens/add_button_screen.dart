@@ -4,13 +4,19 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:quick_call/models/speed_dial_button.dart';
 import 'package:quick_call/providers/speed_dial_provider.dart';
-import 'package:quick_call/widgets/color_picker_widget.dart'; // 🆕 변경
+import 'package:quick_call/widgets/color_picker_widget.dart';
 import 'package:quick_call/widgets/contact_picker_widget.dart';
 import 'package:quick_call/services/database_service.dart';      
 import 'package:quick_call/widgets/duplicate_phone_dialog.dart';
 
 class AddButtonScreen extends StatefulWidget {
-  const AddButtonScreen({super.key});
+  // 🆕 초기 그룹 파라미터 추가
+  final String? initialGroup;
+
+  const AddButtonScreen({
+    super.key,
+    this.initialGroup,
+  });
 
   @override
   State<AddButtonScreen> createState() => _AddButtonScreenState();
@@ -22,7 +28,7 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
   final _phoneController = TextEditingController();
   final _newGroupController = TextEditingController();
   
-  Color _selectedColor = const Color(0xFF2196F3); // 🆕 색상 선택 (기본 파란색)
+  Color _selectedColor = const Color(0xFF2196F3); // 색상 선택 (기본 파란색)
   String? _selectedGroup;
   bool _isAddingNewGroup = false;
   bool _isSaving = false;
@@ -35,7 +41,16 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
       if (mounted && _selectedGroup == null) {
         setState(() {
           final availableGroups = provider.groups.where((g) => g != '전체').toList();
-          _selectedGroup = availableGroups.isNotEmpty ? availableGroups.first : null;
+          
+          // 🆕 initialGroup이 전달되었고, "전체"가 아니며, 사용 가능한 그룹에 포함되어 있으면 해당 그룹 선택
+          if (widget.initialGroup != null && 
+              widget.initialGroup != '전체' && 
+              availableGroups.contains(widget.initialGroup)) {
+            _selectedGroup = widget.initialGroup;
+          } else {
+            // 그렇지 않으면 첫 번째 사용 가능한 그룹 선택
+            _selectedGroup = availableGroups.isNotEmpty ? availableGroups.first : null;
+          }
         });
       }
     });
@@ -49,7 +64,7 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
     super.dispose();
   }
 
-  // 🆕 색상 선택 모달 열기
+  // 색상 선택 모달 열기
   Future<void> _openColorPicker() async {
     final color = await showModalBottomSheet<Color>(
       context: context,
@@ -85,7 +100,7 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
     );
   }
 
-  // 🆕 텍스트 색상 자동 결정
+  // 텍스트 색상 자동 결정
   Color _getTextColorForBackground(Color backgroundColor) {
     return backgroundColor.computeLuminance() > 0.5 
         ? Colors.black87 
@@ -167,7 +182,7 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
       final button = SpeedDialButton(
         name: _nameController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
-        color: _selectedColor, // 🆕 색상 저장
+        color: _selectedColor,
         group: finalGroup,
         position: nextPosition,
       );
@@ -248,7 +263,7 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
                   ),
                   SizedBox(height: 24.h),
 
-                  // 🆕 색상 선택 버튼
+                  // 색상 선택 버튼
                   GestureDetector(
                     onTap: _openColorPicker,
                     child: Container(
@@ -373,11 +388,19 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
                           .where((g) => g != '전체')
                           .toList();
                       
+                      // 🆕 수정: _selectedGroup이 null이고 아직 초기화되지 않은 경우에만 기본값 설정
                       if (_selectedGroup == null && availableGroups.isNotEmpty && !_isAddingNewGroup) {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (mounted) {
+                          if (mounted && _selectedGroup == null) {
                             setState(() {
-                              _selectedGroup = availableGroups.first;
+                              // initialGroup이 유효하면 해당 그룹, 아니면 첫 번째 그룹
+                              if (widget.initialGroup != null && 
+                                  widget.initialGroup != '전체' && 
+                                  availableGroups.contains(widget.initialGroup)) {
+                                _selectedGroup = widget.initialGroup;
+                              } else {
+                                _selectedGroup = availableGroups.first;
+                              }
                             });
                           }
                         });

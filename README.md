@@ -26,6 +26,8 @@ Quick Call은 자주 연락하는 사람에게 빠르게 전화를 걸 수 있�
 - ✅ **그룹 편집**: 그룹 탭 재클릭으로 그룹 이름 변경 및 삭제 (전체 그룹 제외, 모든 모드에서 동일)
 - ✅ **스와이프 탭 전환**: 화면을 좌우로 스와이프하여 그룹 간 자연스럽게 전환 (모든 모드에서 동작)
 - ✅ **인라인 버튼 추가**: 각 그룹 마지막에 점선 테두리 + 버튼으로 빠른 추가
+- ✅ **그룹별 기본값 자동 선택**: 단축키 추가 시 현재 탭의 그룹이 기본 선택됨 (v1.8.0)
+- ✅ **드래그로 그룹 간 이동**: 편집 모드에서 버튼을 가장자리로 드래그하여 다른 그룹으로 이동 (v1.8.0)
 - ✅ **드래그 앤 드롭**: 편집 모드에서 순서 변경 가능
 - ✅ **검색 기능**: 이름/전화번호로 빠른 검색
 - ✅ **다크 모드**: 라이트/다크 테마 지원
@@ -145,11 +147,11 @@ quick_call/
     │
     ├── providers/                    # 상태 관리 (Provider)
     │   ├── settings_provider.dart    # 앱 설정 관리
-    │   └── speed_dial_provider.dart  # 단축키 데이터 관리 (getButtonsForGroup 메서드 포함)
+    │   └── speed_dial_provider.dart  # 단축키 데이터 관리 (getButtonsForGroup, moveButtonToGroup 메서드 포함)
     │
     ├── screens/                      # 화면 UI
-    │   ├── home_screen.dart          # 메인 홈 화면 (TabBarView 스와이프, 인라인 추가 버튼, 그룹 생성 FAB)
-    │   ├── add_button_screen.dart    # 단축키 추가 화면 (색상 선택, 글자수 무제한)
+    │   ├── home_screen.dart          # 메인 홈 화면 (TabBarView 스와이프, 인라인 추가 버튼, 그룹 생성 FAB, 드래그 그룹 이동)
+    │   ├── add_button_screen.dart    # 단축키 추가 화면 (색상 선택, 글자수 무제한, initialGroup 파라미터)
     │   ├── edit_button_screen.dart   # 단축키 편집 화면 (색상 선택, 글자수 무제한)
     │   └── settings_screen.dart      # 설정 화면
     │
@@ -173,6 +175,7 @@ quick_call/
         ├── loading_widget.dart           # 로딩 UI
         ├── permission_dialog.dart        # 권한 안내 다이얼로그
         ├── duplicate_phone_dialog.dart   # 중복 전화번호 확인 다이얼로그
+        ├── icon_picker_widget.dart       # 아이콘 선택 위젯 (레거시, 미사용)
         └── group_edit_dialog.dart        # 그룹 편집 다이얼로그
 ```
 
@@ -247,7 +250,196 @@ path_provider: ^2.1.1           # 파일 경로
 
 ## 🎨 주요 기능 구현
 
-### 1. 색상 커스터마이징 시스템
+### 1. 그룹별 기본값 자동 선택 (v1.8.0)
+
+**기능 설명**:
+- 단축키 추가 시 현재 활성화된 탭의 그룹이 기본 선택됨
+- 사용자가 그룹을 따로 선택할 필요 없이 빠르게 추가 가능
+
+**동작 방식**:
+```
+"가족" 탭에서 "+" 버튼 클릭
+   ↓
+AddButtonScreen 열림
+   ↓
+그룹 선택 드롭다운 기본값: "가족" ✅
+
+"전체" 탭에서 "+" 버튼 클릭
+   ↓
+AddButtonScreen 열림
+   ↓
+그룹 선택 드롭다운 기본값: 첫 번째 사용 가능한 그룹
+```
+
+**구현**:
+```dart
+// AddButtonScreen 생성자
+class AddButtonScreen extends StatefulWidget {
+  final String? initialGroup;  // 🆕 초기 그룹 파라미터
+  
+  const AddButtonScreen({super.key, this.initialGroup});
+}
+
+// initState에서 기본값 설정
+@override
+void initState() {
+  super.initState();
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final provider = context.read<SpeedDialProvider>();
+    final availableGroups = provider.groups.where((g) => g != '전체').toList();
+    
+    // initialGroup이 유효하면 해당 그룹, 아니면 첫 번째 그룹
+    if (widget.initialGroup != null && 
+        widget.initialGroup != '전체' && 
+        availableGroups.contains(widget.initialGroup)) {
+      _selectedGroup = widget.initialGroup;
+    } else {
+      _selectedGroup = availableGroups.isNotEmpty ? availableGroups.first : null;
+    }
+  });
+}
+```
+
+**호출 위치**:
+```dart
+// home_screen.dart - 인라인 추가 버튼
+Widget _buildAddButtonPlaceholder(String group) {
+  return GestureDetector(
+    onTap: () => _showAddButtonDialog(initialGroup: group),  // 현재 그룹 전달
+    // ...
+  );
+}
+
+// home_screen.dart - 빈 상태 위젯
+NoSpeedDialsWidget(
+  groupName: group,
+  onAddPressed: () => _showAddButtonDialog(initialGroup: group),
+)
+```
+
+### 2. 드래그로 그룹 간 버튼 이동 (v1.8.0)
+
+**기능 설명**:
+- 편집 모드에서 버튼을 화면 가장자리로 드래그하여 다른 그룹으로 이동
+- 1초 유지 시 자동으로 탭 전환 및 버튼 그룹 변경
+- "전체" 그룹으로는 이동 불가
+
+**동작 방식**:
+```
+편집 모드에서 버튼 롱프레스 → 드래그 시작
+   ↓
+화면 왼쪽 가장자리(50px)로 이동
+   ↓
+파란색 인디케이터 표시 + 타겟 그룹명
+   ↓
+1초 유지
+   ↓
+버튼 그룹 변경 + 왼쪽 탭으로 전환
+   ↓
+"버튼을 'XX' 그룹으로 이동했습니다" 스낵바
+```
+
+**UI 다이어그램**:
+```
+편집 모드 - 가장자리 드래그:
+┌─────────────────────────────────┐
+│ [전체] [가족] [친구]            │
+├─────────────────────────────────┤
+│ ┃                           ┃   │
+│ ┃파│  ┌─────┐  ┌─────┐  │파┃   │
+│ ┃란│  │ 엄마 │  │ 아빠 │  │란┃   │
+│ ┃색│  └─────┘  └─────┘  │색┃   │
+│ ┃  │                     │  ┃   │
+│ ┃◀ │  ┌─────┐            │▶ ┃   │
+│ ┃가│  │🔄동생│ ←드래그중  │친┃   │
+│ ┃족│  └─────┘            │구┃   │
+│ ┃━━│ (프로그레스 바)      │━━┃   │
+│ ┃                           ┃   │
+└─────────────────────────────────┘
+  ↑ 왼쪽 50px             오른쪽 50px ↑
+    1초 유지 시              1초 유지 시
+    가족 탭으로 이동          친구 탭으로 이동
+```
+
+**가장자리 인디케이터**:
+- 이동 가능: 파란색 그라데이션 + 화살표 + 타겟 그룹명 + 프로그레스 바
+- 이동 불가: 빨간색 그라데이션 + "이동 불가" 텍스트
+
+**구현**:
+```dart
+// home_screen.dart - 상태 변수
+enum EdgeSide { left, right, none }
+
+bool _isDragging = false;
+Timer? _edgeTimer;
+EdgeSide _currentEdge = EdgeSide.none;
+SpeedDialButton? _draggedButton;
+static const double _edgeThreshold = 50.0;  // 가장자리 감지 영역
+static const Duration _edgeHoldDuration = Duration(seconds: 1);
+
+// Listener로 포인터 위치 감지
+Listener(
+  onPointerDown: _onPointerDown,
+  onPointerMove: (event) => _onPointerMove(event, provider),
+  onPointerUp: _onPointerUp,
+  onPointerCancel: _onPointerCancel,
+  child: ReorderableGridView.builder(
+    dragWidgetBuilder: (index, child) {
+      _draggedButton = groupButtons[index];  // 드래그 중인 버튼 저장
+      return /* 드래그 위젯 */;
+    },
+    // ...
+  ),
+)
+
+// 가장자리 감지 및 타이머
+void _onPointerMove(PointerMoveEvent event, SpeedDialProvider provider) {
+  final x = event.position.dx;
+  final screenWidth = MediaQuery.of(context).size.width;
+  
+  EdgeSide newEdge = EdgeSide.none;
+  if (x < _edgeThreshold) newEdge = EdgeSide.left;
+  else if (x > screenWidth - _edgeThreshold) newEdge = EdgeSide.right;
+  
+  if (newEdge != _currentEdge) {
+    _cancelEdgeTimer();
+    _currentEdge = newEdge;
+    if (newEdge != EdgeSide.none) {
+      _startEdgeTimer(provider, newEdge);  // 1초 타이머 시작
+    }
+  }
+}
+```
+
+**Provider 메서드**:
+```dart
+// speed_dial_provider.dart
+Future<bool> moveButtonToGroup(SpeedDialButton button, String newGroup) async {
+  // "전체" 그룹으로는 이동 불가
+  if (newGroup == '전체') return false;
+  
+  // 같은 그룹이면 무시
+  if (button.group == newGroup) return true;
+  
+  // 새 그룹의 마지막 위치 계산
+  final newGroupButtons = _buttons.where((b) => b.group == newGroup).toList();
+  final newPosition = newGroupButtons.isEmpty 
+      ? _buttons.length 
+      : newGroupButtons.map((b) => b.position).reduce((a, b) => a > b ? a : b) + 1;
+  
+  // 버튼 업데이트
+  final updatedButton = button.copyWith(group: newGroup, position: newPosition);
+  final success = await _databaseService.updateButton(updatedButton);
+  
+  if (success) {
+    await loadButtons();
+    await loadGroups();
+  }
+  return success;
+}
+```
+
+### 3. 색상 커스터마이징 시스템
 
 **색상 팔레트** (5×4 그리드, 20가지 색상):
 ```dart
@@ -266,26 +458,12 @@ path_provider: ^2.1.1           # 파일 경로
 연한 초록(#C8E6C9), 연한 회색(#CFD8DC)
 ```
 
-**컴팩트 색상 선택 UI** (v1.5.0):
-```
-┌─────────────────────────┐
-│  버튼 색상 선택  ⚫      │  ← 제목 + 미리보기 한 줄
-│                         │
-│   ● ● ● ● ●            │
-│   ● ● ● ● ●            │  ← 스크롤 없이 한눈에
-│   ● ● ● ● ●            │
-│   ● ● ● ● ●            │
-│                         │
-│   [취소]     [확인]     │
-└─────────────────────────┘
-```
-
 **자동 텍스트 색상 결정**:
 - 밝은 배경색(명도 > 0.5): 검은색 텍스트
 - 어두운 배경색(명도 ≤ 0.5): 흰색 텍스트
 - `Color.computeLuminance()` 사용
 
-### 2. 하이브리드 줄바꿈 시스템 (v1.7.0)
+### 4. 하이브리드 줄바꿈 시스템 (v1.7.0)
 
 버튼 이름을 의미 단위로 자동 줄바꿈하여 가독성을 높이는 시스템입니다.
 
@@ -298,379 +476,39 @@ path_provider: ^2.1.1           # 파일 경로
 5. 짧은 텍스트 (6글자-) → 그대로 1줄
 ```
 
-**패턴 사전**:
-```dart
-// 직책 (뒤에서 매칭)
-['본부장', '센터장', '지점장', '부사장', '선생님', '대표님',
- '회장', '사장', '전무', '상무', '이사', '부장', '차장',
- '과장', '대리', '주임', '사원', '팀장', '실장', '원장',
- '관장', '교수', '박사', '님', '씨']
-
-// 조직 단위 (뒤에서 매칭)
-['영업팀', '개발팀', '인사팀', '총무팀', '기획팀', '마케팅팀',
- '경영지원팀', '고객지원팀', '연구소', '사업부', '지원팀',
- '본부', '센터', '지점', '팀', '부', '실', '과', '국', '처']
-
-// 회사/기관 (앞에서 매칭)
-['대학교', '고등학교', '중학교', '초등학교', '유치원',
- '물산', '전자', '건설', '증권', '은행', '보험', '카드',
- '병원', '약국', '의원', '치과', '한의원', '정형외과',
- '회사', '그룹', '재단', '공사', '공단', '협회']
-```
-
-**줄바꿈 예시**:
-
-| 입력 | 처리 방식 | 결과 |
-|------|----------|------|
-| `엄마` | 짧음 (2글자) | 엄마 |
-| `김철수 과장` | 공백 기준 | 김철수<br>과장 |
-| `대산/영업/권승욱` | 구분자 | 대산<br>영업<br>권승욱 |
-| `권승욱팀장` | 패턴: 이름+직책 | 권승욱<br>팀장 |
-| `대산물산영업팀권승욱팀장` | 패턴: 회사+조직+이름+직책 | 대산물산<br>영업팀 권승욱<br>팀장 |
-| `삼성전자` | 패턴: 회사 | 삼성전자 |
-| `응급실직통번호` | Fallback (7글자) | 응급실직<br>통번호 |
-
-**글자 수 기반 최적 분배** (4단어 이상):
-- 모든 3줄 분배 조합 검토
-- 각 줄 글자 수 편차가 최소인 분배 선택
-- 동점 시: 앞쪽 줄에 더 많은 단어 배치
-
-```
-"대산 권승욱 팀장 직통" (4단어)
-
-가능한 분배:
-- 1/1/2: 대산 / 권승욱 / 팀장 직통 → 편차 2 ✅ 최적
-- 1/2/1: 대산 / 권승욱 팀장 / 직통 → 편차 3
-- 2/1/1: 대산 권승욱 / 팀장 / 직통 → 편차 3
-```
-
-### 3. 버튼 UI 개선
-
-**변경 전** (v1.2.0 이전):
-```
-┌─────────────────┐
-│   Spacer(2)     │
-│   ┌─────┐       │
-│   │ 👤  │ Icon  │
-│   └─────┘       │
-│   Spacer(1)     │
-│   이름 (15sp)   │
-│   Spacer(2)     │
-└─────────────────┘
-```
-
-**변경 후** (v1.7.0):
-```
-┌─────────────────┐
-│   (색상 배경)   │
-│                 │
-│   대산물산      │  ← 하이브리드 줄바꿈
-│  영업팀 권승욱  │     AutoSizeText
-│     팀장       │     Bold
-│                 │
-└─────────────────┘
-```
-
-**텍스트 크기 설정**:
-- 기본: 22sp (Bold)
-- 최소: 12sp
-- 최대: 22sp
-- 최대 3줄 표시
-- AutoSizeText로 자동 크기 조정
-
-### 4. 버튼 조작 방식
+### 5. 버튼 조작 방식
 
 **일반 모드**:
 - **클릭(탭)**: 버튼 편집 화면 열기
-  - 빠른 정보 수정 및 확인
-  - 즉시 접근 가능
-- **롱프레스(꾹 누르기)**: 전화 걸기
-  - 실수로 전화 걸림 방지
-  - 햅틱 피드백(진동)으로 명확한 피드백
-  - `HapticFeedback.mediumImpact()` 적용
+- **롱프레스(꾹 누르기)**: 전화 걸기 (햅틱 피드백)
 
 **편집 모드**:
 - **클릭(탭)**: 버튼 편집 화면 열기
 - **X 버튼**: 버튼 삭제
 - **드래그**: 순서 변경
+- **가장자리 드래그**: 다른 그룹으로 이동 (v1.8.0)
 
-**구현 위치**:
-- `lib/widgets/dial_button_widget.dart`: GestureDetector로 onTap/onLongPress 처리
-- `lib/screens/home_screen.dart`: 각 모드별 핸들러 구현
+### 6. 스와이프 탭 전환 (v1.5.0)
 
-### 5. 스와이프 탭 전환 (v1.5.0)
-
-**기능 설명**:
 - 화면을 좌우로 스와이프하여 그룹 탭 간 자연스럽게 전환
 - 탭 클릭과 스와이프 모두 지원
-- TabBar와 TabBarView 연동으로 부드러운 애니메이션
-- **모든 모드(일반/편집)에서 스와이프 가능** (v1.6.0)
+- **모든 모드(일반/편집)에서 스와이프 가능**
 
-**모드별 동작**:
-```
-일반 모드 & 편집 모드:
-[전체] [가족] [친구]     ← 탭 클릭 OR 스와이프로 전환
-┌─────────────────┐
-│                 │
-│  👆 좌우 스와이프 │  ← 자연스럽게 다음 탭으로 전환
-│       ←  →      │
-└─────────────────┘
+### 7. 인라인 버튼 추가 (v1.6.0)
 
-검색 모드:
-┌─────────────────┐
-│                 │
-│  검색 결과 표시  │  ← 스와이프 없이 단일 그리드
-│                 │
-└─────────────────┘
-```
-
-**구현 방식**:
-- `TabBarView` 위젯 사용
-- `TabController`로 탭과 페이지 동기화
-- 모든 모드에서 `ClampingScrollPhysics()`로 자연스러운 스와이프
-
-**Provider 추가 메서드**:
-```dart
-// 특정 그룹의 버튼 목록 반환 (TabBarView용)
-List<SpeedDialButton> getButtonsForGroup(String group)
-```
-
-### 6. 인라인 버튼 추가 (v1.6.0)
-
-**기능 설명**:
 - 각 그룹의 버튼 그리드 마지막에 점선 테두리의 "+" 버튼 표시
-- 클릭 시 단축키 추가 화면 열기
+- 클릭 시 단축키 추가 화면 열기 (현재 그룹 기본 선택)
 - 편집 모드에서는 숨김 처리
 
-**UI 구현**:
-```
-일반 모드:
-┌─────────────────────────────────┐
-│ [전체] [가족] [친구]            │
-├─────────────────────────────────┤
-│                                 │
-│  ┌─────┐  ┌─────┐  ┌─────┐     │
-│  │ 엄마 │  │ 아빠 │  │ 동생 │     │
-│  └─────┘  └─────┘  └─────┘     │
-│                                 │
-│  ┌─────┐  ┌╌╌╌╌╌┐              │
-│  │ 친구 │  ┊  +  ┊  ← 점선 테두리  │
-│  └─────┘  └╌╌╌╌╌┘     클릭 시 추가 │
-│                                 │
-│                         [📁]   │
-└─────────────────────────────────┘
-
-편집 모드:
-┌─────────────────────────────────┐
-│ [전체] [가족] [친구]            │
-├─────────────────────────────────┤
-│                                 │
-│  ┌─────┐  ┌─────┐  ┌─────┐     │
-│  │ 엄마 │  │ 아빠 │  │ 동생 │     │
-│  └─────┘  └─────┘  └─────┘     │
-│                                 │
-│  ┌─────┐                       │
-│  │ 친구 │  (+ 버튼 숨김)         │
-│  └─────┘                       │
-│                                 │
-└─────────────────────────────────┘
-```
-
-**점선 테두리 구현**:
-```dart
-// DashedBorderPainter - CustomPainter로 구현
-class DashedBorderPainter extends CustomPainter {
-  final Color color;          // 테두리 색상
-  final double strokeWidth;   // 선 두께
-  final double gap;           // 점선 간격
-  final double dashWidth;     // 점선 길이
-  final double borderRadius;  // 모서리 둥글기
-}
-```
-
-### 7. 그룹 관리 시스템
+### 8. 그룹 관리 시스템
 
 **기본 그룹 정책**:
 - **"전체" 그룹만 기본 그룹**으로 존재
-- 모든 버튼을 표시하는 특수 그룹
 - 편집 및 삭제 불가능
 
 **사용자 그룹**:
-- 사용자가 자유롭게 그룹 생성 가능
 - 그룹 이름 변경 가능 (최대 10자)
 - 그룹 삭제 시 해당 그룹의 모든 버튼도 함께 삭제
-
-**그룹 생성 방법** (v1.6.0):
-```
-우측 하단 FAB(📁) 버튼 클릭
-→ 그룹 생성 다이얼로그 표시
-   ┌─────────────────────────────┐
-   │  📁  새 그룹 만들기          │
-   │                             │
-   │ [📁 그룹 이름_______] (0/10) │
-   │                             │
-   │       [취소]    [만들기]    │
-   └─────────────────────────────┘
-```
-
-**그룹 편집 방법** (모든 모드에서 동일):
-```
-현재 활성화된 그룹 탭을 다시 클릭
-→ 그룹 편집 바텀시트 표시
-   ┌─────────────────────────────┐
-   │   그룹 편집                  │
-   │ [가족____________] (10/10)  │
-   │                             │
-   │ [그룹제거] [취소] [확인]    │
-   └─────────────────────────────┘
-```
-
-**그룹 편집 UI**:
-- 그룹 이름 수정 필드 (TextField)
-- 왼쪽: 그룹 제거 버튼 (빨간색)
-- 오른쪽: 취소, 확인 버튼
-- 바텀시트 형태로 표시
-- **일반 모드와 편집 모드 모두에서 동일하게 동작** (v1.6.0)
-
-**구현 위치**:
-- `lib/widgets/group_edit_dialog.dart`: 그룹 편집 바텀시트 UI
-- `lib/screens/home_screen.dart`: 탭 재클릭 감지, 그룹 생성 FAB, 편집 로직
-- `lib/providers/speed_dial_provider.dart`: 그룹 데이터 관리
-
-### 8. 위젯 시스템
-
-**3가지 위젯 크기 지원**:
-- **1×1**: 단일 버튼 (긴급 전화 등)
-- **2×3**: 세로 방향 6개 버튼
-- **3×2**: 가로 방향 6개 버튼
-
-**위젯 UI 개선**:
-- 이름과 전화번호를 함께 표시
-- Android AutoSizeText 적용으로 텍스트 자동 크기 조정
-- 전화번호가 길어도 잘리지 않고 자동으로 글자 크기 축소
-- 최소/최대 폰트 크기 설정으로 가독성 보장
-
-**위젯 설정 화면**:
-- 3열 그리드 레이아웃으로 한눈에 버튼 확인
-- 사람 아이콘(👤)으로 통일된 디자인
-- 선택 시 파란색 테두리로 명확한 피드백
-- 클릭 영역 최적화로 터치 반응 개선
-
-**위젯 구현 흐름**:
-```
-1. 사용자가 홈 화면에 위젯 추가
-2. WidgetConfigActivity 실행 (네이티브)
-3. 3열 그리드에서 버튼 선택 (파란색 테두리로 표시)
-4. SharedPreferences에 JSON 저장 (color 값 포함)
-5. SpeedDialWidgetProvider가 UI 업데이트
-6. 위젯에 이름 + 전화번호 표시 (AutoSize)
-7. 버튼 클릭 시 ACTION_CALL Intent 발생
-```
-
-**Flutter ↔ Native 통신** (MethodChannel):
-```kotlin
-// MainActivity.kt
-"saveAllButtonsData"  // 전체 버튼 데이터 저장 (color 포함)
-"updateWidgetData"    // 특정 위젯 업데이트
-"refreshAllWidgets"   // 모든 위젯 새로고침
-"getWidgetIds"        // 설치된 위젯 ID 목록
-"getWidgetData"       // 위젯 데이터 조회
-"clearAllWidgets"     // 모든 위젯 데이터 삭제
-```
-
-### 9. 위젯 텍스트 자동 크기 조정
-
-**Android AutoSizeText 적용**:
-```xml
-<TextView
-    android:autoSizeTextType="uniform"
-    android:autoSizeMinTextSize="5sp"
-    android:autoSizeMaxTextSize="12sp"
-    android:autoSizeStepGranularity="1sp"
-    android:maxLines="1" />
-```
-
-**전화번호 표시 위치**:
-- 1×1: 이름 아래, 중앙 정렬
-- 2×3, 3×2: 각 버튼 이름 아래, 작은 회색 글씨
-
-### 10. 위젯 설정 UI
-
-**레이아웃 구조**:
-```xml
-<FrameLayout>  <!-- 클릭 영역 확장 -->
-  <LinearLayout>
-    <ImageView />  <!-- 👤 아이콘 -->
-    <TextView />   <!-- 이름 -->
-  </LinearLayout>
-</FrameLayout>
-```
-
-**선택 표시**:
-- 미선택: 회색 테두리 (2dp, #E0E0E0)
-- 선택: 파란색 테두리 (4dp, #2196F3)
-- Drawable 리소스로 동적 변경
-- CardView elevation 0으로 이중 테두리 방지
-
-### 11. 권한 관리
-
-**필요한 권한**:
-- `CALL_PHONE`: 전화 걸기
-- `READ_CONTACTS`: 연락처 읽기
-- `INTERNET`: 개발 디버깅 (debug 빌드만)
-
-**권한 요청 흐름**:
-```dart
-1. PermissionService로 권한 상태 확인
-2. 미승인 시 요청 다이얼로그 표시
-3. 영구 거부 시 설정 화면으로 안내
-4. 승인 시 기능 실행
-```
-
-### 12. 전화번호 포맷팅
-
-`PhoneFormatter` 유틸리티 지원:
-- 한국 전화번호 형식 자동 변환
-- 국제 번호 지원 (+82)
-- 긴급 전화 감지 (119, 112 등)
-- 유효성 검사
-
-**예시**:
-```dart
-PhoneFormatter.format('01012345678')  // "010-1234-5678"
-PhoneFormatter.format('0212345678')   // "02-1234-5678"
-PhoneFormatter.isValid('010-1234-5678') // true
-PhoneFormatter.isEmergencyNumber('119') // true
-```
-
-### 13. 백업/복원
-
-**백업 데이터 구조** (JSON):
-```json
-{
-  "version": "1.0.0",
-  "timestamp": "2024-01-01T12:00:00.000Z",
-  "buttonCount": 10,
-  "buttons": [
-    {
-      "id": 1,
-      "name": "엄마",
-      "phoneNumber": "010-1234-5678",
-      "color": 4283215695,
-      "group": "가족",
-      "position": 0,
-      "createdAt": "2024-01-01T12:00:00.000Z",
-      "lastCalled": null,
-      "isInWidget": 1,
-      "widgetPosition": 0
-    }
-  ]
-}
-```
-
-**백업 파일 저장 위치**:
-- 내부: `{ApplicationDocuments}/quick_call_backup_{timestamp}.json`
-- 외부 (내보내기): `/storage/emulated/0/Download/quick_call_backup_{timestamp}.json`
 
 ---
 
@@ -678,66 +516,32 @@ PhoneFormatter.isEmergencyNumber('119') // true
 
 ### 개발 환경 설정
 
-1. **Flutter SDK 설치**
 ```bash
 # Flutter 3.0 이상 필요
 flutter --version
-```
 
-2. **Android Studio 설정**
-   - Android SDK 26 이상 설치
-   - Kotlin 플러그인 활성화
-
-3. **의존성 설치**
-```bash
+# 의존성 설치
 flutter pub get
 ```
 
 ### 실행
 
-**디버그 모드**:
 ```bash
+# 디버그 모드
 flutter run
-```
 
-**릴리스 모드**:
-```bash
+# 릴리스 모드
 flutter run --release
 ```
 
 ### 빌드
 
-**APK 생성**:
 ```bash
+# APK 생성
 flutter build apk --release
-```
 
-**App Bundle 생성** (Play Store 배포용):
-```bash
+# App Bundle 생성 (Play Store 배포용)
 flutter build appbundle --release
-```
-
-**생성된 파일 위치**:
-- APK: `build/app/outputs/flutter-apk/app-release.apk`
-- AAB: `build/app/outputs/bundle/release/app-release.aab`
-
----
-
-## 🔐 보안 및 권한
-
-### ProGuard 설정
-
-릴리스 빌드 시 코드 난독화 적용:
-- Flutter 관련 클래스 보호
-- Gson, SQLite 클래스 보호
-- 플러그인 클래스 보호
-
-### 서명 키 관리
-
-**프로덕션 배포 시 필수**:
-```kotlin
-// build.gradle.kts의 release 블록에서
-signingConfig = signingConfigs.getByName("debug")  // ← 실제 키로 변경
 ```
 
 ---
@@ -758,266 +562,83 @@ signingConfig = signingConfigs.getByName("debug")  // ← 실제 키로 변경
 
 // 🆕 v1.5.0 추가 메서드
 - getButtonsForGroup(String group)     // 특정 그룹의 버튼 목록 반환
+
+// 🆕 v1.8.0 추가 메서드
+- moveButtonToGroup(button, newGroup)  // 버튼을 다른 그룹으로 이동
 - addCustomGroup(String groupName)     // 새 그룹 추가 (메모리)
 ```
-
-**SettingsProvider**: 앱 설정 관리
-```dart
-- themeMode: ThemeMode                 // 테마 모드
-- sortOption: SortOption               // 기본 정렬
-- autoBackupEnabled: bool              // 자동 백업
-- showLastCalled: bool                 // 최근 통화 표시
-```
-
----
-
-## 🎯 주요 화면 설명
-
-### HomeScreen
-- 단축키 버튼 그리드 표시 (색상 배경, 큰 텍스트, 하이브리드 줄바꿈)
-- 그룹별 탭 네비게이션
-- **스와이프 탭 전환**: TabBarView로 좌우 스와이프 지원 (모든 모드)
-- **그룹 편집**: 현재 활성화된 그룹 탭 재클릭 시 편집 바텀시트 표시 (모든 모드에서 동일)
-- **그룹 생성**: 우측 하단 FAB(📁) 클릭 시 그룹 생성 다이얼로그 표시
-- **인라인 추가 버튼**: 각 그룹 마지막에 점선 테두리 + 버튼 (일반 모드만)
-- 검색 기능
-- 편집 모드 (드래그 앤 드롭)
-- 정렬 옵션
-- **버튼 조작**:
-  - 일반 모드: 클릭(편집), 롱프레스(전화)
-  - 편집 모드: 클릭(편집), 드래그(순서변경)
-
-### AddButtonScreen
-- 색상 선택 (5×4 그리드, 20가지 색상)
-- 이름 입력 (글자수 제한 없음)
-- 전화번호 입력
-- 연락처에서 가져오기
-- 그룹 선택 (동적으로 사용 가능한 그룹 표시)
-- 새 그룹 추가
-- 중복 전화번호 확인
-
-### EditButtonScreen
-- 버튼 정보 수정 (색상 변경 포함)
-- 이름 입력 (글자수 제한 없음)
-- 삭제 기능
-- AddButtonScreen과 동일한 UI
-
-### SettingsScreen
-- 테마 모드 변경
-- 정렬 옵션 설정
-- 백업/복원
-- 데이터베이스 정보
-- 앱 정보
-
-### WidgetConfigActivity (Native)
-- 3열 그리드 레이아웃으로 버튼 표시
-- 사람 아이콘(👤) 통일
-- 선택 시 파란색 테두리 (4dp)
-- 최대 선택 개수 제한 (1×1: 1개, 2×3/3×2: 6개)
-- 선택 불가능한 항목은 투명도 50%
-
-### GroupEditDialog (바텀시트)
-- 그룹 이름 수정 필드
-- 그룹 제거 버튼 (왼쪽)
-- 취소/확인 버튼 (오른쪽)
-- 부드러운 바텀시트 애니메이션
-
-### ColorPickerWidget (바텀시트)
-- **컴팩트 레이아웃**: 제목과 미리보기를 한 줄로 통합
-- 5×4 그리드 레이아웃 (20가지 색상)
-- **스크롤 없이** 모든 색상 한눈에 확인
-- 선택 시 파란색 테두리 + 체크마크
-- 취소/확인 버튼
-- 햅틱 피드백
 
 ---
 
 ## 🐛 알려진 이슈 및 제한사항
 
-1. **위젯 업데이트 지연**
-   - 위젯 데이터 변경 시 즉시 반영되지 않을 수 있음
-   - 해결: 위젯 재배치 또는 앱 재시작
+1. **드래그 그룹 이동 제한** (v1.8.0)
+   - "전체" 그룹으로는 버튼 이동 불가 (의도된 동작)
+   - 첫 번째/마지막 탭에서 범위 밖으로 이동 불가
 
-2. **연락처 권한**
-   - Android 11 이상에서 연락처 권한 필요
-   - 권한 미승인 시 연락처 가져오기 불가
-
-3. **위젯 크기 제약**
-   - 홈 런처에 따라 일부 위젯 크기 미지원 가능
-   - 삼성 One UI, Pixel Launcher 등에서 테스트 완료
-
-4. **긴 전화번호 표시**
-   - 매우 긴 국제번호의 경우 AutoSize로 글자 크기가 작아질 수 있음
-   - 최소 폰트 크기(5sp~6sp) 보장으로 가독성 유지
-
-5. **데이터베이스 마이그레이션**
-   - v4 이하에서 v5로 업그레이드 시 자동 마이그레이션
-   - 기존 iconCodePoint 데이터는 무시되고 기본 색상 적용
-   - 마이그레이션 실패 시 앱 데이터 초기화 필요
-
-6. **빈 그룹 영속성**
+2. **빈 그룹 영속성**
    - 빈 그룹(버튼이 없는 그룹)은 앱 재시작 시 사라짐
    - 그룹에 버튼을 추가해야 영구 저장됨
 
-7. **패턴 인식 한계**
-   - 하이브리드 줄바꿈의 패턴 사전에 없는 직책/조직은 인식 불가
-   - 해결: 구분자(/, |)를 사용하여 수동으로 줄바꿈 위치 지정
-
----
-
-## 📝 코딩 컨벤션
-
-### Dart
-- **네이밍**: camelCase (변수, 함수), PascalCase (클래스)
-- **파일명**: snake_case
-- **주석**: 공개 API에 문서 주석 사용
-- **포맷팅**: `dart format .`
-
-### Kotlin
-- **네이밍**: camelCase (변수, 함수), PascalCase (클래스)
-- **파일명**: PascalCase
-- **Null Safety**: nullable 타입 명시적 처리
-
-### XML
-- **리소스 네이밍**: snake_case
-- **ID 네이밍**: snake_case with prefix (`button_`, `text_`, etc.)
-- **Drawable**: 용도_설명_상태 (예: `widget_button_selected`)
-
----
-
-## 🤝 기여 가이드
-
-### 버그 리포트
-1. 발생 환경 (Android 버전, 기기 모델)
-2. 재현 단계
-3. 예상 동작 vs 실제 동작
-4. 스크린샷 (가능한 경우)
-
-### 기능 제안
-1. 제안 배경 및 목적
-2. 예상 사용 시나리오
-3. UI/UX 스케치 (선택)
-
----
-
-## 📄 라이선스
-
-이 프로젝트는 개인 프로젝트이며, 별도의 라이선스가 지정되지 않았습니다.
-
----
-
-## 📞 연락처
-
-프로젝트 관련 문의사항이 있으시면 이슈를 등록해주세요.
+3. **위젯 업데이트 지연**
+   - 위젯 데이터 변경 시 즉시 반영되지 않을 수 있음
+   - 해결: 위젯 재배치 또는 앱 재시작
 
 ---
 
 ## ✨ 개발 히스토리
 
+### v1.8.0 (2024-12)
+- **그룹별 기본값 자동 선택**
+  - `AddButtonScreen`에 `initialGroup` 파라미터 추가
+  - 홈 화면에서 "+" 버튼 클릭 시 현재 탭의 그룹이 기본 선택됨
+  - "가족" 탭에서 클릭 → 기본값 "가족"
+  - "전체" 탭에서 클릭 → 첫 번째 사용 가능한 그룹
+  - 빈 상태 위젯에서도 동일하게 동작
+- **드래그로 그룹 간 버튼 이동**
+  - 편집 모드에서 버튼을 화면 가장자리(50px)로 드래그
+  - 1초 유지 시 인접 그룹으로 버튼 이동 및 탭 전환
+  - 시각적 피드백: 가장자리 인디케이터 (파란색/빨간색)
+  - 타겟 그룹명 표시 및 프로그레스 바
+  - "전체" 그룹으로는 이동 불가
+  - `SpeedDialProvider`에 `moveButtonToGroup()` 메서드 추가
+- **수정된 파일**
+  - `lib/screens/home_screen.dart`: 드래그 감지, 가장자리 인디케이터, initialGroup 전달
+  - `lib/screens/add_button_screen.dart`: initialGroup 파라미터 처리
+  - `lib/providers/speed_dial_provider.dart`: moveButtonToGroup 메서드 추가
+
 ### v1.7.0 (2024-12)
 - **하이브리드 줄바꿈 시스템 추가**
-  - 구분자(/, |) 지원으로 수동 줄바꿈 가능
-  - 공백 기준 글자 수 최적 분배
-  - 패턴 인식: 직책, 조직, 회사명 자동 분리
-  - Fallback: 7글자 이상 균등 분할
-  - 의미 단위 보존으로 가독성 향상
 - **글자수 제한 제거**
-  - 이름 입력 최대 10자 제한 삭제
-  - 긴 이름도 하이브리드 줄바꿈으로 자동 처리
 - **패턴 사전 구축**
-  - 직책: 회장, 사장, 팀장, 과장 등 25개
-  - 조직: 영업팀, 개발팀, 본부, 센터 등 20개
-  - 회사/기관: 물산, 전자, 병원, 대학교 등 24개
 
 ### v1.6.0 (2024-12)
 - **그룹 편집 UX 통일**
-  - 편집 모드에서 그룹 탭 옆 수정/X 버튼 제거
-  - 모든 모드에서 탭 재클릭으로 그룹 편집 (일관된 UX)
 - **편집 모드 스와이프 활성화**
-  - 편집 모드에서도 좌우 스와이프로 탭 전환 가능
-  - 드래그앤드롭과 자연스럽게 공존
 - **인라인 버튼 추가 기능**
-  - 각 그룹 마지막에 점선 테두리 "+" 버튼 추가
-  - 클릭 시 단축키 추가 화면 열기
-  - 편집 모드에서는 숨김 처리
-  - `DashedBorderPainter` CustomPainter로 점선 테두리 구현
 - **그룹 생성 FAB 버튼**
-  - 우측 하단 FloatingActionButton → 그룹 생성 버튼으로 변경
-  - 아이콘: `Icons.create_new_folder` (흰색)
-  - 클릭 시 새 그룹 생성 다이얼로그 표시
-  - 생성 후 새 그룹 탭으로 자동 이동
 
 ### v1.5.0 (2024-12)
 - **스와이프 탭 전환 기능 추가**
-  - 화면 좌우 스와이프로 그룹 탭 간 자연스러운 전환
-  - TabBarView 적용으로 부드러운 애니메이션
-  - 검색 모드에서는 단일 그리드 유지
 - **색상 선택 UI 개선**
-  - 컴팩트 레이아웃: 제목과 미리보기를 한 줄로 통합
-  - 스크롤 없이 20개 색상을 한눈에 확인 가능
-  - 불필요한 여백 제거로 UI 간소화
 - **Provider 개선**
-  - `getButtonsForGroup()` 메서드 추가 (TabBarView용)
-  - 그룹별 버튼 필터링 + 검색 + 정렬 통합 지원
 
 ### v1.4.0 (2024-12)
 - **색상 커스터마이징 시스템 추가**
-  - 버튼별 배경색 지정 기능 (20가지 색상 팔레트)
-  - 5×4 그리드 레이아웃의 색상 선택 UI
-  - 자동 텍스트 색상 결정 (명도 기반)
 - **버튼 UI 대폭 개선**
-  - 아이콘 제거, 텍스트만 표시
-  - 글자 크기 증가 (15sp → 22sp, Bold)
-  - 최대 3줄 표시, AutoSizeText 적용
-  - 색상 배경으로 시각적 차별화
 - **데이터베이스 v5 마이그레이션**
-  - iconCodePoint, iconFontFamily, iconFontPackage 컬럼 제거
-  - color 컬럼 추가 (INTEGER, ARGB)
-  - 기존 데이터 자동 마이그레이션
-- **위젯 시스템 업데이트**
-  - 색상 정보 전송 지원
-  - widget_service.dart 수정
 
 ### v1.3.0 (2024-12)
 - **그룹 관리 시스템 개선**
-  - 기본 그룹을 "전체"만으로 단순화
-  - 그룹 탭 재클릭으로 그룹 편집 기능 추가
-  - 그룹 이름 변경 및 삭제 기능 구현
-  - 깔끔한 바텀시트 UI로 그룹 편집
-- **버그 수정**
-  - 단축키 추가 화면의 그룹 드롭다운 에러 수정
-  - 동적 그룹 선택으로 안정성 향상
 
 ### v1.2.0 (2024-12)
 - **버튼 조작 방식 개선 (UX 혁신)**
-  - 일반 모드: 클릭으로 편집, 롱프레스로 전화 걸기
-  - 햅틱 피드백 추가 (롱프레스 시 진동)
-  - 실수로 전화 거는 것 방지
-  - 빠른 편집 접근성 향상
-- **UI 개선**
-  - AppBar 타이틀 간소화: "전화번호 단축키" → "단축키"
-  - 타이틀 왼쪽 정렬로 깔끔한 레이아웃
 
 ### v1.1.0 (2024-12)
 - **위젯 UI 대폭 개선**
-  - 위젯에 전화번호 표시 기능 추가
-  - Android AutoSizeText 적용으로 텍스트 자동 크기 조정
-  - 긴 전화번호도 잘리지 않고 완전히 표시
-- **위젯 설정 화면 개선**
-  - 2열 → 3열 그리드로 변경
-  - 사람 아이콘(👤)으로 통일된 디자인
-  - 체크박스 → 파란색 테두리로 선택 표시 방식 변경
-  - 클릭 영역 최적화 및 터치 반응 개선
-  - 이중 테두리 버그 수정
 
 ### v1.0.0 (2024)
 - 초기 릴리스
-- 단축키 관리 기능
-- 3종류 위젯 지원 (1×1, 2×3, 3×2)
-- 그룹 관리
-- 백업/복원
-- 다크 모드
-- 검색 및 정렬 기능
 
 ---
 

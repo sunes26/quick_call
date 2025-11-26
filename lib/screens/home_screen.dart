@@ -14,6 +14,10 @@ import 'package:quick_call/models/speed_dial_button.dart';
 import 'package:quick_call/utils/sort_options.dart';
 import 'package:reorderable_grid_view/reorderable_grid_view.dart';
 import 'dart:ui';
+import 'dart:async';
+
+/// 가장자리 방향
+enum EdgeSide { left, right, none }
 
 /// 점선 테두리를 그리는 CustomPainter
 class DashedBorderPainter extends CustomPainter {
@@ -79,6 +83,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
+  // 🆕 드래그 & 가장자리 감지 관련
+  bool _isDragging = false;
+  Offset? _dragStartPosition;
+  Timer? _edgeTimer;
+  EdgeSide _currentEdge = EdgeSide.none;
+  int? _draggedButtonIndex;
+  SpeedDialButton? _draggedButton; // 🆕 드래그 중인 버튼 객체
+  static const double _edgeThreshold = 50.0; // 가장자리 감지 영역 (픽셀)
+  static const double _dragThreshold = 20.0; // 드래그 시작 판단 거리
+  static const Duration _edgeHoldDuration = Duration(seconds: 1); // 가장자리 유지 시간
+
+  // 🆕 가장자리 시각적 피드백
+  bool _showLeftEdgeIndicator = false;
+  bool _showRightEdgeIndicator = false;
+
   @override
   void initState() {
     super.initState();
@@ -109,6 +128,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _edgeTimer?.cancel();
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _searchController.dispose();
@@ -132,8 +152,161 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _tabController.addListener(_onTabChanged);
   }
 
+  // 🆕 포인터 다운 처리
+  void _onPointerDown(PointerDownEvent event) {
+    _dragStartPosition = event.position;
+    _isDragging = false;
+    _draggedButtonIndex = null;
+  }
+
+  // 🆕 포인터 이동 처리
+  void _onPointerMove(PointerMoveEvent event, SpeedDialProvider provider) {
+    if (_dragStartPosition == null) return;
+
+    // 드래그 시작 판단
+    final distance = (event.position - _dragStartPosition!).distance;
+    if (!_isDragging && distance > _dragThreshold) {
+      _isDragging = true;
+    }
+
+    // 드래그 중일 때만 가장자리 감지
+    if (_isDragging && provider.isEditMode) {
+      final screenWidth = MediaQuery.of(context).size.width;
+      final x = event.position.dx;
+
+      EdgeSide newEdge = EdgeSide.none;
+
+      if (x < _edgeThreshold) {
+        newEdge = EdgeSide.left;
+      } else if (x > screenWidth - _edgeThreshold) {
+        newEdge = EdgeSide.right;
+      }
+
+      // 가장자리 상태 변경
+      if (newEdge != _currentEdge) {
+        _cancelEdgeTimer();
+        _currentEdge = newEdge;
+
+        if (newEdge != EdgeSide.none) {
+          _startEdgeTimer(provider, newEdge);
+          setState(() {
+            _showLeftEdgeIndicator = newEdge == EdgeSide.left;
+            _showRightEdgeIndicator = newEdge == EdgeSide.right;
+          });
+        } else {
+          setState(() {
+            _showLeftEdgeIndicator = false;
+            _showRightEdgeIndicator = false;
+          });
+        }
+      }
+    }
+  }
+
+  // 🆕 포인터 업 처리
+  void _onPointerUp(PointerUpEvent event) {
+    _resetDragState();
+  }
+
+  // 🆕 포인터 취소 처리
+  void _onPointerCancel(PointerCancelEvent event) {
+    _resetDragState();
+  }
+
+  // 🆕 드래그 상태 초기화
+  void _resetDragState() {
+    _isDragging = false;
+    _dragStartPosition = null;
+    _draggedButtonIndex = null;
+    _draggedButton = null; // 🆕 드래그 중인 버튼도 초기화
+    _cancelEdgeTimer();
+    _currentEdge = EdgeSide.none;
+    setState(() {
+      _showLeftEdgeIndicator = false;
+      _showRightEdgeIndicator = false;
+    });
+  }
+
+  // 🆕 가장자리 타이머 시작
+  void _startEdgeTimer(SpeedDialProvider provider, EdgeSide edge) {
+    _edgeTimer = Timer(_edgeHoldDuration, () {
+      _moveToAdjacentGroup(provider, edge);
+    });
+  }
+
+  // 🆕 가장자리 타이머 취소
+  void _cancelEdgeTimer() {
+    _edgeTimer?.cancel();
+    _edgeTimer = null;
+  }
+
+  // 🆕 인접 그룹으로 이동
+  Future<void> _moveToAdjacentGroup(SpeedDialProvider provider, EdgeSide edge) async {
+    final currentIndex = _tabController.index;
+    final groups = provider.groups;
+    int targetIndex;
+
+    if (edge == EdgeSide.left) {
+      targetIndex = currentIndex - 1;
+    } else {
+      targetIndex = currentIndex + 1;
+    }
+
+    // 범위 체크
+    if (targetIndex < 0 || targetIndex >= groups.length) {
+      _resetDragState();
+      return;
+    }
+
+    final targetGroup = groups[targetIndex];
+
+    // "전체" 그룹으로는 이동 불가
+    if (targetGroup == '전체') {
+      _showSnackBar('"전체" 그룹으로는 이동할 수 없습니다', Colors.orange[700]!);
+      _resetDragState();
+      return;
+    }
+
+    // 🆕 드래그 중인 버튼이 있으면 그룹 변경
+    if (_draggedButton != null) {
+      final buttonToMove = _draggedButton!;
+      final oldGroup = buttonToMove.group;
+      
+      // 버튼 그룹 변경
+      final success = await provider.moveButtonToGroup(buttonToMove, targetGroup);
+      
+      if (success) {
+        // 탭 전환
+        _tabController.animateTo(targetIndex);
+        provider.selectGroup(targetGroup);
+        
+        _showSnackBar(
+          '"${buttonToMove.name}"을(를) "$targetGroup" 그룹으로 이동했습니다',
+          Colors.green[700]!,
+        );
+      } else {
+        _showSnackBar(
+          provider.error ?? '버튼 이동에 실패했습니다',
+          Colors.red[700]!,
+        );
+      }
+    } else {
+      // 드래그 중인 버튼이 없으면 탭만 전환
+      _tabController.animateTo(targetIndex);
+      provider.selectGroup(targetGroup);
+      
+      _showSnackBar(
+        '"$targetGroup" 그룹으로 이동했습니다',
+        Colors.blue[700]!,
+      );
+    }
+
+    _resetDragState();
+  }
+
   // 블러 효과와 함께 다이얼로그 열기
-  Future<void> _showAddButtonDialog() async {
+  // initialGroup 파라미터 추가: 현재 선택된 그룹을 AddButtonScreen에 전달
+  Future<void> _showAddButtonDialog({String? initialGroup}) async {
     await showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -141,7 +314,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       barrierColor: Colors.transparent,
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, animation, secondaryAnimation) {
-        return const AddButtonScreen();
+        return AddButtonScreen(initialGroup: initialGroup);
       },
       transitionBuilder: (context, animation, secondaryAnimation, child) {
         return BackdropFilter(
@@ -730,7 +903,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (searchButtons.isEmpty) {
       return NoSpeedDialsWidget(
         groupName: provider.selectedGroup,
-        onAddPressed: _showAddButtonDialog,
+        onAddPressed: () => _showAddButtonDialog(),
       );
     }
 
@@ -771,7 +944,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (groupButtons.isEmpty) {
       return NoSpeedDialsWidget(
         groupName: group,
-        onAddPressed: _showAddButtonDialog,
+        // 현재 그룹 정보 전달
+        onAddPressed: () => _showAddButtonDialog(initialGroup: group),
       );
     }
 
@@ -816,7 +990,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             itemBuilder: (context, index) {
               // 마지막 아이템은 + 버튼
               if (index == groupButtons.length) {
-                return _buildAddButtonPlaceholder();
+                // 현재 그룹 정보 전달
+                return _buildAddButtonPlaceholder(group);
               }
 
               final button = groupButtons[index];
@@ -849,9 +1024,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   // 점선 테두리의 + 버튼 (단축키 추가용)
-  Widget _buildAddButtonPlaceholder() {
+  // group 파라미터 추가: 현재 그룹 정보를 AddButtonScreen에 전달
+  Widget _buildAddButtonPlaceholder(String group) {
     return GestureDetector(
-      onTap: _showAddButtonDialog,
+      onTap: () => _showAddButtonDialog(initialGroup: group),
       child: CustomPaint(
         painter: DashedBorderPainter(
           color: Colors.grey[400]!,
@@ -877,51 +1053,152 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 편집 모드 그리드 (드래그 앤 드롭)
+  // 🆕 편집 모드 그리드 (드래그 앤 드롭 + 가장자리 감지)
   Widget _buildReorderableGrid(
     BuildContext context, 
     SpeedDialProvider provider,
     List<SpeedDialButton> groupButtons,
   ) {
-    return RefreshIndicator(
-      onRefresh: () => provider.loadButtons(),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 16.h),
-        child: ReorderableGridView.builder(
-          clipBehavior: Clip.none,
-          key: ValueKey('reorderable_${provider.selectedGroup}_${groupButtons.length}'),
-          padding: EdgeInsets.only(bottom: 100.h),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            childAspectRatio: 0.85,
-            crossAxisSpacing: 20.w,
-            mainAxisSpacing: 20.h,
-          ),
-          itemCount: groupButtons.length,
-          onReorder: (oldIndex, newIndex) {
-            provider.reorderButtons(oldIndex, newIndex);
-          },
-          dragWidgetBuilder: (index, child) {
-            return Material(
-              elevation: 8,
-              borderRadius: BorderRadius.circular(16.r),
-              child: Opacity(
-                opacity: 0.8,
-                child: child,
+    return Stack(
+      children: [
+        // 메인 그리드
+        Listener(
+          onPointerDown: _onPointerDown,
+          onPointerMove: (event) => _onPointerMove(event, provider),
+          onPointerUp: _onPointerUp,
+          onPointerCancel: _onPointerCancel,
+          child: RefreshIndicator(
+            onRefresh: () => provider.loadButtons(),
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 16.h),
+              child: ReorderableGridView.builder(
+                clipBehavior: Clip.none,
+                key: ValueKey('reorderable_${provider.selectedGroup}_${groupButtons.length}'),
+                padding: EdgeInsets.only(bottom: 100.h),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  childAspectRatio: 0.85,
+                  crossAxisSpacing: 20.w,
+                  mainAxisSpacing: 20.h,
+                ),
+                itemCount: groupButtons.length,
+                onReorder: (oldIndex, newIndex) {
+                  provider.reorderButtons(oldIndex, newIndex);
+                },
+                dragWidgetBuilder: (index, child) {
+                  // 드래그 시작 시 인덱스와 버튼 객체 저장
+                  _draggedButtonIndex = index;
+                  if (index < groupButtons.length) {
+                    _draggedButton = groupButtons[index];
+                  }
+                  return Material(
+                    elevation: 8,
+                    borderRadius: BorderRadius.circular(16.r),
+                    child: Opacity(
+                      opacity: 0.8,
+                      child: child,
+                    ),
+                  );
+                },
+                itemBuilder: (context, index) {
+                  final button = groupButtons[index];
+                  return DialButtonWidget(
+                    key: ValueKey(button.id),
+                    button: button,
+                    isEditMode: true,
+                    onTap: () => _handleButtonTap(context, provider, button),
+                    onLongPress: () => _handleButtonLongPress(context, provider, button),
+                    onDelete: () => _handleDelete(context, provider, button, index),
+                  );
+                },
               ),
-            );
-          },
-          itemBuilder: (context, index) {
-            final button = groupButtons[index];
-            return DialButtonWidget(
-              key: ValueKey(button.id),
-              button: button,
-              isEditMode: true,
-              onTap: () => _handleButtonTap(context, provider, button),
-              onLongPress: () => _handleButtonLongPress(context, provider, button),
-              onDelete: () => _handleDelete(context, provider, button, index),
-            );
-          },
+            ),
+          ),
+        ),
+
+        // 🆕 왼쪽 가장자리 인디케이터
+        if (_showLeftEdgeIndicator)
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: _buildEdgeIndicator(EdgeSide.left, provider),
+          ),
+
+        // 🆕 오른쪽 가장자리 인디케이터
+        if (_showRightEdgeIndicator)
+          Positioned(
+            right: 0,
+            top: 0,
+            bottom: 0,
+            child: _buildEdgeIndicator(EdgeSide.right, provider),
+          ),
+      ],
+    );
+  }
+
+  // 🆕 가장자리 인디케이터 위젯
+  Widget _buildEdgeIndicator(EdgeSide side, SpeedDialProvider provider) {
+    final currentIndex = _tabController.index;
+    final groups = provider.groups;
+    
+    int targetIndex = side == EdgeSide.left ? currentIndex - 1 : currentIndex + 1;
+    
+    // 범위 체크 및 "전체" 그룹 체크
+    bool canMove = targetIndex >= 0 && 
+                   targetIndex < groups.length && 
+                   groups[targetIndex] != '전체';
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      width: _edgeThreshold,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: side == EdgeSide.left ? Alignment.centerLeft : Alignment.centerRight,
+          end: side == EdgeSide.left ? Alignment.centerRight : Alignment.centerLeft,
+          colors: [
+            canMove 
+                ? Colors.blue.withOpacity(0.3)
+                : Colors.red.withOpacity(0.3),
+            Colors.transparent,
+          ],
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              side == EdgeSide.left 
+                  ? Icons.chevron_left 
+                  : Icons.chevron_right,
+              color: canMove ? Colors.blue[700] : Colors.red[700],
+              size: 32.sp,
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              canMove 
+                  ? groups[targetIndex]
+                  : '이동 불가',
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: canMove ? Colors.blue[700] : Colors.red[700],
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (canMove) ...[
+              SizedBox(height: 4.h),
+              SizedBox(
+                width: 40.w,
+                height: 2.h,
+                child: LinearProgressIndicator(
+                  backgroundColor: Colors.blue[200],
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[700]!),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );

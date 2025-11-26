@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:convert'; // 🆕 jsonDecode 사용을 위해 필요
+import 'dart:convert'; // jsonDecode 사용을 위해 필요
 import 'package:quick_call/models/speed_dial_button.dart';
 import 'package:quick_call/services/database_service.dart';
 import 'package:quick_call/services/phone_service.dart';
@@ -42,7 +42,7 @@ class SpeedDialProvider extends ChangeNotifier {
     return _sortButtons(filteredButtons);
   }
 
-  // 🆕 특정 그룹의 버튼 목록 반환 (TabBarView용)
+  // 특정 그룹의 버튼 목록 반환 (TabBarView용)
   List<SpeedDialButton> getButtonsForGroup(String group) {
     var filteredButtons = group == '전체'
         ? _buttons
@@ -73,7 +73,7 @@ class SpeedDialProvider extends ChangeNotifier {
   bool get isSearching => _isSearching;
   SortOption get currentSortOption => _currentSortOption;
 
-  // 🆕 위젯에 표시되는 버튼들 (기존 단일 위젯용 - 하위 호환성)
+  // 위젯에 표시되는 버튼들 (기존 단일 위젯용 - 하위 호환성)
   List<SpeedDialButton> get widgetButtons {
     return _buttons
         .where((b) => b.isInWidget)
@@ -91,7 +91,7 @@ class SpeedDialProvider extends ChangeNotifier {
       await loadButtons();
       await loadGroups();
       
-      // 🆕 위젯 설정 화면을 위해 전체 버튼 데이터 저장
+      // 위젯 설정 화면을 위해 전체 버튼 데이터 저장
       await _updateAllWidgetsData();
       
       _error = null;
@@ -110,7 +110,7 @@ class SpeedDialProvider extends ChangeNotifier {
       _buttons = await _databaseService.getAllButtons();
       _buttons.sort((a, b) => a.position.compareTo(b.position));
       
-      // 🆕 전체 버튼 데이터 업데이트
+      // 전체 버튼 데이터 업데이트
       await _updateAllWidgetsData();
       
       notifyListeners();
@@ -120,7 +120,7 @@ class SpeedDialProvider extends ChangeNotifier {
     }
   }
 
-  // 🆕 모든 위젯 데이터 업데이트 (위젯 설정 화면용)
+  // 모든 위젯 데이터 업데이트 (위젯 설정 화면용)
   Future<void> _updateAllWidgetsData() async {
     try {
       // 전체 버튼 데이터를 위젯 설정 화면에서 사용할 수 있도록 저장
@@ -133,7 +133,7 @@ class SpeedDialProvider extends ChangeNotifier {
     }
   }
 
-  // 🆕 기존 단일 위젯 업데이트 (하위 호환성 유지)
+  // 기존 단일 위젯 업데이트 (하위 호환성 유지)
   Future<void> _updateWidget() async {
     try {
       // isInWidget이 true인 버튼만 위젯에 전송 (widgetPosition 순으로)
@@ -152,7 +152,7 @@ class SpeedDialProvider extends ChangeNotifier {
     }
   }
 
-  // 🆕 위젯 버튼 업데이트 (기존 기능 유지)
+  // 위젯 버튼 업데이트 (기존 기능 유지)
   Future<bool> updateWidgetButtons(List<SpeedDialButton> selectedButtons) async {
     try {
       final success = await _databaseService.updateWidgetButtons(selectedButtons);
@@ -238,7 +238,7 @@ class SpeedDialProvider extends ChangeNotifier {
     try {
       final dbGroups = await _databaseService.getAllGroups();
       
-      // 🔄 기본 그룹은 "전체"만 존재
+      // 기본 그룹은 "전체"만 존재
       final defaultGroups = ['전체'];
       
       final allGroups = <String>{...defaultGroups};
@@ -399,13 +399,64 @@ class SpeedDialProvider extends ChangeNotifier {
         _buttons[i] = updatedButton;
       }
       
-      // 🆕 위젯 데이터 업데이트
+      // 위젯 데이터 업데이트
       await _updateAllWidgetsData();
       
       debugPrint('Background DB update completed');
     } catch (e) {
       debugPrint('Background DB update error: $e');
       await loadButtons();
+    }
+  }
+
+  // 🆕 버튼을 다른 그룹으로 이동
+  Future<bool> moveButtonToGroup(SpeedDialButton button, String newGroup) async {
+    try {
+      if (button.id == null) {
+        _error = '버튼 ID가 없습니다';
+        notifyListeners();
+        return false;
+      }
+
+      // "전체" 그룹으로는 이동 불가
+      if (newGroup == '전체') {
+        _error = '"전체" 그룹으로는 이동할 수 없습니다';
+        notifyListeners();
+        return false;
+      }
+
+      // 같은 그룹이면 무시
+      if (button.group == newGroup) {
+        return true;
+      }
+
+      // 새 그룹의 마지막 위치 계산
+      final newGroupButtons = _buttons.where((b) => b.group == newGroup).toList();
+      final newPosition = newGroupButtons.isEmpty 
+          ? _buttons.length 
+          : newGroupButtons.map((b) => b.position).reduce((a, b) => a > b ? a : b) + 1;
+
+      // 버튼 업데이트
+      final updatedButton = button.copyWith(
+        group: newGroup,
+        position: newPosition,
+      );
+
+      final success = await _databaseService.updateButton(updatedButton);
+      
+      if (success) {
+        await loadButtons();
+        await loadGroups();
+        debugPrint('Button "${button.name}" moved to group "$newGroup"');
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      _error = '버튼 이동 중 오류가 발생했습니다: $e';
+      debugPrint(_error);
+      notifyListeners();
+      return false;
     }
   }
 
@@ -441,7 +492,7 @@ class SpeedDialProvider extends ChangeNotifier {
   // 그룹 이름 변경
   Future<bool> renameGroup(String oldName, String newName) async {
     try {
-      // 🔄 "전체" 그룹만 기본 그룹으로 간주
+      // "전체" 그룹만 기본 그룹으로 간주
       if (oldName == '전체') {
         _error = '"전체" 그룹은 이름을 변경할 수 없습니다';
         notifyListeners();
@@ -479,7 +530,7 @@ class SpeedDialProvider extends ChangeNotifier {
   // 그룹 삭제
   Future<bool> deleteGroup(String groupName) async {
     try {
-      // 🔄 "전체" 그룹만 기본 그룹으로 간주
+      // "전체" 그룹만 기본 그룹으로 간주
       if (groupName == '전체') {
         _error = '"전체" 그룹은 삭제할 수 없습니다';
         notifyListeners();
@@ -508,12 +559,12 @@ class SpeedDialProvider extends ChangeNotifier {
     }
   }
 
-  // 🔄 기본 그룹 확인 - "전체"만 기본 그룹
+  // 기본 그룹 확인 - "전체"만 기본 그룹
   bool isDefaultGroup(String groupName) {
     return groupName == '전체';
   }
 
-  // 🆕 위젯 관련 추가 메서드들
+  // 위젯 관련 추가 메서드들
 
   /// 설치된 위젯 ID 목록 가져오기
   Future<List<int>> getInstalledWidgetIds() async {
