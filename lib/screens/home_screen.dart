@@ -6,6 +6,7 @@ import 'package:quick_call/providers/settings_provider.dart';
 import 'package:quick_call/widgets/dial_button_widget.dart';
 import 'package:quick_call/widgets/loading_widget.dart';
 import 'package:quick_call/widgets/empty_state_widget.dart';
+import 'package:quick_call/widgets/group_edit_dialog.dart'; // 🆕 그룹 편집 다이얼로그
 import 'package:quick_call/screens/add_button_screen.dart';
 import 'package:quick_call/screens/edit_button_screen.dart';
 import 'package:quick_call/screens/settings_screen.dart';
@@ -86,6 +87,166 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  // 🆕 그룹 편집 바텀시트 표시
+  Future<void> _showGroupEditBottomSheet(
+    BuildContext context,
+    SpeedDialProvider provider,
+    String groupName,
+  ) async {
+    // "전체" 그룹은 편집 불가
+    if (groupName == '전체') {
+      return;
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return GroupEditDialog(
+          groupName: groupName,
+          onCancel: () {
+            Navigator.pop(sheetContext);
+          },
+          onConfirm: (newName) async {
+            Navigator.pop(sheetContext);
+            
+            if (newName.isEmpty) {
+              _showSnackBar('그룹 이름을 입력해주세요', Colors.orange[700]!);
+              return;
+            }
+            
+            if (newName == groupName) {
+              return;
+            }
+            
+            final success = await provider.renameGroup(groupName, newName);
+            
+            if (!mounted) return;
+            
+            _showSnackBar(
+              success
+                  ? '그룹 이름이 "$newName"(으)로 변경되었습니다'
+                  : provider.error ?? '그룹 이름 변경에 실패했습니다',
+              success ? Colors.green[700]! : Colors.red[700]!,
+            );
+          },
+          onDelete: () {
+            Navigator.pop(sheetContext);
+            _showDeleteGroupConfirmDialog(context, provider, groupName);
+          },
+        );
+      },
+    );
+  }
+
+  // 🆕 그룹 삭제 확인 다이얼로그
+  Future<void> _showDeleteGroupConfirmDialog(
+    BuildContext context,
+    SpeedDialProvider provider,
+    String groupName,
+  ) async {
+    final buttonCount = provider.buttons.where((b) => b.group == groupName).length;
+    
+    await showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          title: Column(
+            children: [
+              Container(
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.warning_amber_rounded,
+                  size: 40.sp,
+                  color: Colors.red[700],
+                ),
+              ),
+              SizedBox(height: 16.h),
+              Text(
+                '그룹 삭제 확인',
+                style: TextStyle(
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            '"$groupName" 그룹을 삭제하시겠습니까?\n\n'
+            '이 그룹에 속한 버튼 $buttonCount개가 모두 삭제됩니다.\n'
+            '삭제된 버튼은 복구할 수 없습니다.',
+            style: TextStyle(
+              fontSize: 16.sp,
+              color: Colors.grey[700],
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(
+                '취소',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                
+                final success = await provider.deleteGroup(groupName);
+                
+                if (!mounted) return;
+                
+                _showSnackBar(
+                  success
+                      ? '"$groupName" 그룹이 삭제되었습니다 (버튼 $buttonCount개 삭제됨)'
+                      : provider.error ?? '그룹 삭제에 실패했습니다',
+                  success ? Colors.orange[700]! : Colors.red[700]!,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red[700],
+              ),
+              child: Text(
+                '삭제',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 🆕 SnackBar 헬퍼 메서드
+  void _showSnackBar(String message, Color backgroundColor) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: TextStyle(fontSize: 16.sp),
+        ),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer2<SpeedDialProvider, SettingsProvider>(
@@ -110,8 +271,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           appBar: AppBar(
             elevation: 0,
             backgroundColor: Colors.white,
-            centerTitle: false,  // 🆕 타이틀 왼쪽 정렬
-            titleSpacing: 16.w,  // 🆕 왼쪽 여백 설정
+            centerTitle: false,
+            titleSpacing: 16.w,
             // 🆕 검색 모드에 따라 다른 타이틀 표시
             title: provider.isSearching
                 ? TextField(
@@ -129,11 +290,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                   )
                 : Text(
-                    '단축키',  // 🔄 "전화번호 단축키" → "단축키"로 변경
+                    '단축키',
                     style: TextStyle(
                       color: Colors.black87,
                       fontWeight: FontWeight.bold,
-                      fontSize: 20.sp,  // 🆕 폰트 크기 명시
+                      fontSize: 20.sp,
                     ),
                   ),
             actions: [
@@ -244,6 +405,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       fontSize: 15.sp,
                       fontWeight: FontWeight.w500,
                     ),
+                    // 🆕 탭 클릭 감지 - 같은 탭 재클릭 시 그룹 편집
+                    onTap: (index) {
+                      final clickedGroup = provider.groups[index];
+                      
+                      // 현재 선택된 그룹과 클릭된 그룹이 같으면 편집 모드 표시
+                      if (provider.selectedGroup == clickedGroup && 
+                          !provider.isEditMode &&
+                          clickedGroup != '전체') {
+                        _showGroupEditBottomSheet(context, provider, clickedGroup);
+                      }
+                    },
                     tabs: provider.groups.map((group) {
                       if (provider.isEditMode) {
                         return _buildEditableTab(context, provider, group);
@@ -404,8 +576,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: DialButtonWidget(
                   button: button,
                   isEditMode: false,
-                  onTap: () => _handleButtonTap(context, provider, button),  // 편집 모드용
-                  onLongPress: () => _handleButtonLongPress(context, provider, button),  // 일반 모드용
+                  onTap: () => _handleButtonTap(context, provider, button),
+                  onLongPress: () => _handleButtonLongPress(context, provider, button),
                   onDelete: () => _handleDelete(context, provider, button, index),
                 ),
               );
@@ -452,8 +624,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               key: ValueKey(button.id),
               button: button,
               isEditMode: true,
-              onTap: () => _handleButtonTap(context, provider, button),  // 편집 모드용
-              onLongPress: () => _handleButtonLongPress(context, provider, button),  // 일반 모드용
+              onTap: () => _handleButtonTap(context, provider, button),
+              onLongPress: () => _handleButtonLongPress(context, provider, button),
               onDelete: () => _handleDelete(context, provider, button, index),
             );
           },
@@ -688,7 +860,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  // 편집 가능한 탭 위젯 생성
+  // 편집 가능한 탭 위젯 생성 (편집 모드에서만 사용)
   Widget _buildEditableTab(
     BuildContext context,
     SpeedDialProvider provider,
@@ -726,7 +898,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 그룹 이름 변경 다이얼로그
+  // 그룹 이름 변경 다이얼로그 (편집 모드에서만 사용)
   Future<void> _showRenameGroupDialog(
     BuildContext context,
     SpeedDialProvider provider,
@@ -844,7 +1016,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 그룹 삭제 확인 다이얼로그
+  // 그룹 삭제 확인 다이얼로그 (편집 모드에서만 사용)
   Future<void> _showDeleteGroupDialog(
     BuildContext context,
     SpeedDialProvider provider,

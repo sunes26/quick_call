@@ -218,7 +218,8 @@ class SpeedDialProvider extends ChangeNotifier {
     try {
       final dbGroups = await _databaseService.getAllGroups();
       
-      final defaultGroups = ['전체', '일반', '가족', '긴급', '직장', '친구'];
+      // 🔄 기본 그룹은 "전체"만 존재
+      final defaultGroups = ['전체'];
       
       final allGroups = <String>{...defaultGroups};
       for (var group in dbGroups) {
@@ -420,9 +421,9 @@ class SpeedDialProvider extends ChangeNotifier {
   // 그룹 이름 변경
   Future<bool> renameGroup(String oldName, String newName) async {
     try {
-      final defaultGroups = ['전체', '일반', '가족', '긴급', '직장', '친구'];
-      if (defaultGroups.contains(oldName)) {
-        _error = '기본 그룹은 이름을 변경할 수 없습니다';
+      // 🔄 "전체" 그룹만 기본 그룹으로 간주
+      if (oldName == '전체') {
+        _error = '"전체" 그룹은 이름을 변경할 수 없습니다';
         notifyListeners();
         return false;
       }
@@ -458,15 +459,9 @@ class SpeedDialProvider extends ChangeNotifier {
   // 그룹 삭제
   Future<bool> deleteGroup(String groupName) async {
     try {
-      final defaultGroups = ['전체', '일반', '가족', '긴급', '직장', '친구'];
-      if (defaultGroups.contains(groupName)) {
-        _error = '기본 그룹은 삭제할 수 없습니다';
-        notifyListeners();
-        return false;
-      }
-
+      // 🔄 "전체" 그룹만 기본 그룹으로 간주
       if (groupName == '전체') {
-        _error = '전체 그룹은 삭제할 수 없습니다';
+        _error = '"전체" 그룹은 삭제할 수 없습니다';
         notifyListeners();
         return false;
       }
@@ -493,10 +488,9 @@ class SpeedDialProvider extends ChangeNotifier {
     }
   }
 
-  // 기본 그룹 확인
+  // 🔄 기본 그룹 확인 - "전체"만 기본 그룹
   bool isDefaultGroup(String groupName) {
-    final defaultGroups = ['전체', '일반', '가족', '긴급', '직장', '친구'];
-    return defaultGroups.contains(groupName);
+    return groupName == '전체';
   }
 
   // 🆕 위젯 관련 추가 메서드들

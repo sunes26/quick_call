@@ -8,6 +8,7 @@ import 'package:quick_call/widgets/icon_picker_widget.dart';
 import 'package:quick_call/widgets/contact_picker_widget.dart';
 import 'package:quick_call/services/database_service.dart';      
 import 'package:quick_call/widgets/duplicate_phone_dialog.dart';
+
 class AddButtonScreen extends StatefulWidget {
   const AddButtonScreen({super.key});
 
@@ -22,9 +23,25 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
   final _newGroupController = TextEditingController();
   
   IconData _selectedIcon = Icons.person;
-  String _selectedGroup = '가족';
+  String? _selectedGroup; // 🔄 null로 초기화 (동적으로 설정)
   bool _isAddingNewGroup = false;
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 🆕 initState에서 기본 그룹 설정
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<SpeedDialProvider>();
+      if (mounted && _selectedGroup == null) {
+        setState(() {
+          // "전체"를 제외한 첫 번째 그룹을 선택, 없으면 null
+          final availableGroups = provider.groups.where((g) => g != '전체').toList();
+          _selectedGroup = availableGroups.isNotEmpty ? availableGroups.first : null;
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -81,7 +98,9 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
       return;
     }
 
-    // 새 그룹 추가 시 그룹 이름 검증
+    // 🆕 그룹 선택 검증
+    String finalGroup;
+    
     if (_isAddingNewGroup) {
       final newGroupName = _newGroupController.text.trim();
       if (newGroupName.isEmpty) {
@@ -97,7 +116,23 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
         );
         return;
       }
-      _selectedGroup = newGroupName;
+      finalGroup = newGroupName;
+    } else {
+      // 일반 그룹 선택
+      if (_selectedGroup == null) {
+        if (!mounted) return;
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              '그룹을 선택해주세요',
+              style: TextStyle(fontSize: 16.sp),
+            ),
+            backgroundColor: Colors.red[700],
+          ),
+        );
+        return;
+      }
+      finalGroup = _selectedGroup!;
     }
 
     setState(() => _isSaving = true);
@@ -135,11 +170,9 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
         name: _nameController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
         iconData: _selectedIcon,
-        group: _selectedGroup,
+        group: finalGroup, // 🔄 검증된 그룹 사용
         position: nextPosition,
       );
-
-
 
       final success = await provider.addButton(button);
 
@@ -336,11 +369,27 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
                   // 그룹 선택
                   Consumer<SpeedDialProvider>(
                     builder: (context, provider, child) {
+                      // 🆕 사용 가능한 그룹 목록 (전체 제외)
+                      final availableGroups = provider.groups
+                          .where((g) => g != '전체')
+                          .toList();
+                      
+                      // 🆕 선택된 그룹이 없거나 유효하지 않으면 첫 번째 그룹 선택
+                      if (_selectedGroup == null && availableGroups.isNotEmpty && !_isAddingNewGroup) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) {
+                            setState(() {
+                              _selectedGroup = availableGroups.first;
+                            });
+                          }
+                        });
+                      }
+
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           DropdownButtonFormField<String>(
-                            initialValue: _isAddingNewGroup ? null : _selectedGroup,
+                            value: _isAddingNewGroup ? null : _selectedGroup,
                             decoration: InputDecoration(
                               labelText: '그룹',
                               border: OutlineInputBorder(
@@ -348,14 +397,14 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
                               ),
                             ),
                             items: [
-                              ...provider.groups
-                                  .where((g) => g != '전체')
-                                  .map((group) {
+                              // 🔄 전체를 제외한 그룹들
+                              ...availableGroups.map((group) {
                                 return DropdownMenuItem(
                                   value: group,
                                   child: Text(group),
                                 );
                               }),
+                              // 새 그룹 추가 옵션
                               const DropdownMenuItem(
                                 value: '__new__',
                                 child: Text('새 그룹 추가...'),
