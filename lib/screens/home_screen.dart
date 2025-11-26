@@ -110,6 +110,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           appBar: AppBar(
             elevation: 0,
             backgroundColor: Colors.white,
+            centerTitle: false,  // 🆕 타이틀 왼쪽 정렬
+            titleSpacing: 16.w,  // 🆕 왼쪽 여백 설정
             // 🆕 검색 모드에 따라 다른 타이틀 표시
             title: provider.isSearching
                 ? TextField(
@@ -126,11 +128,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       fontSize: 18,
                     ),
                   )
-                : const Text(
-                    '전화번호 단축키',
+                : Text(
+                    '단축키',  // 🔄 "전화번호 단축키" → "단축키"로 변경
                     style: TextStyle(
                       color: Colors.black87,
                       fontWeight: FontWeight.bold,
+                      fontSize: 20.sp,  // 🆕 폰트 크기 명시
                     ),
                   ),
             actions: [
@@ -401,7 +404,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: DialButtonWidget(
                   button: button,
                   isEditMode: false,
-                  onTap: () => _handleButtonTap(context, provider, button),
+                  onTap: () => _handleButtonTap(context, provider, button),  // 편집 모드용
+                  onLongPress: () => _handleButtonLongPress(context, provider, button),  // 일반 모드용
                   onDelete: () => _handleDelete(context, provider, button, index),
                 ),
               );
@@ -448,7 +452,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               key: ValueKey(button.id),
               button: button,
               isEditMode: true,
-              onTap: () => _handleButtonTap(context, provider, button),
+              onTap: () => _handleButtonTap(context, provider, button),  // 편집 모드용
+              onLongPress: () => _handleButtonLongPress(context, provider, button),  // 일반 모드용
               onDelete: () => _handleDelete(context, provider, button, index),
             );
           },
@@ -457,21 +462,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 버튼 탭 처리
+  // 🆕 버튼 탭 처리 (모든 모드에서 편집 화면 열기)
   Future<void> _handleButtonTap(
     BuildContext context,
     SpeedDialProvider provider,
     SpeedDialButton button,
   ) async {
-    if (provider.isEditMode) {
-      // 편집 모드: 편집 화면으로 이동
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => EditButtonScreen(button: button),
-        ),
-      );
-    } else {
+    // 모든 모드에서 편집 화면으로 이동
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditButtonScreen(button: button),
+      ),
+    );
+  }
+
+  // 🔄 버튼 롱프레스 처리 (일반 모드 전용 - 전화 걸기)
+  Future<void> _handleButtonLongPress(
+    BuildContext context,
+    SpeedDialProvider provider,
+    SpeedDialButton button,
+  ) async {
+    if (!provider.isEditMode) {
       // 일반 모드: 전화 걸기
       final scaffoldMessenger = ScaffoldMessenger.of(context);
 

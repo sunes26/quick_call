@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';  // 🆕 햅틱 피드백을 위해 추가
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:quick_call/models/speed_dial_button.dart';
-import 'package:auto_size_text/auto_size_text.dart';  // 🆕 AutoSizeText import
+import 'package:auto_size_text/auto_size_text.dart';
 import 'dart:math' as math;
 
 class DialButtonWidget extends StatefulWidget {
   final SpeedDialButton button;
   final bool isEditMode;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;  // 🆕 편집 모드용 탭
+  final VoidCallback? onLongPress;  // 일반 모드용 롱프레스
   final VoidCallback onDelete;
 
   const DialButtonWidget({
     super.key,
     required this.button,
     this.isEditMode = false,
-    required this.onTap,
+    this.onTap,  // 편집 모드에서 사용
+    this.onLongPress,  // 일반 모드에서 사용
     required this.onDelete,
   });
 
@@ -101,7 +104,15 @@ class _DialButtonWidgetState extends State<DialButtonWidget>
             children: [
               // 메인 버튼 - 전체 공간을 채움
               GestureDetector(
-                onTap: widget.onTap,
+                // 🆕 모든 모드: 탭 → 편집 화면, 일반 모드: 롱프레스 → 전화 걸기
+                onTap: widget.onTap,  // 모든 모드에서 탭으로 편집 화면 열기
+                onLongPress: !widget.isEditMode && widget.onLongPress != null
+                    ? () {
+                        // 햅틱 피드백 추가 (꾹 눌렀을 때 진동)
+                        HapticFeedback.mediumImpact();
+                        widget.onLongPress!();
+                      }
+                    : null,  // 일반 모드에서만 롱프레스로 전화 걸기
                 child: Container(
                   width: double.infinity,
                   height: double.infinity,
@@ -141,7 +152,7 @@ class _DialButtonWidgetState extends State<DialButtonWidget>
                       // 아이콘과 이름 사이 간격
                       const Spacer(flex: 1),
 
-                      // 🆕 AutoSizeText로 변경 - ...이 절대 나타나지 않음
+                      // AutoSizeText로 변경 - ...이 절대 나타나지 않음
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8.w),
                         child: AutoSizeText(
