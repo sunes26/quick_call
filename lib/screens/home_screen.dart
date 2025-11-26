@@ -6,7 +6,7 @@ import 'package:quick_call/providers/settings_provider.dart';
 import 'package:quick_call/widgets/dial_button_widget.dart';
 import 'package:quick_call/widgets/loading_widget.dart';
 import 'package:quick_call/widgets/empty_state_widget.dart';
-import 'package:quick_call/widgets/group_edit_dialog.dart'; // 🆕 그룹 편집 다이얼로그
+import 'package:quick_call/widgets/group_edit_dialog.dart';
 import 'package:quick_call/screens/add_button_screen.dart';
 import 'package:quick_call/screens/edit_button_screen.dart';
 import 'package:quick_call/screens/settings_screen.dart';
@@ -14,6 +14,55 @@ import 'package:quick_call/models/speed_dial_button.dart';
 import 'package:quick_call/utils/sort_options.dart';
 import 'package:reorderable_grid_view/reorderable_grid_view.dart';
 import 'dart:ui';
+
+/// 점선 테두리를 그리는 CustomPainter
+class DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double gap;
+  final double dashWidth;
+  final double borderRadius;
+
+  DashedBorderPainter({
+    this.color = Colors.grey,
+    this.strokeWidth = 2,
+    this.gap = 5,
+    this.dashWidth = 5,
+    this.borderRadius = 16,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final path = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        Radius.circular(borderRadius),
+      ));
+
+    // 점선으로 그리기
+    final dashPath = Path();
+    for (final metric in path.computeMetrics()) {
+      double distance = 0;
+      while (distance < metric.length) {
+        dashPath.addPath(
+          metric.extractPath(distance, distance + dashWidth),
+          Offset.zero,
+        );
+        distance += dashWidth + gap;
+      }
+    }
+
+    canvas.drawPath(dashPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late TabController _tabController;
   SpeedDialButton? _deletedButton; // Undo를 위한 삭제된 버튼 임시 저장
   
-  // 🆕 검색 관련
+  // 검색 관련
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
@@ -42,13 +91,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // 탭 변경 감지
     _tabController.addListener(_onTabChanged);
 
-    // 🆕 검색어 변경 리스너
+    // 검색어 변경 리스너
     _searchController.addListener(() {
       context.read<SpeedDialProvider>().setSearchQuery(_searchController.text);
     });
   }
 
-  // 🆕 탭 변경 리스너 분리
+  // 탭 변경 리스너 분리
   void _onTabChanged() {
     if (!_tabController.indexIsChanging) {
       final provider = context.read<SpeedDialProvider>();
@@ -67,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  // 🆕 TabController 재생성 (그룹 변경 시)
+  // TabController 재생성 (그룹 변경 시)
   void _recreateTabController(SpeedDialProvider provider) {
     final currentIndex = provider.groups.indexOf(provider.selectedGroup).clamp(0, provider.groups.length - 1);
     
@@ -109,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 🆕 그룹 편집 바텀시트 표시
+  // 그룹 편집 바텀시트 표시
   Future<void> _showGroupEditBottomSheet(
     BuildContext context,
     SpeedDialProvider provider,
@@ -162,7 +211,128 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 🆕 그룹 삭제 확인 다이얼로그
+  // 그룹 추가 다이얼로그
+  Future<void> _showAddGroupDialog(
+    BuildContext context,
+    SpeedDialProvider provider,
+  ) async {
+    final textController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.create_new_folder,
+                  color: Colors.blue[600],
+                  size: 24.sp,
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Text(
+                '새 그룹 만들기',
+                style: TextStyle(
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: textController,
+                autofocus: true,
+                maxLength: 10,
+                decoration: InputDecoration(
+                  labelText: '그룹 이름',
+                  hintText: '새 그룹 이름을 입력하세요',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                  prefixIcon: Icon(
+                    Icons.folder_outlined,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                style: TextStyle(fontSize: 16.sp),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(
+                '취소',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final groupName = textController.text.trim();
+
+                if (groupName.isEmpty) {
+                  _showSnackBar('그룹 이름을 입력해주세요', Colors.orange[700]!);
+                  return;
+                }
+
+                // 중복 그룹명 체크
+                if (provider.groups.contains(groupName)) {
+                  _showSnackBar('이미 존재하는 그룹 이름입니다', Colors.orange[700]!);
+                  return;
+                }
+
+                Navigator.pop(dialogContext);
+
+                // 그룹 추가 (메모리에 추가)
+                provider.addCustomGroup(groupName);
+                
+                _showSnackBar('"$groupName" 그룹이 생성되었습니다', Colors.green[700]!);
+                
+                // 새로 생성된 그룹으로 이동
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  final newIndex = provider.groups.indexOf(groupName);
+                  if (newIndex != -1 && mounted) {
+                    _tabController.animateTo(newIndex);
+                    provider.selectGroup(groupName);
+                  }
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[600],
+              ),
+              child: Text(
+                '만들기',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 그룹 삭제 확인 다이얼로그
   Future<void> _showDeleteGroupConfirmDialog(
     BuildContext context,
     SpeedDialProvider provider,
@@ -255,7 +425,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 🆕 SnackBar 헬퍼 메서드
+  // SnackBar 헬퍼 메서드
   void _showSnackBar(String message, Color backgroundColor) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -292,7 +462,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             backgroundColor: Colors.white,
             centerTitle: false,
             titleSpacing: 16.w,
-            // 🆕 검색 모드에 따라 다른 타이틀 표시
+            // 검색 모드에 따라 다른 타이틀 표시
             title: provider.isSearching
                 ? TextField(
                     controller: _searchController,
@@ -317,7 +487,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                   ),
             actions: [
-              // 🆕 검색 버튼
+              // 검색 버튼
               if (!provider.isEditMode)
                 IconButton(
                   icon: Icon(
@@ -332,7 +502,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   },
                 ),
               
-              // 🆕 정렬 버튼 (검색 중이 아니고 편집 모드가 아닐 때만)
+              // 정렬 버튼 (검색 중이 아니고 편집 모드가 아닐 때만)
               if (!provider.isSearching && !provider.isEditMode)
                 PopupMenuButton<SortOption>(
                   icon: const Icon(Icons.sort, color: Colors.black87),
@@ -376,7 +546,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   },
                 ),
               
-              // 🆕 설정 버튼
+              // 설정 버튼
               if (!provider.isSearching && !provider.isEditMode)
                 IconButton(
                   icon: const Icon(Icons.settings, color: Colors.black87),
@@ -424,32 +594,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       fontSize: 15.sp,
                       fontWeight: FontWeight.w500,
                     ),
-                    // 🆕 탭 클릭 감지 - 같은 탭 재클릭 시 그룹 편집
+                    // 탭 클릭 감지 - 같은 탭 재클릭 시 그룹 편집 (일반/편집 모드 모두)
                     onTap: (index) {
                       final clickedGroup = provider.groups[index];
                       
-                      // 현재 선택된 그룹과 클릭된 그룹이 같으면 편집 모드 표시
+                      // 현재 선택된 그룹과 클릭된 그룹이 같으면 그룹 편집 바텀시트 표시
+                      // "전체" 그룹은 편집 불가
                       if (provider.selectedGroup == clickedGroup && 
-                          !provider.isEditMode &&
                           clickedGroup != '전체') {
                         _showGroupEditBottomSheet(context, provider, clickedGroup);
                       }
                     },
+                    // 편집 모드에서도 일반 탭으로 표시 (수정/X 버튼 제거)
                     tabs: provider.groups.map((group) {
-                      if (provider.isEditMode) {
-                        return _buildEditableTab(context, provider, group);
-                      } else {
-                        return Tab(text: group);
-                      }
+                      return Tab(text: group);
                     }).toList(),
                   ),
           ),
           body: _buildBody(context, provider),
           floatingActionButton: !provider.isEditMode && !provider.isSearching
               ? FloatingActionButton(
-                  onPressed: _showAddButtonDialog,
+                  onPressed: () => _showAddGroupDialog(context, provider),
                   backgroundColor: Colors.blue[600],
-                  child: const Icon(Icons.add, size: 32),
+                  child: const Icon(Icons.create_new_folder, size: 28, color: Colors.white),
                 )
               : null,
         );
@@ -502,25 +669,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       );
     }
 
-    // 🆕 검색 모드: 스와이프 없이 단일 그리드
+    // 검색 모드: 스와이프 없이 단일 그리드
     if (provider.isSearching) {
       return _buildSearchResultGrid(context, provider);
     }
 
-    // 🆕 일반/편집 모드: TabBarView로 스와이프 지원
+    // 일반/편집 모드: TabBarView로 스와이프 지원
     return TabBarView(
       controller: _tabController,
-      // 편집 모드에서는 스와이프 비활성화 (드래그앤드롭과 충돌 방지)
-      physics: provider.isEditMode 
-          ? const NeverScrollableScrollPhysics() 
-          : const ClampingScrollPhysics(),
+      // 모든 모드에서 스와이프 탭 전환 활성화
+      physics: const ClampingScrollPhysics(),
       children: provider.groups.map((group) {
         return _buildGroupPage(context, provider, group);
       }).toList(),
     );
   }
 
-  // 🆕 검색 결과 그리드 (스와이프 없음)
+  // 검색 결과 그리드 (스와이프 없음)
   Widget _buildSearchResultGrid(BuildContext context, SpeedDialProvider provider) {
     final searchButtons = provider.buttons;
 
@@ -598,7 +763,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 🆕 그룹별 페이지 (TabBarView의 각 페이지)
+  // 그룹별 페이지 (TabBarView의 각 페이지)
   Widget _buildGroupPage(BuildContext context, SpeedDialProvider provider, String group) {
     final groupButtons = provider.getButtonsForGroup(group);
 
@@ -610,12 +775,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       );
     }
 
-    // 편집 모드: 드래그 앤 드롭 그리드
-    if (provider.isEditMode && group == provider.selectedGroup) {
+    // 편집 모드: 드래그 앤 드롭 그리드 (+ 버튼 없음)
+    if (provider.isEditMode) {
       return _buildReorderableGrid(context, provider, groupButtons);
     }
 
-    // 일반 모드: 기본 그리드 (애니메이션 포함)
+    // 일반 모드: 기본 그리드 (애니메이션 + 마지막에 + 버튼 포함)
     return _buildNormalGrid(context, provider, groupButtons, group);
   }
 
@@ -626,6 +791,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     List<SpeedDialButton> groupButtons,
     String group,
   ) {
+    // 일반 모드에서는 + 버튼 추가
+    final itemCount = groupButtons.length + 1;
+
     return RefreshIndicator(
       onRefresh: () => provider.loadButtons(),
       child: Padding(
@@ -644,8 +812,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               crossAxisSpacing: 12.w,
               mainAxisSpacing: 12.h,
             ),
-            itemCount: groupButtons.length,
+            itemCount: itemCount,
             itemBuilder: (context, index) {
+              // 마지막 아이템은 + 버튼
+              if (index == groupButtons.length) {
+                return _buildAddButtonPlaceholder();
+              }
+
               final button = groupButtons[index];
               return TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0.0, end: 1.0),
@@ -669,6 +842,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               );
             },
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 점선 테두리의 + 버튼 (단축키 추가용)
+  Widget _buildAddButtonPlaceholder() {
+    return GestureDetector(
+      onTap: _showAddButtonDialog,
+      child: CustomPaint(
+        painter: DashedBorderPainter(
+          color: Colors.grey[400]!,
+          strokeWidth: 2,
+          gap: 6,
+          dashWidth: 6,
+          borderRadius: 16.r,
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16.r),
+            color: Colors.grey[50],
+          ),
+          child: Center(
+            child: Icon(
+              Icons.add,
+              size: 40.sp,
+              color: Colors.grey[400],
+            ),
           ),
         ),
       ),
@@ -725,7 +927,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 🆕 버튼 탭 처리 (모든 모드에서 편집 화면 열기)
+  // 버튼 탭 처리 (모든 모드에서 편집 화면 열기)
   Future<void> _handleButtonTap(
     BuildContext context,
     SpeedDialProvider provider,
@@ -740,7 +942,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 🔄 버튼 롱프레스 처리 (일반 모드 전용 - 전화 걸기)
+  // 버튼 롱프레스 처리 (일반 모드 전용 - 전화 걸기)
   Future<void> _handleButtonLongPress(
     BuildContext context,
     SpeedDialProvider provider,
@@ -949,260 +1151,5 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       
       _deletedButton = null;
     }
-  }
-
-  // 편집 가능한 탭 위젯 생성 (편집 모드에서만 사용)
-  Widget _buildEditableTab(
-    BuildContext context,
-    SpeedDialProvider provider,
-    String group,
-  ) {
-    final isDefaultGroup = provider.isDefaultGroup(group);
-    
-    return Tab(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(group),
-          if (!isDefaultGroup) ...[
-            SizedBox(width: 4.w),
-            GestureDetector(
-              onTap: () => _showRenameGroupDialog(context, provider, group),
-              child: Icon(
-                Icons.edit,
-                size: 16.sp,
-                color: Colors.grey[600],
-              ),
-            ),
-            SizedBox(width: 4.w),
-            GestureDetector(
-              onTap: () => _showDeleteGroupDialog(context, provider, group),
-              child: Icon(
-                Icons.close,
-                size: 18.sp,
-                color: Colors.red[600],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  // 그룹 이름 변경 다이얼로그 (편집 모드에서만 사용)
-  Future<void> _showRenameGroupDialog(
-    BuildContext context,
-    SpeedDialProvider provider,
-    String oldGroupName,
-  ) async {
-    final textController = TextEditingController(text: oldGroupName);
-    
-    return showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20.r),
-          ),
-          title: Row(
-            children: [
-              Icon(
-                Icons.edit,
-                color: Colors.blue[600],
-                size: 24.sp,
-              ),
-              SizedBox(width: 12.w),
-              Text(
-                '그룹 이름 변경',
-                style: TextStyle(
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: textController,
-                autofocus: true,
-                maxLength: 10,
-                decoration: InputDecoration(
-                  labelText: '새 그룹 이름',
-                  hintText: '새로운 그룹 이름을 입력하세요',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                ),
-                style: TextStyle(fontSize: 16.sp),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(
-                '취소',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final newName = textController.text.trim();
-                
-                if (newName.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('그룹 이름을 입력해주세요'),
-                      backgroundColor: Colors.orange[700],
-                    ),
-                  );
-                  return;
-                }
-                
-                if (newName == oldGroupName) {
-                  Navigator.pop(dialogContext);
-                  return;
-                }
-                
-                Navigator.pop(dialogContext);
-                
-                final scaffoldMessenger = ScaffoldMessenger.of(context);
-                
-                final success = await provider.renameGroup(oldGroupName, newName);
-                
-                scaffoldMessenger.showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success 
-                        ? '그룹 이름이 "$newName"(으)로 변경되었습니다'
-                        : provider.error ?? '그룹 이름 변경에 실패했습니다',
-                      style: TextStyle(fontSize: 16.sp),
-                    ),
-                    backgroundColor: success ? Colors.green[700] : Colors.red[700],
-                    duration: Duration(seconds: success ? 2 : 3),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue[600],
-              ),
-              child: Text(
-                '변경',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // 그룹 삭제 확인 다이얼로그 (편집 모드에서만 사용)
-  Future<void> _showDeleteGroupDialog(
-    BuildContext context,
-    SpeedDialProvider provider,
-    String groupName,
-  ) async {
-    final buttonCount = provider.buttons.where((b) => b.group == groupName).length;
-    
-    return showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20.r),
-          ),
-          title: Column(
-            children: [
-              Container(
-                padding: EdgeInsets.all(12.w),
-                decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.delete_outline,
-                  size: 40.sp,
-                  color: Colors.red[700],
-                ),
-              ),
-              SizedBox(height: 16.h),
-              Text(
-                '그룹 삭제',
-                style: TextStyle(
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          content: Text(
-            '"$groupName" 그룹을 삭제하시겠습니까?\n\n'
-            '이 그룹에 속한 버튼 $buttonCount개가 모두 삭제됩니다.\n'
-            '삭제된 버튼은 복구할 수 없습니다.',
-            style: TextStyle(
-              fontSize: 16.sp,
-              color: Colors.grey[700],
-              height: 1.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(
-                '취소',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.pop(dialogContext);
-                
-                final scaffoldMessenger = ScaffoldMessenger.of(context);
-                
-                final success = await provider.deleteGroup(groupName);
-                
-                scaffoldMessenger.showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success
-                        ? '"$groupName" 그룹이 삭제되었습니다 (버튼 $buttonCount개 삭제됨)'
-                        : provider.error ?? '그룹 삭제에 실패했습니다',
-                      style: TextStyle(fontSize: 16.sp),
-                    ),
-                    backgroundColor: success ? Colors.orange[700] : Colors.red[700],
-                    duration: const Duration(seconds: 3),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red[700],
-              ),
-              child: Text(
-                '삭제',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
   }
 }
