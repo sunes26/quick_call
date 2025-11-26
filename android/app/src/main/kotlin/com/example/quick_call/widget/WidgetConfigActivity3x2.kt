@@ -9,9 +9,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.ImageView
+import android.widget.FrameLayout
 import android.widget.TextView
-import android.widget.CheckBox
+import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.quick_call.R
@@ -106,7 +106,7 @@ class WidgetConfigActivity3x2 : Activity() {
         }
         
         recyclerAll.apply {
-            layoutManager = GridLayoutManager(this@WidgetConfigActivity3x2, 2)
+            layoutManager = GridLayoutManager(this@WidgetConfigActivity3x2, 3)
             adapter = allButtonsAdapter
         }
     }
@@ -165,9 +165,10 @@ class SimpleAllButtonsAdapter3x2(
 ) : RecyclerView.Adapter<SimpleAllButtonsAdapter3x2.ViewHolder>() {
     
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val icon: ImageView = view.findViewById(R.id.button_icon)
+        val cardView: CardView = view.findViewById(R.id.card_view)
+        val selectionBackground: FrameLayout = view.findViewById(R.id.selection_background)
+        val icon: TextView = view.findViewById(R.id.button_icon)
         val name: TextView = view.findViewById(R.id.button_name)
-        val checkbox: CheckBox = view.findViewById(R.id.checkbox)
     }
     
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -180,14 +181,22 @@ class SimpleAllButtonsAdapter3x2(
         val button = allButtons[position]
         val isSelected = selectedButtons.any { it.id == button.id }
         
-        holder.icon.setImageResource(android.R.drawable.ic_menu_call)
+        // 아이콘은 이모지로 이미 설정됨 (👤)
         holder.name.text = button.name
-        holder.checkbox.isChecked = isSelected
         
+        // 선택 상태에 따라 배경 변경
+        if (isSelected) {
+            holder.selectionBackground.setBackgroundResource(R.drawable.widget_button_selected)
+        } else {
+            holder.selectionBackground.setBackgroundResource(R.drawable.widget_button_unselected)
+        }
+        
+        // 최대 개수 도달 시 선택 불가능한 항목 처리
         val canSelect = isSelected || selectedButtons.size < maxButtons
-        holder.itemView.alpha = if (canSelect) 1.0f else 0.5f
+        holder.cardView.alpha = if (canSelect) 1.0f else 0.5f
         
-        holder.itemView.setOnClickListener {
+        // CardView에 클릭 리스너 설정
+        holder.cardView.setOnClickListener {
             if (canSelect || isSelected) {
                 onToggle(button)
             }

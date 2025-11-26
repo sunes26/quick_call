@@ -44,7 +44,7 @@ class SpeedDialWidgetProvider1x1 : AppWidgetProvider() {
                         val button = buttons[0]
                         WidgetUtils.setupButton(
                             context, views, 
-                            Triple(R.id.button_1, R.id.icon_1, R.id.name_1), 
+                            Quadruple(R.id.button_1, R.id.icon_1, R.id.name_1, R.id.phone_1), 
                             button, ACTION_CALL
                         )
                     } else {

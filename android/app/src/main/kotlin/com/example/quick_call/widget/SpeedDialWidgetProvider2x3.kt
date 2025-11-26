@@ -43,12 +43,12 @@ class SpeedDialWidgetProvider2x3 : AppWidgetProvider() {
                         views.setViewVisibility(R.id.empty_message, View.GONE)
                         
                         val buttonIds = listOf(
-                            Triple(R.id.button_1, R.id.icon_1, R.id.name_1),
-                            Triple(R.id.button_2, R.id.icon_2, R.id.name_2),
-                            Triple(R.id.button_3, R.id.icon_3, R.id.name_3),
-                            Triple(R.id.button_4, R.id.icon_4, R.id.name_4),
-                            Triple(R.id.button_5, R.id.icon_5, R.id.name_5),
-                            Triple(R.id.button_6, R.id.icon_6, R.id.name_6)
+                            Quadruple(R.id.button_1, R.id.icon_1, R.id.name_1, R.id.phone_1),
+                            Quadruple(R.id.button_2, R.id.icon_2, R.id.name_2, R.id.phone_2),
+                            Quadruple(R.id.button_3, R.id.icon_3, R.id.name_3, R.id.phone_3),
+                            Quadruple(R.id.button_4, R.id.icon_4, R.id.name_4, R.id.phone_4),
+                            Quadruple(R.id.button_5, R.id.icon_5, R.id.name_5, R.id.phone_5),
+                            Quadruple(R.id.button_6, R.id.icon_6, R.id.name_6, R.id.phone_6)
                         )
                         
                         for ((index, ids) in buttonIds.withIndex()) {

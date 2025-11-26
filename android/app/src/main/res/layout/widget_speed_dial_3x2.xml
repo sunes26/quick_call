@@ -47,7 +47,23 @@
                 android:layout_marginTop="2dp"
                 android:autoSizeTextType="uniform"
                 android:autoSizeMinTextSize="7sp"
-                android:autoSizeMaxTextSize="9sp" />
+                android:autoSizeMaxTextSize="9sp"
+                android:autoSizeStepGranularity="1sp" />
+
+            <TextView
+                android:id="@+id/phone_1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="010-0000-0000"
+                android:textSize="7sp"
+                android:textColor="#666666"
+                android:gravity="center"
+                android:maxLines="1"
+                android:layout_marginTop="1dp"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="5sp"
+                android:autoSizeMaxTextSize="7sp"
+                android:autoSizeStepGranularity="1sp" />
         </LinearLayout>
 
         <!-- 버튼 2 -->
@@ -84,7 +100,23 @@
                 android:layout_marginTop="2dp"
                 android:autoSizeTextType="uniform"
                 android:autoSizeMinTextSize="7sp"
-                android:autoSizeMaxTextSize="9sp" />
+                android:autoSizeMaxTextSize="9sp"
+                android:autoSizeStepGranularity="1sp" />
+
+            <TextView
+                android:id="@+id/phone_2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="010-0000-0000"
+                android:textSize="7sp"
+                android:textColor="#666666"
+                android:gravity="center"
+                android:maxLines="1"
+                android:layout_marginTop="1dp"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="5sp"
+                android:autoSizeMaxTextSize="7sp"
+                android:autoSizeStepGranularity="1sp" />
         </LinearLayout>
 
         <!-- 버튼 3 -->
@@ -121,7 +153,23 @@
                 android:layout_marginTop="2dp"
                 android:autoSizeTextType="uniform"
                 android:autoSizeMinTextSize="7sp"
-                android:autoSizeMaxTextSize="9sp" />
+                android:autoSizeMaxTextSize="9sp"
+                android:autoSizeStepGranularity="1sp" />
+
+            <TextView
+                android:id="@+id/phone_3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="010-0000-0000"
+                android:textSize="7sp"
+                android:textColor="#666666"
+                android:gravity="center"
+                android:maxLines="1"
+                android:layout_marginTop="1dp"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="5sp"
+                android:autoSizeMaxTextSize="7sp"
+                android:autoSizeStepGranularity="1sp" />
         </LinearLayout>
     </LinearLayout>
 
@@ -166,7 +214,23 @@
                 android:layout_marginTop="2dp"
                 android:autoSizeTextType="uniform"
                 android:autoSizeMinTextSize="7sp"
-                android:autoSizeMaxTextSize="9sp" />
+                android:autoSizeMaxTextSize="9sp"
+                android:autoSizeStepGranularity="1sp" />
+
+            <TextView
+                android:id="@+id/phone_4"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="010-0000-0000"
+                android:textSize="7sp"
+                android:textColor="#666666"
+                android:gravity="center"
+                android:maxLines="1"
+                android:layout_marginTop="1dp"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="5sp"
+                android:autoSizeMaxTextSize="7sp"
+                android:autoSizeStepGranularity="1sp" />
         </LinearLayout>
 
         <!-- 버튼 5 -->
@@ -203,7 +267,23 @@
                 android:layout_marginTop="2dp"
                 android:autoSizeTextType="uniform"
                 android:autoSizeMinTextSize="7sp"
-                android:autoSizeMaxTextSize="9sp" />
+                android:autoSizeMaxTextSize="9sp"
+                android:autoSizeStepGranularity="1sp" />
+
+            <TextView
+                android:id="@+id/phone_5"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="010-0000-0000"
+                android:textSize="7sp"
+                android:textColor="#666666"
+                android:gravity="center"
+                android:maxLines="1"
+                android:layout_marginTop="1dp"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="5sp"
+                android:autoSizeMaxTextSize="7sp"
+                android:autoSizeStepGranularity="1sp" />
         </LinearLayout>
 
         <!-- 버튼 6 -->
@@ -240,7 +320,23 @@
                 android:layout_marginTop="2dp"
                 android:autoSizeTextType="uniform"
                 android:autoSizeMinTextSize="7sp"
-                android:autoSizeMaxTextSize="9sp" />
+                android:autoSizeMaxTextSize="9sp"
+                android:autoSizeStepGranularity="1sp" />
+
+            <TextView
+                android:id="@+id/phone_6"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="010-0000-0000"
+                android:textSize="7sp"
+                android:textColor="#666666"
+                android:gravity="center"
+                android:maxLines="1"
+                android:layout_marginTop="1dp"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="5sp"
+                android:autoSizeMaxTextSize="7sp"
+                android:autoSizeStepGranularity="1sp" />
         </LinearLayout>
     </LinearLayout>
 

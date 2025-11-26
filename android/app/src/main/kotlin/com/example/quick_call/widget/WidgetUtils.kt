@@ -42,16 +42,17 @@ object WidgetUtils {
     }
     
     /**
-     * 버튼 설정 (이모지 아이콘)
+     * 버튼 설정 (이모지 아이콘 + 전화번호)
+     * @param ids Quadruple(buttonId, iconId, nameId, phoneId)
      */
     fun setupButton(
         context: Context,
         views: RemoteViews,
-        ids: Triple<Int, Int, Int>,
+        ids: Quadruple<Int, Int, Int, Int>,
         button: WidgetButton,
         action: String
     ) {
-        val (buttonId, iconId, nameId) = ids
+        val (buttonId, iconId, nameId, phoneId) = ids
         
         views.setViewVisibility(buttonId, android.view.View.VISIBLE)
         
@@ -61,6 +62,9 @@ object WidgetUtils {
         
         // 이름 설정
         views.setTextViewText(nameId, button.name)
+        
+        // 전화번호 설정 (AutoSize가 자동으로 크기 조정)
+        views.setTextViewText(phoneId, button.phoneNumber)
         
         val intent = Intent(action).apply {
             putExtra("phone_number", button.phoneNumber)
@@ -137,3 +141,20 @@ data class WidgetButton(
     val iconCodePoint: Int,
     val group: String
 )
+
+/**
+ * Quadruple 데이터 클래스 (4개 값을 담기 위한 헬퍼)
+ */
+data class Quadruple<out A, out B, out C, out D>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D
+) {
+    override fun toString(): String = "($first, $second, $third, $fourth)"
+}
+
+operator fun <A, B, C, D> Quadruple<A, B, C, D>.component1(): A = first
+operator fun <A, B, C, D> Quadruple<A, B, C, D>.component2(): B = second
+operator fun <A, B, C, D> Quadruple<A, B, C, D>.component3(): C = third
+operator fun <A, B, C, D> Quadruple<A, B, C, D>.component4(): D = fourth

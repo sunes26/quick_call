@@ -41,6 +41,22 @@
             android:autoSizeMinTextSize="8sp"
             android:autoSizeMaxTextSize="11sp"
             android:autoSizeStepGranularity="1sp" />
+
+        <!-- 전화번호 (AutoSize 적용) -->
+        <TextView
+            android:id="@+id/phone_1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="010-0000-0000"
+            android:textSize="9sp"
+            android:textColor="#666666"
+            android:gravity="center"
+            android:maxLines="1"
+            android:layout_marginTop="2dp"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="6sp"
+            android:autoSizeMaxTextSize="9sp"
+            android:autoSizeStepGranularity="1sp" />
     </LinearLayout>
 
     <!-- 빈 상태 메시지 -->

@@ -11,6 +11,7 @@ Quick Call은 자주 연락하는 사람에게 빠르게 전화를 걸 수 있�
 
 - ✅ **단축 전화번호 관리**: 자주 사용하는 전화번호를 그룹별로 관리
 - ✅ **홈 화면 위젯**: 3가지 크기의 위젯 지원 (1×1, 2×3, 3×2)
+- ✅ **위젯 전화번호 표시**: 이름과 전화번호를 위젯에 함께 표시 (AutoSize 적용)
 - ✅ **즉시 전화 걸기**: 버튼 클릭 시 바로 전화 연결
 - ✅ **연락처 연동**: 기존 연락처에서 전화번호 불러오기
 - ✅ **그룹 관리**: 가족, 친구, 직장 등 그룹별 분류
@@ -18,6 +19,7 @@ Quick Call은 자주 연락하는 사람에게 빠르게 전화를 걸 수 있�
 - ✅ **검색 기능**: 이름/전화번호로 빠른 검색
 - ✅ **다크 모드**: 라이트/다크 테마 지원
 - ✅ **백업/복원**: JSON 형식으로 데이터 백업 및 복원
+- ✅ **위젯 설정 UI**: 3열 그리드 레이아웃, 직관적인 선택 표시
 
 ---
 
@@ -80,21 +82,23 @@ quick_call/
 │               │
 │               └── res/              # Android 리소스
 │                   ├── drawable/     # 드로어블 리소스
-│                   │   ├── button_outline.xml
-│                   │   ├── button_primary.xml
-│                   │   ├── gradient_header.xml
-│                   │   ├── launch_background.xml
-│                   │   └── samsung_white_button.xml
+│                   │   ├── button_outline.xml                # 취소 버튼 스타일
+│                   │   ├── button_primary.xml                # 저장 버튼 스타일
+│                   │   ├── gradient_header.xml               # 헤더 그라데이션
+│                   │   ├── launch_background.xml             # 런처 배경
+│                   │   ├── samsung_white_button.xml          # 위젯 버튼 스타일
+│                   │   ├── widget_button_unselected.xml      # 미선택 버튼 배경 (회색 테두리)
+│                   │   └── widget_button_selected.xml        # 선택 버튼 배경 (파란색 테두리)
 │                   │
 │                   ├── drawable-v21/  # API 21+ 드로어블
 │                   │   └── launch_background.xml
 │                   │
 │                   ├── layout/       # 레이아웃 XML
 │                   │   ├── activity_widget_config_simple.xml  # 위젯 설정 화면
-│                   │   ├── item_widget_button_all.xml         # 버튼 선택 아이템
-│                   │   ├── widget_speed_dial_1x1.xml          # 1×1 위젯 레이아웃
-│                   │   ├── widget_speed_dial_2x3.xml          # 2×3 위젯 레이아웃
-│                   │   └── widget_speed_dial_3x2.xml          # 3×2 위젯 레이아웃
+│                   │   ├── item_widget_button_all.xml         # 버튼 선택 아이템 (3열 그리드)
+│                   │   ├── widget_speed_dial_1x1.xml          # 1×1 위젯 레이아웃 (전화번호 포함)
+│                   │   ├── widget_speed_dial_2x3.xml          # 2×3 위젯 레이아웃 (전화번호 포함)
+│                   │   └── widget_speed_dial_3x2.xml          # 3×2 위젯 레이아웃 (전화번호 포함)
 │                   │
 │                   ├── mipmap-hdpi/      # 앱 아이콘 (hdpi)
 │                   │   └── ic_launcher.png
@@ -236,14 +240,27 @@ path_provider: ^2.1.1           # 파일 경로
 - **2×3**: 세로 방향 6개 버튼
 - **3×2**: 가로 방향 6개 버튼
 
+**위젯 UI 개선**:
+- 이름과 전화번호를 함께 표시
+- Android AutoSizeText 적용으로 텍스트 자동 크기 조정
+- 전화번호가 길어도 잘리지 않고 자동으로 글자 크기 축소
+- 최소/최대 폰트 크기 설정으로 가독성 보장
+
+**위젯 설정 화면**:
+- 3열 그리드 레이아웃으로 한눈에 버튼 확인
+- 사람 아이콘(👤)으로 통일된 디자인
+- 선택 시 파란색 테두리로 명확한 피드백
+- 클릭 영역 최적화로 터치 반응 개선
+
 **위젯 구현 흐름**:
 ```
 1. 사용자가 홈 화면에 위젯 추가
 2. WidgetConfigActivity 실행 (네이티브)
-3. 사용자가 버튼 선택
+3. 3열 그리드에서 버튼 선택 (파란색 테두리로 표시)
 4. SharedPreferences에 JSON 저장
 5. SpeedDialWidgetProvider가 UI 업데이트
-6. 버튼 클릭 시 ACTION_CALL Intent 발생
+6. 위젯에 이름 + 전화번호 표시 (AutoSize)
+7. 버튼 클릭 시 ACTION_CALL Intent 발생
 ```
 
 **Flutter ↔ Native 통신** (MethodChannel):
@@ -257,7 +274,50 @@ path_provider: ^2.1.1           # 파일 경로
 "clearAllWidgets"     // 모든 위젯 데이터 삭제
 ```
 
-### 2. 권한 관리
+### 2. 위젯 텍스트 자동 크기 조정
+
+**Android AutoSizeText 적용**:
+```xml
+<!-- 1×1 위젯 -->
+<TextView
+    android:autoSizeTextType="uniform"
+    android:autoSizeMinTextSize="6sp"
+    android:autoSizeMaxTextSize="9sp"
+    android:maxLines="1" />
+
+<!-- 2×3, 3×2 위젯 -->
+<TextView
+    android:autoSizeTextType="uniform"
+    android:autoSizeMinTextSize="5sp"
+    android:autoSizeMaxTextSize="7sp"
+    android:maxLines="1" />
+```
+
+**전화번호 표시 위치**:
+- 1×1: 이름 아래, 중앙 정렬
+- 2×3, 3×2: 각 버튼 이름 아래, 작은 회색 글씨
+
+### 3. 위젯 설정 UI
+
+**레이아웃 구조**:
+```xml
+<FrameLayout>  <!-- 선택 배경 -->
+  <CardView>   <!-- 내부 카드 -->
+    <LinearLayout>
+      <TextView>👤</TextView>  <!-- 사람 아이콘 -->
+      <TextView>이름</TextView>  <!-- AutoSize 적용 -->
+    </LinearLayout>
+  </CardView>
+</FrameLayout>
+```
+
+**선택 표시**:
+- 미선택: 회색 테두리 (2dp, #E0E0E0)
+- 선택: 파란색 테두리 (4dp, #2196F3)
+- Drawable 리소스로 동적 변경
+- CardView elevation 0으로 이중 테두리 방지
+
+### 4. 권한 관리
 
 **필요한 권한**:
 - `CALL_PHONE`: 전화 걸기
@@ -272,7 +332,7 @@ path_provider: ^2.1.1           # 파일 경로
 4. 승인 시 기능 실행
 ```
 
-### 3. 전화번호 포맷팅
+### 5. 전화번호 포맷팅
 
 `PhoneFormatter` 유틸리티 지원:
 - 한국 전화번호 형식 자동 변환
@@ -288,7 +348,7 @@ PhoneFormatter.isValid('010-1234-5678') // true
 PhoneFormatter.isEmergencyNumber('119') // true
 ```
 
-### 4. 백업/복원
+### 6. 백업/복원
 
 **백업 데이터 구조** (JSON):
 ```json
@@ -441,6 +501,13 @@ signingConfig = signingConfigs.getByName("debug")  // ← 실제 키로 변경
 - 데이터베이스 정보
 - 앱 정보
 
+### WidgetConfigActivity (Native)
+- 3열 그리드 레이아웃으로 버튼 표시
+- 사람 아이콘(👤) 통일
+- 선택 시 파란색 테두리 (4dp)
+- 최대 선택 개수 제한 (1×1: 1개, 2×3/3×2: 6개)
+- 선택 불가능한 항목은 투명도 50%
+
 ---
 
 ## 🐛 알려진 이슈 및 제한사항
@@ -457,6 +524,10 @@ signingConfig = signingConfigs.getByName("debug")  // ← 실제 키로 변경
    - 홈 런처에 따라 일부 위젯 크기 미지원 가능
    - 삼성 One UI, Pixel Launcher 등에서 테스트 완료
 
+4. **긴 전화번호 표시**
+   - 매우 긴 국제번호의 경우 AutoSize로 글자 크기가 작아질 수 있음
+   - 최소 폰트 크기(5sp~6sp) 보장으로 가독성 유지
+
 ---
 
 ## 📝 코딩 컨벤션
@@ -471,6 +542,11 @@ signingConfig = signingConfigs.getByName("debug")  // ← 실제 키로 변경
 - **네이밍**: camelCase (변수, 함수), PascalCase (클래스)
 - **파일명**: PascalCase
 - **Null Safety**: nullable 타입 명시적 처리
+
+### XML
+- **리소스 네이밍**: snake_case
+- **ID 네이밍**: snake_case with prefix (`button_`, `text_`, etc.)
+- **Drawable**: 용도_설명_상태 (예: `widget_button_selected`)
 
 ---
 
@@ -502,6 +578,18 @@ signingConfig = signingConfigs.getByName("debug")  // ← 실제 키로 변경
 ---
 
 ## ✨ 개발 히스토리
+
+### v1.1.0 (2024-12)
+- **위젯 UI 대폭 개선**
+  - 위젯에 전화번호 표시 기능 추가
+  - Android AutoSizeText 적용으로 텍스트 자동 크기 조정
+  - 긴 전화번호도 잘리지 않고 완전히 표시
+- **위젯 설정 화면 개선**
+  - 2열 → 3열 그리드로 변경
+  - 사람 아이콘(👤)으로 통일된 디자인
+  - 체크박스 → 파란색 테두리로 선택 표시 방식 변경
+  - 클릭 영역 최적화 및 터치 반응 개선
+  - 이중 테두리 버그 수정
 
 ### v1.0.0 (2024)
 - 초기 릴리스
