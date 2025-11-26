@@ -66,9 +66,6 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.75,
-      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
@@ -78,7 +75,7 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
         children: [
           // 드래그 핸들
           Container(
-            margin: EdgeInsets.only(top: 12.h),
+            margin: EdgeInsets.only(top: 10.h),
             width: 40.w,
             height: 4.h,
             decoration: BoxDecoration(
@@ -86,60 +83,32 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
               borderRadius: BorderRadius.circular(2.r),
             ),
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 12.h),
 
-          // 제목
-          Text(
-            '버튼 색상 선택',
-            style: TextStyle(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 8.h),
-          
-          // 선택된 색상 미리보기
-          Container(
-            padding: EdgeInsets.all(16.w),
-            margin: EdgeInsets.symmetric(horizontal: 24.w),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(16.r),
-            ),
-            child: Column(
+          // 제목 + 현재 선택 색상 (한 줄로 컴팩트하게)
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.w),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 56.w,
-                      height: 56.w,
-                      decoration: BoxDecoration(
-                        color: _selectedColor,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.grey[300]!,
-                          width: 2,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Text(
-                      '현재 선택',
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[800],
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 4.h),
                 Text(
-                  '색상을 선택한 후 확인을 눌러주세요',
+                  '버튼 색상 선택',
                   style: TextStyle(
-                    fontSize: 12.sp,
-                    color: Colors.grey[600],
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Container(
+                  width: 32.w,
+                  height: 32.w,
+                  decoration: BoxDecoration(
+                    color: _selectedColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.grey[400]!,
+                      width: 2,
+                    ),
                   ),
                 ),
               ],
@@ -147,75 +116,69 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
           ),
           SizedBox(height: 16.h),
 
-          // 색상 그리드
-          Flexible(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: 24.w),
-              child: GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 5,
-                  childAspectRatio: 1.0,
-                  crossAxisSpacing: 12.w,
-                  mainAxisSpacing: 12.h,
-                ),
-                itemCount: colorPalette.length,
-                itemBuilder: (context, index) {
-                  final color = colorPalette[index];
-                  // 🆕 색상 비교를 ARGB 값으로 변경
-                  final isSelected = _selectedColor.red == color.red &&
-                      _selectedColor.green == color.green &&
-                      _selectedColor.blue == color.blue &&
-                      _selectedColor.alpha == color.alpha;
+          // 색상 그리드 (스크롤 없이 한눈에)
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 5,
+                childAspectRatio: 1.0,
+                crossAxisSpacing: 10.w,
+                mainAxisSpacing: 10.h,
+              ),
+              itemCount: colorPalette.length,
+              itemBuilder: (context, index) {
+                final color = colorPalette[index];
+                final isSelected = _selectedColor.red == color.red &&
+                    _selectedColor.green == color.green &&
+                    _selectedColor.blue == color.blue &&
+                    _selectedColor.alpha == color.alpha;
 
-                  return GestureDetector(
-                    onTap: () => _selectColor(color),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isSelected ? Colors.blue[700]! : Colors.grey[300]!,
-                          width: isSelected ? 4 : 2,
-                        ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: Colors.blue.withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ]
-                            : [],
+                return GestureDetector(
+                  onTap: () => _selectColor(color),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected ? Colors.blue[700]! : Colors.grey[300]!,
+                        width: isSelected ? 3 : 1.5,
                       ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          // 선택 체크마크
-                          if (isSelected)
-                            Container(
-                              padding: EdgeInsets.all(4.w),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: Colors.blue.withOpacity(0.3),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : [],
+                    ),
+                    child: isSelected
+                        ? Center(
+                            child: Container(
+                              padding: EdgeInsets.all(2.w),
                               decoration: const BoxDecoration(
                                 color: Colors.white,
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 Icons.check,
-                                size: 20.sp,
+                                size: 16.sp,
                                 color: Colors.blue[700],
                               ),
                             ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
+                          )
+                        : null,
+                  ),
+                );
+              },
             ),
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 20.h),
 
           // 버튼들
           Padding(
@@ -227,7 +190,7 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.r),
                       ),
@@ -236,7 +199,7 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
                     child: Text(
                       '취소',
                       style: TextStyle(
-                        fontSize: 16.sp,
+                        fontSize: 15.sp,
                         color: Colors.grey[700],
                       ),
                     ),
@@ -251,7 +214,7 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
                       Navigator.pop(context, _selectedColor);
                     },
                     style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.r),
                       ),
@@ -260,7 +223,7 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
                     child: Text(
                       '확인',
                       style: TextStyle(
-                        fontSize: 16.sp,
+                        fontSize: 15.sp,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
@@ -270,7 +233,7 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
               ],
             ),
           ),
-          SizedBox(height: 24.h),
+          SizedBox(height: 20.h),
         ],
       ),
     );

@@ -41,6 +41,26 @@ class SpeedDialProvider extends ChangeNotifier {
 
     return _sortButtons(filteredButtons);
   }
+
+  // 🆕 특정 그룹의 버튼 목록 반환 (TabBarView용)
+  List<SpeedDialButton> getButtonsForGroup(String group) {
+    var filteredButtons = group == '전체'
+        ? _buttons
+        : _buttons.where((b) => b.group == group).toList();
+
+    if (_searchQuery.isNotEmpty) {
+      filteredButtons = filteredButtons.where((button) {
+        final nameLower = button.name.toLowerCase();
+        final phoneLower = button.phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
+        final queryLower = _searchQuery.toLowerCase();
+        final queryDigits = _searchQuery.replaceAll(RegExp(r'[^\d]'), '');
+        
+        return nameLower.contains(queryLower) || phoneLower.contains(queryDigits);
+      }).toList();
+    }
+
+    return _sortButtons(filteredButtons);
+  }
   
   List<SpeedDialButton> get allButtons => _buttons;
   List<String> get groups => _groups;

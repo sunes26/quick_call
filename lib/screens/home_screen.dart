@@ -40,12 +40,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
     
     // 탭 변경 감지
-    _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
-        final provider = context.read<SpeedDialProvider>();
-        provider.selectGroup(provider.groups[_tabController.index]);
-      }
-    });
+    _tabController.addListener(_onTabChanged);
 
     // 🆕 검색어 변경 리스너
     _searchController.addListener(() {
@@ -53,12 +48,39 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     });
   }
 
+  // 🆕 탭 변경 리스너 분리
+  void _onTabChanged() {
+    if (!_tabController.indexIsChanging) {
+      final provider = context.read<SpeedDialProvider>();
+      if (_tabController.index < provider.groups.length) {
+        provider.selectGroup(provider.groups[_tabController.index]);
+      }
+    }
+  }
+
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  // 🆕 TabController 재생성 (그룹 변경 시)
+  void _recreateTabController(SpeedDialProvider provider) {
+    final currentIndex = provider.groups.indexOf(provider.selectedGroup).clamp(0, provider.groups.length - 1);
+    
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
+    
+    _tabController = TabController(
+      length: provider.groups.length,
+      vsync: this,
+      initialIndex: currentIndex,
+    );
+    
+    _tabController.addListener(_onTabChanged);
   }
 
   // 블러 효과와 함께 다이얼로그 열기
@@ -253,15 +275,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       builder: (context, provider, settings, child) {
         // TabController 길이 업데이트 (그룹이 추가/삭제될 때)
         if (_tabController.length != provider.groups.length) {
-          _tabController.dispose();
-          _tabController = TabController(
-            length: provider.groups.length,
-            vsync: this,
-            initialIndex: provider.groups.indexOf(provider.selectedGroup).clamp(0, provider.groups.length - 1),
-          );
-          _tabController.addListener(() {
-            if (!_tabController.indexIsChanging) {
-              provider.selectGroup(provider.groups[_tabController.index]);
+          // 다음 프레임에서 TabController 재생성
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                _recreateTabController(provider);
+              });
             }
           });
         }
@@ -483,62 +502,130 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       );
     }
 
-    // 버튼이 없는 경우
-    if (provider.buttons.isEmpty) {
-      // 검색 중인 경우
-      if (provider.isSearching && provider.searchQuery.isNotEmpty) {
-        return Center(
-          child: Padding(
-            padding: EdgeInsets.all(32.w),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.search_off,
-                  size: 80.sp,
-                  color: Colors.grey[400],
-                ),
-                SizedBox(height: 16.h),
-                Text(
-                  '검색 결과가 없습니다',
-                  style: TextStyle(
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
-                  ),
-                ),
-                SizedBox(height: 8.h),
-                Text(
-                  '"${provider.searchQuery}"',
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    color: Colors.grey[600],
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        );
-      }
+    // 🆕 검색 모드: 스와이프 없이 단일 그리드
+    if (provider.isSearching) {
+      return _buildSearchResultGrid(context, provider);
+    }
 
+    // 🆕 일반/편집 모드: TabBarView로 스와이프 지원
+    return TabBarView(
+      controller: _tabController,
+      // 편집 모드에서는 스와이프 비활성화 (드래그앤드롭과 충돌 방지)
+      physics: provider.isEditMode 
+          ? const NeverScrollableScrollPhysics() 
+          : const ClampingScrollPhysics(),
+      children: provider.groups.map((group) {
+        return _buildGroupPage(context, provider, group);
+      }).toList(),
+    );
+  }
+
+  // 🆕 검색 결과 그리드 (스와이프 없음)
+  Widget _buildSearchResultGrid(BuildContext context, SpeedDialProvider provider) {
+    final searchButtons = provider.buttons;
+
+    // 검색 결과 없음
+    if (searchButtons.isEmpty && provider.searchQuery.isNotEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.w),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.search_off,
+                size: 80.sp,
+                color: Colors.grey[400],
+              ),
+              SizedBox(height: 16.h),
+              Text(
+                '검색 결과가 없습니다',
+                style: TextStyle(
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                '"${provider.searchQuery}"',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 버튼이 없는 경우
+    if (searchButtons.isEmpty) {
       return NoSpeedDialsWidget(
         groupName: provider.selectedGroup,
         onAddPressed: _showAddButtonDialog,
       );
     }
 
-    // 편집 모드일 때 - 드래그 앤 드롭 가능한 그리드뷰
-    if (provider.isEditMode) {
-      return _buildReorderableGrid(context, provider);
+    return RefreshIndicator(
+      onRefresh: () => provider.loadButtons(),
+      child: Padding(
+        padding: EdgeInsets.all(16.w),
+        child: GridView.builder(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.only(bottom: 100.h),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            childAspectRatio: 0.85,
+            crossAxisSpacing: 12.w,
+            mainAxisSpacing: 12.h,
+          ),
+          itemCount: searchButtons.length,
+          itemBuilder: (context, index) {
+            final button = searchButtons[index];
+            return DialButtonWidget(
+              button: button,
+              isEditMode: false,
+              onTap: () => _handleButtonTap(context, provider, button),
+              onLongPress: () => _handleButtonLongPress(context, provider, button),
+              onDelete: () => _handleDelete(context, provider, button, index),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  // 🆕 그룹별 페이지 (TabBarView의 각 페이지)
+  Widget _buildGroupPage(BuildContext context, SpeedDialProvider provider, String group) {
+    final groupButtons = provider.getButtonsForGroup(group);
+
+    // 버튼이 없는 경우
+    if (groupButtons.isEmpty) {
+      return NoSpeedDialsWidget(
+        groupName: group,
+        onAddPressed: _showAddButtonDialog,
+      );
     }
 
-    // 일반 모드 - 기본 그리드뷰 (애니메이션 적용)
-    return _buildNormalGrid(context, provider);
+    // 편집 모드: 드래그 앤 드롭 그리드
+    if (provider.isEditMode && group == provider.selectedGroup) {
+      return _buildReorderableGrid(context, provider, groupButtons);
+    }
+
+    // 일반 모드: 기본 그리드 (애니메이션 포함)
+    return _buildNormalGrid(context, provider, groupButtons, group);
   }
 
   // 일반 모드 그리드 (애니메이션 포함)
-  Widget _buildNormalGrid(BuildContext context, SpeedDialProvider provider) {
+  Widget _buildNormalGrid(
+    BuildContext context, 
+    SpeedDialProvider provider, 
+    List<SpeedDialButton> groupButtons,
+    String group,
+  ) {
     return RefreshIndicator(
       onRefresh: () => provider.loadButtons(),
       child: Padding(
@@ -548,7 +635,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           switchInCurve: Curves.easeInOut,
           switchOutCurve: Curves.easeInOut,
           child: GridView.builder(
-            key: ValueKey('normal_${provider.selectedGroup}_${provider.buttons.length}_${provider.searchQuery}_${provider.currentSortOption}'),
+            key: ValueKey('normal_${group}_${groupButtons.length}_${provider.searchQuery}_${provider.currentSortOption}'),
             physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.only(bottom: 100.h),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -557,9 +644,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               crossAxisSpacing: 12.w,
               mainAxisSpacing: 12.h,
             ),
-            itemCount: provider.buttons.length,
+            itemCount: groupButtons.length,
             itemBuilder: (context, index) {
-              final button = provider.buttons[index];
+              final button = groupButtons[index];
               return TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0.0, end: 1.0),
                 duration: Duration(milliseconds: 300 + (index * 50)),
@@ -589,14 +676,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   // 편집 모드 그리드 (드래그 앤 드롭)
-  Widget _buildReorderableGrid(BuildContext context, SpeedDialProvider provider) {
+  Widget _buildReorderableGrid(
+    BuildContext context, 
+    SpeedDialProvider provider,
+    List<SpeedDialButton> groupButtons,
+  ) {
     return RefreshIndicator(
       onRefresh: () => provider.loadButtons(),
       child: Padding(
         padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 16.h),
         child: ReorderableGridView.builder(
           clipBehavior: Clip.none,
-          key: ValueKey('reorderable_${provider.selectedGroup}_${provider.buttons.length}'),
+          key: ValueKey('reorderable_${provider.selectedGroup}_${groupButtons.length}'),
           padding: EdgeInsets.only(bottom: 100.h),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
@@ -604,7 +695,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             crossAxisSpacing: 20.w,
             mainAxisSpacing: 20.h,
           ),
-          itemCount: provider.buttons.length,
+          itemCount: groupButtons.length,
           onReorder: (oldIndex, newIndex) {
             provider.reorderButtons(oldIndex, newIndex);
           },
@@ -619,7 +710,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             );
           },
           itemBuilder: (context, index) {
-            final button = provider.buttons[index];
+            final button = groupButtons[index];
             return DialButtonWidget(
               key: ValueKey(button.id),
               button: button,

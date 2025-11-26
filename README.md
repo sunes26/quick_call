@@ -14,12 +14,14 @@ Quick Call은 자주 연락하는 사람에게 빠르게 전화를 걸 수 있�
   - **클릭(탭)**: 버튼 편집 화면 열기 (모든 모드)
   - **롱프레스(꾹 누르기)**: 즉시 전화 걸기 (일반 모드, 햅틱 피드백)
 - ✅ **색상 커스터마이징**: 버튼별 배경색 지정 가능 (20가지 색상 팔레트)
+- ✅ **컴팩트 색상 선택 UI**: 스크롤 없이 20개 색상을 한눈에 확인
 - ✅ **큰 텍스트**: 아이콘 없이 이름만 크게 표시 (최대 22sp, 자동 크기 조정)
 - ✅ **홈 화면 위젯**: 3가지 크기의 위젯 지원 (1×1, 2×3, 3×2)
 - ✅ **위젯 전화번호 표시**: 이름과 전화번호를 위젯에 함께 표시 (AutoSize 적용)
 - ✅ **연락처 연동**: 기존 연락처에서 전화번호 불러오기
 - ✅ **그룹 관리**: 가족, 친구, 직장 등 그룹별 분류
 - ✅ **그룹 편집**: 그룹 탭 재클릭으로 그룹 이름 변경 및 삭제 (전체 그룹 제외)
+- ✅ **스와이프 탭 전환**: 화면을 좌우로 스와이프하여 그룹 간 자연스럽게 전환
 - ✅ **드래그 앤 드롭**: 편집 모드에서 순서 변경 가능
 - ✅ **검색 기능**: 이름/전화번호로 빠른 검색
 - ✅ **다크 모드**: 라이트/다크 테마 지원
@@ -139,10 +141,10 @@ quick_call/
     │
     ├── providers/                    # 상태 관리 (Provider)
     │   ├── settings_provider.dart    # 앱 설정 관리
-    │   └── speed_dial_provider.dart  # 단축키 데이터 관리
+    │   └── speed_dial_provider.dart  # 단축키 데이터 관리 (getButtonsForGroup 메서드 포함)
     │
     ├── screens/                      # 화면 UI
-    │   ├── home_screen.dart          # 메인 홈 화면
+    │   ├── home_screen.dart          # 메인 홈 화면 (TabBarView 스와이프 지원)
     │   ├── add_button_screen.dart    # 단축키 추가 화면 (색상 선택)
     │   ├── edit_button_screen.dart   # 단축키 편집 화면 (색상 선택)
     │   └── settings_screen.dart      # 설정 화면
@@ -161,7 +163,7 @@ quick_call/
     │
     └── widgets/                      # 재사용 가능한 위젯
         ├── dial_button_widget.dart       # 단축키 버튼 UI (색상 배경, 큰 텍스트)
-        ├── color_picker_widget.dart      # 🆕 색상 선택 위젯 (5x4 그리드)
+        ├── color_picker_widget.dart      # 색상 선택 위젯 (컴팩트 5x4 그리드)
         ├── contact_picker_widget.dart    # 연락처 선택 위젯
         ├── empty_state_widget.dart       # 빈 상태 UI
         ├── loading_widget.dart           # 로딩 UI
@@ -260,22 +262,18 @@ path_provider: ^2.1.1           # 파일 경로
 연한 초록(#C8E6C9), 연한 회색(#CFD8DC)
 ```
 
-**색상 선택 UI**:
+**컴팩트 색상 선택 UI** (v1.5.0):
 ```
-┌──────────────────────────┐
-│   버튼 색상 선택         │
-│                          │
-│   ┌────────┐             │
-│   │  ████  │ 현재 선택   │
-│   └────────┘             │
-│                          │
-│   ●●●●●                 │
-│   ●●●●●                 │
-│   ●●●●●                 │
-│   ●●●●●                 │
-│                          │
-│   [취소]    [확인]       │
-└──────────────────────────┘
+┌─────────────────────────┐
+│  버튼 색상 선택  ⚫      │  ← 제목 + 미리보기 한 줄
+│                         │
+│   ● ● ● ● ●            │
+│   ● ● ● ● ●            │  ← 스크롤 없이 한눈에
+│   ● ● ● ● ●            │
+│   ● ● ● ● ●            │
+│                         │
+│   [취소]     [확인]     │
+└─────────────────────────┘
 ```
 
 **자동 텍스트 색상 결정**:
@@ -337,7 +335,52 @@ path_provider: ^2.1.1           # 파일 경로
 - `lib/widgets/dial_button_widget.dart`: GestureDetector로 onTap/onLongPress 처리
 - `lib/screens/home_screen.dart`: 각 모드별 핸들러 구현
 
-### 4. 그룹 관리 시스템
+### 4. 스와이프 탭 전환 (v1.5.0)
+
+**기능 설명**:
+- 화면을 좌우로 스와이프하여 그룹 탭 간 자연스럽게 전환
+- 탭 클릭과 스와이프 모두 지원
+- TabBar와 TabBarView 연동으로 부드러운 애니메이션
+
+**모드별 동작**:
+```
+일반 모드:
+[전체] [가족] [친구]     ← 탭 클릭 OR 스와이프로 전환
+┌─────────────────┐
+│                 │
+│  👆 좌우 스와이프 │  ← 자연스럽게 다음 탭으로 전환
+│       ←  →      │
+└─────────────────┘
+
+편집 모드:
+[전체] [가족] [친구]
+┌─────────────────┐
+│                 │
+│  드래그앤드롭    │  ← 스와이프 비활성화 (충돌 방지)
+│                 │
+└─────────────────┘
+
+검색 모드:
+┌─────────────────┐
+│                 │
+│  검색 결과 표시  │  ← 스와이프 없이 단일 그리드
+│                 │
+└─────────────────┘
+```
+
+**구현 방식**:
+- `TabBarView` 위젯 사용
+- `TabController`로 탭과 페이지 동기화
+- 편집 모드: `NeverScrollableScrollPhysics()`로 스와이프 비활성화
+- 일반 모드: `ClampingScrollPhysics()`로 자연스러운 스와이프
+
+**Provider 추가 메서드**:
+```dart
+// 특정 그룹의 버튼 목록 반환 (TabBarView용)
+List<SpeedDialButton> getButtonsForGroup(String group)
+```
+
+### 5. 그룹 관리 시스템
 
 **기본 그룹 정책**:
 - **"전체" 그룹만 기본 그룹**으로 존재
@@ -372,7 +415,7 @@ path_provider: ^2.1.1           # 파일 경로
 - `lib/screens/home_screen.dart`: 탭 재클릭 감지 및 편집 로직
 - `lib/providers/speed_dial_provider.dart`: 그룹 데이터 관리
 
-### 5. 위젯 시스템
+### 6. 위젯 시스템
 
 **3가지 위젯 크기 지원**:
 - **1×1**: 단일 버튼 (긴급 전화 등)
@@ -413,33 +456,32 @@ path_provider: ^2.1.1           # 파일 경로
 "clearAllWidgets"     // 모든 위젯 데이터 삭제
 ```
 
-### 6. 위젯 텍스트 자동 크기 조정
+### 7. 위젯 텍스트 자동 크기 조정
 
 **Android AutoSizeText 적용**:
 ```xml
-
-
-
-
-
+<TextView
+    android:autoSizeTextType="uniform"
+    android:autoSizeMinTextSize="5sp"
+    android:autoSizeMaxTextSize="12sp"
+    android:autoSizeStepGranularity="1sp"
+    android:maxLines="1" />
 ```
 
 **전화번호 표시 위치**:
 - 1×1: 이름 아래, 중앙 정렬
 - 2×3, 3×2: 각 버튼 이름 아래, 작은 회색 글씨
 
-### 7. 위젯 설정 UI
+### 8. 위젯 설정 UI
 
 **레이아웃 구조**:
 ```xml
-  
-     
-    
-      👤  
-      이름  
-    
-  
-
+<FrameLayout>  <!-- 클릭 영역 확장 -->
+  <LinearLayout>
+    <ImageView />  <!-- 👤 아이콘 -->
+    <TextView />   <!-- 이름 -->
+  </LinearLayout>
+</FrameLayout>
 ```
 
 **선택 표시**:
@@ -448,7 +490,7 @@ path_provider: ^2.1.1           # 파일 경로
 - Drawable 리소스로 동적 변경
 - CardView elevation 0으로 이중 테두리 방지
 
-### 8. 권한 관리
+### 9. 권한 관리
 
 **필요한 권한**:
 - `CALL_PHONE`: 전화 걸기
@@ -463,7 +505,7 @@ path_provider: ^2.1.1           # 파일 경로
 4. 승인 시 기능 실행
 ```
 
-### 9. 전화번호 포맷팅
+### 10. 전화번호 포맷팅
 
 `PhoneFormatter` 유틸리티 지원:
 - 한국 전화번호 형식 자동 변환
@@ -479,7 +521,7 @@ PhoneFormatter.isValid('010-1234-5678') // true
 PhoneFormatter.isEmergencyNumber('119') // true
 ```
 
-### 10. 백업/복원
+### 11. 백업/복원
 
 **백업 데이터 구조** (JSON):
 ```json
@@ -584,13 +626,16 @@ signingConfig = signingConfigs.getByName("debug")  // ← 실제 키로 변경
 
 **SpeedDialProvider**: 단축키 데이터 관리
 ```dart
-- buttons: List       // 현재 표시 중인 버튼 목록
-- allButtons: List    // 전체 버튼 목록
-- groups: List                 // 그룹 목록
+- buttons: List<SpeedDialButton>       // 현재 표시 중인 버튼 목록
+- allButtons: List<SpeedDialButton>    // 전체 버튼 목록
+- groups: List<String>                 // 그룹 목록
 - selectedGroup: String                // 선택된 그룹
 - isEditMode: bool                     // 편집 모드 여부
 - searchQuery: String                  // 검색어
 - currentSortOption: SortOption        // 정렬 옵션
+
+// 🆕 v1.5.0 추가 메서드
+- getButtonsForGroup(String group)     // 특정 그룹의 버튼 목록 반환
 ```
 
 **SettingsProvider**: 앱 설정 관리
@@ -608,6 +653,7 @@ signingConfig = signingConfigs.getByName("debug")  // ← 실제 키로 변경
 ### HomeScreen
 - 단축키 버튼 그리드 표시 (색상 배경, 큰 텍스트)
 - 그룹별 탭 네비게이션
+- **스와이프 탭 전환**: TabBarView로 좌우 스와이프 지원
 - **그룹 편집**: 현재 활성화된 그룹 탭 재클릭 시 편집 바텀시트 표시
 - 검색 기능
 - 편집 모드 (드래그 앤 드롭)
@@ -651,8 +697,9 @@ signingConfig = signingConfigs.getByName("debug")  // ← 실제 키로 변경
 - 부드러운 바텀시트 애니메이션
 
 ### ColorPickerWidget (바텀시트)
+- **컴팩트 레이아웃**: 제목과 미리보기를 한 줄로 통합
 - 5×4 그리드 레이아웃 (20가지 색상)
-- 현재 선택된 색상 미리보기
+- **스크롤 없이** 모든 색상 한눈에 확인
 - 선택 시 파란색 테두리 + 체크마크
 - 취소/확인 버튼
 - 햅틱 피드백
@@ -681,6 +728,10 @@ signingConfig = signingConfigs.getByName("debug")  // ← 실제 키로 변경
    - v4 이하에서 v5로 업그레이드 시 자동 마이그레이션
    - 기존 iconCodePoint 데이터는 무시되고 기본 색상 적용
    - 마이그레이션 실패 시 앱 데이터 초기화 필요
+
+6. **편집 모드 스와이프 제한**
+   - 편집 모드에서는 드래그앤드롭과 충돌 방지를 위해 스와이프 비활성화
+   - 탭 클릭으로 그룹 전환 가능
 
 ---
 
@@ -732,6 +783,20 @@ signingConfig = signingConfigs.getByName("debug")  // ← 실제 키로 변경
 ---
 
 ## ✨ 개발 히스토리
+
+### v1.5.0 (2024-12)
+- **스와이프 탭 전환 기능 추가**
+  - 화면 좌우 스와이프로 그룹 탭 간 자연스러운 전환
+  - TabBarView 적용으로 부드러운 애니메이션
+  - 편집 모드에서는 드래그앤드롭 충돌 방지를 위해 스와이프 비활성화
+  - 검색 모드에서는 단일 그리드 유지
+- **색상 선택 UI 개선**
+  - 컴팩트 레이아웃: 제목과 미리보기를 한 줄로 통합
+  - 스크롤 없이 20개 색상을 한눈에 확인 가능
+  - 불필요한 여백 제거로 UI 간소화
+- **Provider 개선**
+  - `getButtonsForGroup()` 메서드 추가 (TabBarView용)
+  - 그룹별 버튼 필터링 + 검색 + 정렬 통합 지원
 
 ### v1.4.0 (2024-12)
 - **색상 커스터마이징 시스템 추가**
