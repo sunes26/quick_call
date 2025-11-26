@@ -4,46 +4,53 @@ class SpeedDialButton {
   final int? id;
   final String name;
   final String phoneNumber;
-  final IconData iconData;
-  final String group; // 그룹 추가: '전체', '가족', '긴급', '직장', '친구' 등
+  final Color color;
+  final String group;
   final int position;
   final DateTime createdAt;
   final DateTime? lastCalled;
-  final bool isInWidget; // 🆕 위젯에 표시 여부
-  final int widgetPosition; // 🆕 위젯 내 순서 (0-3)
+  final bool isInWidget;
+  final int widgetPosition;
 
   SpeedDialButton({
     this.id,
     required this.name,
     required this.phoneNumber,
-    required this.iconData,
-    this.group = '일반', // 기본 그룹
+    this.color = const Color(0xFF2196F3),
+    this.group = '일반',
     required this.position,
     DateTime? createdAt,
     this.lastCalled,
-    this.isInWidget = false, // 🆕 기본값: 위젯에 표시 안함
-    this.widgetPosition = -1, // 🆕 기본값: -1 (위젯에 없음)
+    this.isInWidget = false,
+    this.widgetPosition = -1,
   }) : createdAt = createdAt ?? DateTime.now();
 
   // DB에서 데이터를 가져올 때 사용
   factory SpeedDialButton.fromMap(Map<String, dynamic> map) {
+    // 🆕 color 값 안전하게 파싱
+    int colorValue;
+    final colorData = map['color'];
+    if (colorData is int) {
+      colorValue = colorData;
+    } else if (colorData is String) {
+      colorValue = int.tryParse(colorData) ?? 0xFF2196F3;
+    } else {
+      colorValue = 0xFF2196F3; // 기본 파란색
+    }
+    
     return SpeedDialButton(
       id: map['id'] as int?,
       name: map['name'] as String,
       phoneNumber: map['phoneNumber'] as String,
-      iconData: IconData(
-        map['iconCodePoint'] as int,
-        fontFamily: map['iconFontFamily'] as String?,
-        fontPackage: map['iconFontPackage'] as String?,
-      ),
+      color: Color(colorValue),
       group: map['group'] as String? ?? '일반',
       position: map['position'] as int,
       createdAt: DateTime.parse(map['createdAt'] as String),
       lastCalled: map['lastCalled'] != null
           ? DateTime.parse(map['lastCalled'] as String)
           : null,
-      isInWidget: (map['isInWidget'] as int? ?? 0) == 1, // 🆕 SQLite boolean (0/1)
-      widgetPosition: map['widgetPosition'] as int? ?? -1, // 🆕
+      isInWidget: (map['isInWidget'] as int? ?? 0) == 1,
+      widgetPosition: map['widgetPosition'] as int? ?? -1,
     );
   }
 
@@ -53,15 +60,13 @@ class SpeedDialButton {
       'id': id,
       'name': name,
       'phoneNumber': phoneNumber,
-      'iconCodePoint': iconData.codePoint,
-      'iconFontFamily': iconData.fontFamily,
-      'iconFontPackage': iconData.fontPackage,
+      'color': color.value,
       'group': group,
       'position': position,
       'createdAt': createdAt.toIso8601String(),
       'lastCalled': lastCalled?.toIso8601String(),
-      'isInWidget': isInWidget ? 1 : 0, // 🆕 SQLite boolean (0/1)
-      'widgetPosition': widgetPosition, // 🆕
+      'isInWidget': isInWidget ? 1 : 0,
+      'widgetPosition': widgetPosition,
     };
   }
 
@@ -70,31 +75,31 @@ class SpeedDialButton {
     int? id,
     String? name,
     String? phoneNumber,
-    IconData? iconData,
+    Color? color,
     String? group,
     int? position,
     DateTime? createdAt,
     DateTime? lastCalled,
-    bool? isInWidget, // 🆕
-    int? widgetPosition, // 🆕
+    bool? isInWidget,
+    int? widgetPosition,
   }) {
     return SpeedDialButton(
       id: id ?? this.id,
       name: name ?? this.name,
       phoneNumber: phoneNumber ?? this.phoneNumber,
-      iconData: iconData ?? this.iconData,
+      color: color ?? this.color,
       group: group ?? this.group,
       position: position ?? this.position,
       createdAt: createdAt ?? this.createdAt,
       lastCalled: lastCalled ?? this.lastCalled,
-      isInWidget: isInWidget ?? this.isInWidget, // 🆕
-      widgetPosition: widgetPosition ?? this.widgetPosition, // 🆕
+      isInWidget: isInWidget ?? this.isInWidget,
+      widgetPosition: widgetPosition ?? this.widgetPosition,
     );
   }
 
   @override
   String toString() {
-    return 'SpeedDialButton(id: $id, name: $name, phoneNumber: $phoneNumber, group: $group, position: $position, isInWidget: $isInWidget, widgetPosition: $widgetPosition)';
+    return 'SpeedDialButton(id: $id, name: $name, phoneNumber: $phoneNumber, color: $color, group: $group, position: $position, isInWidget: $isInWidget, widgetPosition: $widgetPosition)';
   }
 
   @override
@@ -105,7 +110,7 @@ class SpeedDialButton {
         other.id == id &&
         other.name == name &&
         other.phoneNumber == phoneNumber &&
-        other.iconData == iconData &&
+        other.color == color &&
         other.group == group &&
         other.position == position &&
         other.isInWidget == isInWidget &&
@@ -117,7 +122,7 @@ class SpeedDialButton {
     return id.hashCode ^
         name.hashCode ^
         phoneNumber.hashCode ^
-        iconData.hashCode ^
+        color.hashCode ^
         group.hashCode ^
         position.hashCode ^
         isInWidget.hashCode ^

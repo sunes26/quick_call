@@ -4,10 +4,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:quick_call/models/speed_dial_button.dart';
 import 'package:quick_call/providers/speed_dial_provider.dart';
-import 'package:quick_call/widgets/icon_picker_widget.dart';
+import 'package:quick_call/widgets/color_picker_widget.dart'; // 🆕 변경
 import 'package:quick_call/widgets/contact_picker_widget.dart';
 import 'package:quick_call/services/database_service.dart';     
 import 'package:quick_call/widgets/duplicate_phone_dialog.dart';
+
 class EditButtonScreen extends StatefulWidget {
   final SpeedDialButton button;
 
@@ -26,7 +27,7 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
   late TextEditingController _phoneController;
   final _newGroupController = TextEditingController();
   
-  late IconData _selectedIcon;
+  late Color _selectedColor; // 🆕 색상 선택
   late String _selectedGroup;
   bool _isAddingNewGroup = false;
   bool _isSaving = false;
@@ -37,7 +38,7 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
     super.initState();
     _nameController = TextEditingController(text: widget.button.name);
     _phoneController = TextEditingController(text: widget.button.phoneNumber);
-    _selectedIcon = widget.button.iconData;
+    _selectedColor = widget.button.color; // 🆕 색상 초기화
     _selectedGroup = widget.button.group;
   }
 
@@ -49,21 +50,21 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
     super.dispose();
   }
 
-  // 아이콘 선택 모달 열기
-  Future<void> _openIconPicker() async {
-    final icon = await showModalBottomSheet<IconData>(
+  // 🆕 색상 선택 모달 열기
+  Future<void> _openColorPicker() async {
+    final color = await showModalBottomSheet<Color>(
       context: context,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
-      builder: (context) => IconPickerWidget(
-        selectedIcon: _selectedIcon,
+      builder: (context) => ColorPickerWidget(
+        selectedColor: _selectedColor,
       ),
     );
 
-    if (icon != null) {
+    if (color != null) {
       setState(() {
-        _selectedIcon = icon;
+        _selectedColor = color;
       });
     }
   }
@@ -85,9 +86,15 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
     );
   }
 
+  // 🆕 텍스트 색상 자동 결정
+  Color _getTextColorForBackground(Color backgroundColor) {
+    return backgroundColor.computeLuminance() > 0.5 
+        ? Colors.black87 
+        : Colors.white;
+  }
+
   // 저장
   Future<void> _saveButton() async {
-    // BuildContext 사용을 위해 함수 시작 시점에 미리 저장
     final navigator = Navigator.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final provider = context.read<SpeedDialProvider>();
@@ -96,7 +103,6 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
       return;
     }
 
-    // 새 그룹 추가 시 그룹 이름 검증
     if (_isAddingNewGroup) {
       final newGroupName = _newGroupController.text.trim();
       if (newGroupName.isEmpty) {
@@ -123,14 +129,12 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
       final dbService = DatabaseService();
       final phoneNumber = _phoneController.text.trim();
     
-      // 편집 시에는 자기 자신은 제외하고 중복 체크
       final existingButton = await dbService.findByExactPhoneNumber(
         phoneNumber,
-        excludeId: widget.button.id,  // ← 자기 자신 제외!
+        excludeId: widget.button.id,
       );
 
       if (existingButton != null && mounted) {
-        // 중복 발견 - 사용자에게 선택 요청
         final action = await DuplicatePhoneDialog.show(
           context,
           existingButton: existingButton,
@@ -141,18 +145,16 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
         if (!mounted) return;
 
         if (action == DuplicateAction.cancel) {
-          // 취소 선택
           setState(() => _isSaving = false);
           return;
         }
-        // action == DuplicateAction.allowDuplicate인 경우 계속 진행
       }
 
       final updatedButton = SpeedDialButton(
         id: widget.button.id,
         name: _nameController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
-        iconData: _selectedIcon,
+        color: _selectedColor, // 🆕 색상 저장
         group: _selectedGroup,
         position: widget.button.position,
         createdAt: widget.button.createdAt,
@@ -207,7 +209,6 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
 
   // 삭제
   Future<void> _deleteButton() async {
-    // BuildContext 사용을 위해 함수 시작 시점에 미리 저장
     final provider = context.read<SpeedDialProvider>();
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
@@ -372,31 +373,35 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
           key: _formKey,
           child: Column(
             children: [
-              // 아이콘 선택 버튼
+              // 🆕 색상 선택 버튼
               GestureDetector(
-                onTap: _openIconPicker,
+                onTap: _openColorPicker,
                 child: Container(
                   width: 96.w,
                   height: 96.w,
                   decoration: BoxDecoration(
-                    color: Colors.blue[50],
+                    color: _selectedColor,
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.grey[300]!,
+                      width: 2,
+                    ),
                   ),
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
                       Icon(
-                        _selectedIcon,
-                        size: 48.sp,
-                        color: Colors.blue[500],
+                        Icons.palette,
+                        size: 40.sp,
+                        color: _getTextColorForBackground(_selectedColor),
                       ),
                       Positioned(
                         bottom: 8.h,
                         child: Text(
-                          '아이콘 변경',
+                          '색상 변경',
                           style: TextStyle(
                             fontSize: 11.sp,
-                            color: Colors.blue[700],
+                            color: _getTextColorForBackground(_selectedColor),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -459,7 +464,6 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
                     ),
                   ),
                   SizedBox(width: 8.w),
-                  // 연락처 불러오기 버튼
                   Container(
                     height: 56.h,
                     width: 56.w,
@@ -536,7 +540,6 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
                         },
                       ),
                       
-                      // 새 그룹 입력 필드
                       if (_isAddingNewGroup) ...[
                         SizedBox(height: 16.h),
                         TextFormField(

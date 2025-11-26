@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:quick_call/models/speed_dial_button.dart';
 import 'package:quick_call/providers/speed_dial_provider.dart';
-import 'package:quick_call/widgets/icon_picker_widget.dart';
+import 'package:quick_call/widgets/color_picker_widget.dart'; // 🆕 변경
 import 'package:quick_call/widgets/contact_picker_widget.dart';
 import 'package:quick_call/services/database_service.dart';      
 import 'package:quick_call/widgets/duplicate_phone_dialog.dart';
@@ -22,20 +22,18 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
   final _phoneController = TextEditingController();
   final _newGroupController = TextEditingController();
   
-  IconData _selectedIcon = Icons.person;
-  String? _selectedGroup; // 🔄 null로 초기화 (동적으로 설정)
+  Color _selectedColor = const Color(0xFF2196F3); // 🆕 색상 선택 (기본 파란색)
+  String? _selectedGroup;
   bool _isAddingNewGroup = false;
   bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    // 🆕 initState에서 기본 그룹 설정
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<SpeedDialProvider>();
       if (mounted && _selectedGroup == null) {
         setState(() {
-          // "전체"를 제외한 첫 번째 그룹을 선택, 없으면 null
           final availableGroups = provider.groups.where((g) => g != '전체').toList();
           _selectedGroup = availableGroups.isNotEmpty ? availableGroups.first : null;
         });
@@ -51,21 +49,21 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
     super.dispose();
   }
 
-  // 아이콘 선택 모달 열기
-  Future<void> _openIconPicker() async {
-    final icon = await showModalBottomSheet<IconData>(
+  // 🆕 색상 선택 모달 열기
+  Future<void> _openColorPicker() async {
+    final color = await showModalBottomSheet<Color>(
       context: context,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
-      builder: (context) => IconPickerWidget(
-        selectedIcon: _selectedIcon,
+      builder: (context) => ColorPickerWidget(
+        selectedColor: _selectedColor,
       ),
     );
 
-    if (icon != null && mounted) {
+    if (color != null && mounted) {
       setState(() {
-        _selectedIcon = icon;
+        _selectedColor = color;
       });
     }
   }
@@ -87,9 +85,15 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
     );
   }
 
+  // 🆕 텍스트 색상 자동 결정
+  Color _getTextColorForBackground(Color backgroundColor) {
+    return backgroundColor.computeLuminance() > 0.5 
+        ? Colors.black87 
+        : Colors.white;
+  }
+
   // 저장
   Future<void> _saveButton() async {
-    // BuildContext 사용을 위해 함수 시작 시점에 미리 저장
     final navigator = Navigator.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final provider = context.read<SpeedDialProvider>();
@@ -98,7 +102,6 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
       return;
     }
 
-    // 🆕 그룹 선택 검증
     String finalGroup;
     
     if (_isAddingNewGroup) {
@@ -118,7 +121,6 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
       }
       finalGroup = newGroupName;
     } else {
-      // 일반 그룹 선택
       if (_selectedGroup == null) {
         if (!mounted) return;
         scaffoldMessenger.showSnackBar(
@@ -145,7 +147,6 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
       final existingButton = await dbService.findByExactPhoneNumber(phoneNumber);
 
       if (existingButton != null && mounted) {
-        // 중복 발견 - 사용자에게 선택 요청
         final action = await DuplicatePhoneDialog.show(
           context,
           existingButton: existingButton,
@@ -156,21 +157,18 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
         if (!mounted) return;
 
         if (action == DuplicateAction.cancel) {
-          // 취소 선택
           setState(() => _isSaving = false);
           return;
         }
-        // action == DuplicateAction.allowDuplicate인 경우 계속 진행
       }
       
-      // 다음 position 값 계산
       final nextPosition = provider.allButtons.length;
 
       final button = SpeedDialButton(
         name: _nameController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
-        iconData: _selectedIcon,
-        group: finalGroup, // 🔄 검증된 그룹 사용
+        color: _selectedColor, // 🆕 색상 저장
+        group: finalGroup,
         position: nextPosition,
       );
 
@@ -250,31 +248,35 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
                   ),
                   SizedBox(height: 24.h),
 
-                  // 아이콘 선택 버튼
+                  // 🆕 색상 선택 버튼
                   GestureDetector(
-                    onTap: _openIconPicker,
+                    onTap: _openColorPicker,
                     child: Container(
                       width: 96.w,
                       height: 96.w,
                       decoration: BoxDecoration(
-                        color: Colors.blue[50],
+                        color: _selectedColor,
                         shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.grey[300]!,
+                          width: 2,
+                        ),
                       ),
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
                           Icon(
-                            _selectedIcon,
-                            size: 48.sp,
-                            color: Colors.blue[500],
+                            Icons.palette,
+                            size: 40.sp,
+                            color: _getTextColorForBackground(_selectedColor),
                           ),
                           Positioned(
                             bottom: 8.h,
                             child: Text(
-                              '아이콘 변경',
+                              '색상 변경',
                               style: TextStyle(
                                 fontSize: 11.sp,
-                                color: Colors.blue[700],
+                                color: _getTextColorForBackground(_selectedColor),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -333,7 +335,6 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
                         ),
                       ),
                       SizedBox(width: 8.w),
-                      // 연락처 불러오기 버튼
                       Container(
                         height: 56.h,
                         width: 56.w,
@@ -369,12 +370,10 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
                   // 그룹 선택
                   Consumer<SpeedDialProvider>(
                     builder: (context, provider, child) {
-                      // 🆕 사용 가능한 그룹 목록 (전체 제외)
                       final availableGroups = provider.groups
                           .where((g) => g != '전체')
                           .toList();
                       
-                      // 🆕 선택된 그룹이 없거나 유효하지 않으면 첫 번째 그룹 선택
                       if (_selectedGroup == null && availableGroups.isNotEmpty && !_isAddingNewGroup) {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (mounted) {
@@ -397,14 +396,12 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
                               ),
                             ),
                             items: [
-                              // 🔄 전체를 제외한 그룹들
                               ...availableGroups.map((group) {
                                 return DropdownMenuItem(
                                   value: group,
                                   child: Text(group),
                                 );
                               }),
-                              // 새 그룹 추가 옵션
                               const DropdownMenuItem(
                                 value: '__new__',
                                 child: Text('새 그룹 추가...'),
@@ -424,7 +421,6 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
                             },
                           ),
                           
-                          // 새 그룹 입력 필드
                           if (_isAddingNewGroup) ...[
                             SizedBox(height: 16.h),
                             TextFormField(

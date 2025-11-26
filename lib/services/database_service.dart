@@ -22,21 +22,20 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 3, // 🆕 버전 3으로 업그레이드 (위젯 필드 추가)
+      version: 5, // 🆕 버전 5로 업그레이드 (완전히 재구성)
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
   }
 
   Future<void> _onCreate(Database db, int version) async {
+    // 🆕 새로운 스키마 (iconCodePoint 등 제거)
     await db.execute('''
       CREATE TABLE speed_dial_buttons (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         phoneNumber TEXT NOT NULL,
-        iconCodePoint INTEGER NOT NULL,
-        iconFontFamily TEXT,
-        iconFontPackage TEXT,
+        color INTEGER DEFAULT 4283215695,
         `group` TEXT DEFAULT '일반',
         position INTEGER NOT NULL,
         createdAt TEXT NOT NULL,
@@ -61,7 +60,6 @@ class DatabaseService {
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      // 버전 1에서 2로 업그레이드: group 컬럼 추가
       await db.execute('''
         ALTER TABLE speed_dial_buttons ADD COLUMN `group` TEXT DEFAULT '일반'
       ''');
@@ -72,7 +70,6 @@ class DatabaseService {
     }
 
     if (oldVersion < 3) {
-      // 🆕 버전 2에서 3으로 업그레이드: 위젯 관련 컬럼 추가
       await db.execute('''
         ALTER TABLE speed_dial_buttons ADD COLUMN isInWidget INTEGER DEFAULT 0
       ''');
@@ -84,6 +81,75 @@ class DatabaseService {
       await db.execute('''
         CREATE INDEX idx_widget ON speed_dial_buttons(isInWidget, widgetPosition)
       ''');
+    }
+
+    if (oldVersion < 4) {
+      await db.execute('''
+        ALTER TABLE speed_dial_buttons ADD COLUMN color INTEGER DEFAULT 4283215695
+      ''');
+    }
+
+    // 🆕 버전 5: 완전히 새로운 스키마로 마이그레이션
+    if (oldVersion < 5) {
+      debugPrint('버전 5로 업그레이드: 기존 데이터 마이그레이션 시작');
+      
+      // 1. 기존 데이터 백업
+      final List<Map<String, dynamic>> oldData = await db.query('speed_dial_buttons');
+      
+      // 2. 기존 테이블 삭제
+      await db.execute('DROP TABLE IF EXISTS speed_dial_buttons');
+      await db.execute('DROP INDEX IF EXISTS idx_position');
+      await db.execute('DROP INDEX IF EXISTS idx_group');
+      await db.execute('DROP INDEX IF EXISTS idx_widget');
+      
+      // 3. 새 테이블 생성
+      await db.execute('''
+        CREATE TABLE speed_dial_buttons (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          phoneNumber TEXT NOT NULL,
+          color INTEGER DEFAULT 4283215695,
+          `group` TEXT DEFAULT '일반',
+          position INTEGER NOT NULL,
+          createdAt TEXT NOT NULL,
+          lastCalled TEXT,
+          isInWidget INTEGER DEFAULT 0,
+          widgetPosition INTEGER DEFAULT -1
+        )
+      ''');
+      
+      await db.execute('''
+        CREATE INDEX idx_position ON speed_dial_buttons(position)
+      ''');
+      
+      await db.execute('''
+        CREATE INDEX idx_group ON speed_dial_buttons(`group`)
+      ''');
+      
+      await db.execute('''
+        CREATE INDEX idx_widget ON speed_dial_buttons(isInWidget, widgetPosition)
+      ''');
+      
+      // 4. 기존 데이터 복원 (color 필드만 추가, iconCodePoint는 무시)
+      for (var row in oldData) {
+        try {
+          await db.insert('speed_dial_buttons', {
+            'name': row['name'],
+            'phoneNumber': row['phoneNumber'],
+            'color': row['color'] ?? 4283215695, // 기본 파란색
+            'group': row['group'] ?? '일반',
+            'position': row['position'],
+            'createdAt': row['createdAt'],
+            'lastCalled': row['lastCalled'],
+            'isInWidget': row['isInWidget'] ?? 0,
+            'widgetPosition': row['widgetPosition'] ?? -1,
+          });
+        } catch (e) {
+          debugPrint('데이터 복원 오류 (무시): $e');
+        }
+      }
+      
+      debugPrint('버전 5로 업그레이드 완료: ${oldData.length}개 데이터 마이그레이션됨');
     }
   }
 
@@ -561,8 +627,8 @@ class DatabaseService {
           position: maxPosition + 1,
           createdAt: DateTime.now(),
           lastCalled: null,
-          isInWidget: false, // 🆕 복제된 버튼은 위젯에 표시 안함
-          widgetPosition: -1, // 🆕
+          isInWidget: false,
+          widgetPosition: -1,
         );
         
         newId = await txn.insert(

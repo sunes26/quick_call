@@ -13,6 +13,8 @@ Quick Call은 자주 연락하는 사람에게 빠르게 전화를 걸 수 있�
 - ✅ **직관적인 버튼 조작**: 
   - **클릭(탭)**: 버튼 편집 화면 열기 (모든 모드)
   - **롱프레스(꾹 누르기)**: 즉시 전화 걸기 (일반 모드, 햅틱 피드백)
+- ✅ **색상 커스터마이징**: 버튼별 배경색 지정 가능 (20가지 색상 팔레트)
+- ✅ **큰 텍스트**: 아이콘 없이 이름만 크게 표시 (최대 22sp, 자동 크기 조정)
 - ✅ **홈 화면 위젯**: 3가지 크기의 위젯 지원 (1×1, 2×3, 3×2)
 - ✅ **위젯 전화번호 표시**: 이름과 전화번호를 위젯에 함께 표시 (AutoSize 적용)
 - ✅ **연락처 연동**: 기존 연락처에서 전화번호 불러오기
@@ -27,7 +29,6 @@ Quick Call은 자주 연락하는 사람에게 빠르게 전화를 걸 수 있�
 ---
 
 ## 🏗️ 프로젝트 구조
-
 ```
 quick_call/
 ├── .flutter-plugins-dependencies     # Flutter 플러그인 의존성 정보
@@ -134,7 +135,7 @@ quick_call/
     ├── main.dart                     # 앱 진입점
     │
     ├── models/                       # 데이터 모델
-    │   └── speed_dial_button.dart    # 단축 버튼 모델
+    │   └── speed_dial_button.dart    # 단축 버튼 모델 (color 필드 포함)
     │
     ├── providers/                    # 상태 관리 (Provider)
     │   ├── settings_provider.dart    # 앱 설정 관리
@@ -142,15 +143,15 @@ quick_call/
     │
     ├── screens/                      # 화면 UI
     │   ├── home_screen.dart          # 메인 홈 화면
-    │   ├── add_button_screen.dart    # 단축키 추가 화면
-    │   ├── edit_button_screen.dart   # 단축키 편집 화면
+    │   ├── add_button_screen.dart    # 단축키 추가 화면 (색상 선택)
+    │   ├── edit_button_screen.dart   # 단축키 편집 화면 (색상 선택)
     │   └── settings_screen.dart      # 설정 화면
     │
     ├── services/                     # 비즈니스 로직
-    │   ├── database_service.dart     # SQLite 데이터베이스 관리
+    │   ├── database_service.dart     # SQLite 데이터베이스 관리 (버전 5)
     │   ├── phone_service.dart        # 전화 걸기 기능
     │   ├── permission_service.dart   # 권한 관리
-    │   ├── widget_service.dart       # 위젯 통신
+    │   ├── widget_service.dart       # 위젯 통신 (color 지원)
     │   └── backup_service.dart       # 백업/복원 기능
     │
     ├── utils/                        # 유틸리티
@@ -159,15 +160,14 @@ quick_call/
     │   └── sort_options.dart         # 정렬 옵션
     │
     └── widgets/                      # 재사용 가능한 위젯
-        ├── dial_button_widget.dart       # 단축키 버튼 UI
-        ├── icon_picker_widget.dart       # 아이콘 선택 위젯
+        ├── dial_button_widget.dart       # 단축키 버튼 UI (색상 배경, 큰 텍스트)
+        ├── color_picker_widget.dart      # 🆕 색상 선택 위젯 (5x4 그리드)
         ├── contact_picker_widget.dart    # 연락처 선택 위젯
         ├── empty_state_widget.dart       # 빈 상태 UI
         ├── loading_widget.dart           # 로딩 UI
         ├── permission_dialog.dart        # 권한 안내 다이얼로그
         ├── duplicate_phone_dialog.dart   # 중복 전화번호 확인 다이얼로그
-        └── group_edit_dialog.dart        # 🆕 그룹 편집 다이얼로그
-
+        └── group_edit_dialog.dart        # 그룹 편집 다이얼로그
 ```
 
 ---
@@ -211,16 +211,14 @@ path_provider: ^2.1.1           # 파일 경로
 
 ## 📦 데이터베이스 스키마
 
-### speed_dial_buttons 테이블
+### speed_dial_buttons 테이블 (버전 5)
 
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
 | id | INTEGER | 기본 키 (자동 증가) |
 | name | TEXT | 버튼 이름 (최대 10자) |
 | phoneNumber | TEXT | 전화번호 |
-| iconCodePoint | INTEGER | 아이콘 코드포인트 |
-| iconFontFamily | TEXT | 아이콘 폰트 패밀리 (nullable) |
-| iconFontPackage | TEXT | 아이콘 패키지 (nullable) |
+| color | INTEGER | 버튼 배경색 (ARGB, 기본: 0xFF2196F3) |
 | group | TEXT | 그룹명 (기본: "일반") |
 | position | INTEGER | 정렬 순서 |
 | createdAt | TEXT | 생성 일시 (ISO8601) |
@@ -233,11 +231,93 @@ path_provider: ^2.1.1           # 파일 경로
 - `idx_group`: group 컬럼
 - `idx_widget`: (isInWidget, widgetPosition) 복합 인덱스
 
+**마이그레이션 히스토리**:
+- v1-v2: group 컬럼 추가
+- v2-v3: isInWidget, widgetPosition 컬럼 추가
+- v3-v4: color 컬럼 추가
+- v4-v5: iconCodePoint, iconFontFamily, iconFontPackage 컬럼 제거
+
 ---
 
 ## 🎨 주요 기능 구현
 
-### 1. 버튼 조작 방식 (개선된 UX)
+### 1. 색상 커스터마이징 시스템
+
+**색상 팔레트** (5×4 그리드, 20가지 색상):
+```dart
+// Row 1 - 진한 색상
+빨강(#E53935), 분홍(#D81B60), 보라(#8E24AA), 파랑(#3949AB), 청록(#00ACC1)
+
+// Row 2 - 중간 톤
+올리브(#9E9D24), 노랑(#FFB300), 갈색(#6D4C41), 초록(#43A047), 회색(#546E7A)
+
+// Row 3 - 연한 파스텔
+연한 빨강(#FFCDD2), 연한 분홍(#F8BBD0), 연한 보라(#E1BEE7), 
+연한 파랑(#BBDEFB), 연한 청록(#B2EBF2)
+
+// Row 4 - 더 연한 톤
+연한 올리브(#F0F4C3), 연한 노랑(#FFF9C4), 연한 갈색(#D7CCC8), 
+연한 초록(#C8E6C9), 연한 회색(#CFD8DC)
+```
+
+**색상 선택 UI**:
+```
+┌──────────────────────────┐
+│   버튼 색상 선택         │
+│                          │
+│   ┌────────┐             │
+│   │  ████  │ 현재 선택   │
+│   └────────┘             │
+│                          │
+│   ●●●●●                 │
+│   ●●●●●                 │
+│   ●●●●●                 │
+│   ●●●●●                 │
+│                          │
+│   [취소]    [확인]       │
+└──────────────────────────┘
+```
+
+**자동 텍스트 색상 결정**:
+- 밝은 배경색(명도 > 0.5): 검은색 텍스트
+- 어두운 배경색(명도 ≤ 0.5): 흰색 텍스트
+- `Color.computeLuminance()` 사용
+
+### 2. 버튼 UI 개선
+
+**변경 전** (v1.2.0 이전):
+```
+┌─────────────────┐
+│   Spacer(2)     │
+│   ┌─────┐       │
+│   │ 👤  │ Icon  │
+│   └─────┘       │
+│   Spacer(1)     │
+│   이름 (15sp)   │
+│   Spacer(2)     │
+└─────────────────┘
+```
+
+**변경 후** (v1.3.0):
+```
+┌─────────────────┐
+│   (색상 배경)   │
+│                 │
+│   이름 (22sp)   │
+│   AutoSizeText  │
+│   Bold          │
+│                 │
+└─────────────────┘
+```
+
+**텍스트 크기 설정**:
+- 기본: 22sp (Bold)
+- 최소: 12sp
+- 최대: 22sp
+- 최대 3줄 표시
+- AutoSizeText로 자동 크기 조정
+
+### 3. 버튼 조작 방식
 
 **일반 모드**:
 - **클릭(탭)**: 버튼 편집 화면 열기
@@ -257,7 +337,7 @@ path_provider: ^2.1.1           # 파일 경로
 - `lib/widgets/dial_button_widget.dart`: GestureDetector로 onTap/onLongPress 처리
 - `lib/screens/home_screen.dart`: 각 모드별 핸들러 구현
 
-### 2. 그룹 관리 시스템
+### 4. 그룹 관리 시스템
 
 **기본 그룹 정책**:
 - **"전체" 그룹만 기본 그룹**으로 존재
@@ -292,7 +372,7 @@ path_provider: ^2.1.1           # 파일 경로
 - `lib/screens/home_screen.dart`: 탭 재클릭 감지 및 편집 로직
 - `lib/providers/speed_dial_provider.dart`: 그룹 데이터 관리
 
-### 3. 위젯 시스템
+### 5. 위젯 시스템
 
 **3가지 위젯 크기 지원**:
 - **1×1**: 단일 버튼 (긴급 전화 등)
@@ -316,7 +396,7 @@ path_provider: ^2.1.1           # 파일 경로
 1. 사용자가 홈 화면에 위젯 추가
 2. WidgetConfigActivity 실행 (네이티브)
 3. 3열 그리드에서 버튼 선택 (파란색 테두리로 표시)
-4. SharedPreferences에 JSON 저장
+4. SharedPreferences에 JSON 저장 (color 값 포함)
 5. SpeedDialWidgetProvider가 UI 업데이트
 6. 위젯에 이름 + 전화번호 표시 (AutoSize)
 7. 버튼 클릭 시 ACTION_CALL Intent 발생
@@ -325,7 +405,7 @@ path_provider: ^2.1.1           # 파일 경로
 **Flutter ↔ Native 통신** (MethodChannel):
 ```kotlin
 // MainActivity.kt
-"saveAllButtonsData"  // 전체 버튼 데이터 저장
+"saveAllButtonsData"  // 전체 버튼 데이터 저장 (color 포함)
 "updateWidgetData"    // 특정 위젯 업데이트
 "refreshAllWidgets"   // 모든 위젯 새로고침
 "getWidgetIds"        // 설치된 위젯 ID 목록
@@ -333,41 +413,33 @@ path_provider: ^2.1.1           # 파일 경로
 "clearAllWidgets"     // 모든 위젯 데이터 삭제
 ```
 
-### 4. 위젯 텍스트 자동 크기 조정
+### 6. 위젯 텍스트 자동 크기 조정
 
 **Android AutoSizeText 적용**:
 ```xml
-<!-- 1×1 위젯 -->
-<TextView
-    android:autoSizeTextType="uniform"
-    android:autoSizeMinTextSize="6sp"
-    android:autoSizeMaxTextSize="9sp"
-    android:maxLines="1" />
 
-<!-- 2×3, 3×2 위젯 -->
-<TextView
-    android:autoSizeTextType="uniform"
-    android:autoSizeMinTextSize="5sp"
-    android:autoSizeMaxTextSize="7sp"
-    android:maxLines="1" />
+
+
+
+
 ```
 
 **전화번호 표시 위치**:
 - 1×1: 이름 아래, 중앙 정렬
 - 2×3, 3×2: 각 버튼 이름 아래, 작은 회색 글씨
 
-### 5. 위젯 설정 UI
+### 7. 위젯 설정 UI
 
 **레이아웃 구조**:
 ```xml
-<FrameLayout>  <!-- 선택 배경 -->
-  <CardView>   <!-- 내부 카드 -->
-    <LinearLayout>
-      <TextView>👤</TextView>  <!-- 사람 아이콘 -->
-      <TextView>이름</TextView>  <!-- AutoSize 적용 -->
-    </LinearLayout>
-  </CardView>
-</FrameLayout>
+  
+     
+    
+      👤  
+      이름  
+    
+  
+
 ```
 
 **선택 표시**:
@@ -376,7 +448,7 @@ path_provider: ^2.1.1           # 파일 경로
 - Drawable 리소스로 동적 변경
 - CardView elevation 0으로 이중 테두리 방지
 
-### 6. 권한 관리
+### 8. 권한 관리
 
 **필요한 권한**:
 - `CALL_PHONE`: 전화 걸기
@@ -391,7 +463,7 @@ path_provider: ^2.1.1           # 파일 경로
 4. 승인 시 기능 실행
 ```
 
-### 7. 전화번호 포맷팅
+### 9. 전화번호 포맷팅
 
 `PhoneFormatter` 유틸리티 지원:
 - 한국 전화번호 형식 자동 변환
@@ -407,7 +479,7 @@ PhoneFormatter.isValid('010-1234-5678') // true
 PhoneFormatter.isEmergencyNumber('119') // true
 ```
 
-### 8. 백업/복원
+### 10. 백업/복원
 
 **백업 데이터 구조** (JSON):
 ```json
@@ -420,7 +492,7 @@ PhoneFormatter.isEmergencyNumber('119') // true
       "id": 1,
       "name": "엄마",
       "phoneNumber": "010-1234-5678",
-      "iconCodePoint": 57805,
+      "color": 4283215695,
       "group": "가족",
       "position": 0,
       "createdAt": "2024-01-01T12:00:00.000Z",
@@ -512,9 +584,9 @@ signingConfig = signingConfigs.getByName("debug")  // ← 실제 키로 변경
 
 **SpeedDialProvider**: 단축키 데이터 관리
 ```dart
-- buttons: List<SpeedDialButton>       // 현재 표시 중인 버튼 목록
-- allButtons: List<SpeedDialButton>    // 전체 버튼 목록
-- groups: List<String>                 // 그룹 목록
+- buttons: List       // 현재 표시 중인 버튼 목록
+- allButtons: List    // 전체 버튼 목록
+- groups: List                 // 그룹 목록
 - selectedGroup: String                // 선택된 그룹
 - isEditMode: bool                     // 편집 모드 여부
 - searchQuery: String                  // 검색어
@@ -534,7 +606,7 @@ signingConfig = signingConfigs.getByName("debug")  // ← 실제 키로 변경
 ## 🎯 주요 화면 설명
 
 ### HomeScreen
-- 단축키 버튼 그리드 표시
+- 단축키 버튼 그리드 표시 (색상 배경, 큰 텍스트)
 - 그룹별 탭 네비게이션
 - **그룹 편집**: 현재 활성화된 그룹 탭 재클릭 시 편집 바텀시트 표시
 - 검색 기능
@@ -545,7 +617,7 @@ signingConfig = signingConfigs.getByName("debug")  // ← 실제 키로 변경
   - 편집 모드: 클릭(편집), 드래그(순서변경)
 
 ### AddButtonScreen
-- 아이콘 선택
+- 색상 선택 (5×4 그리드, 20가지 색상)
 - 이름 입력 (최대 10자)
 - 전화번호 입력
 - 연락처에서 가져오기
@@ -554,7 +626,7 @@ signingConfig = signingConfigs.getByName("debug")  // ← 실제 키로 변경
 - 중복 전화번호 확인
 
 ### EditButtonScreen
-- 버튼 정보 수정
+- 버튼 정보 수정 (색상 변경 포함)
 - 삭제 기능
 - AddButtonScreen과 동일한 UI
 
@@ -578,6 +650,13 @@ signingConfig = signingConfigs.getByName("debug")  // ← 실제 키로 변경
 - 취소/확인 버튼 (오른쪽)
 - 부드러운 바텀시트 애니메이션
 
+### ColorPickerWidget (바텀시트)
+- 5×4 그리드 레이아웃 (20가지 색상)
+- 현재 선택된 색상 미리보기
+- 선택 시 파란색 테두리 + 체크마크
+- 취소/확인 버튼
+- 햅틱 피드백
+
 ---
 
 ## 🐛 알려진 이슈 및 제한사항
@@ -597,6 +676,11 @@ signingConfig = signingConfigs.getByName("debug")  // ← 실제 키로 변경
 4. **긴 전화번호 표시**
    - 매우 긴 국제번호의 경우 AutoSize로 글자 크기가 작아질 수 있음
    - 최소 폰트 크기(5sp~6sp) 보장으로 가독성 유지
+
+5. **데이터베이스 마이그레이션**
+   - v4 이하에서 v5로 업그레이드 시 자동 마이그레이션
+   - 기존 iconCodePoint 데이터는 무시되고 기본 색상 적용
+   - 마이그레이션 실패 시 앱 데이터 초기화 필요
 
 ---
 
@@ -648,6 +732,24 @@ signingConfig = signingConfigs.getByName("debug")  // ← 실제 키로 변경
 ---
 
 ## ✨ 개발 히스토리
+
+### v1.4.0 (2024-12)
+- **색상 커스터마이징 시스템 추가**
+  - 버튼별 배경색 지정 기능 (20가지 색상 팔레트)
+  - 5×4 그리드 레이아웃의 색상 선택 UI
+  - 자동 텍스트 색상 결정 (명도 기반)
+- **버튼 UI 대폭 개선**
+  - 아이콘 제거, 텍스트만 표시
+  - 글자 크기 증가 (15sp → 22sp, Bold)
+  - 최대 3줄 표시, AutoSizeText 적용
+  - 색상 배경으로 시각적 차별화
+- **데이터베이스 v5 마이그레이션**
+  - iconCodePoint, iconFontFamily, iconFontPackage 컬럼 제거
+  - color 컬럼 추가 (INTEGER, ARGB)
+  - 기존 데이터 자동 마이그레이션
+- **위젯 시스템 업데이트**
+  - 색상 정보 전송 지원
+  - widget_service.dart 수정
 
 ### v1.3.0 (2024-12)
 - **그룹 관리 시스템 개선**

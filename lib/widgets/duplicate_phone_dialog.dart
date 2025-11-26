@@ -18,6 +18,13 @@ class DuplicatePhoneDialog extends StatelessWidget {
     required this.phoneNumber,
   });
 
+  // 🆕 배경색에 따른 텍스트 색상 자동 결정
+  Color _getTextColorForBackground(Color backgroundColor) {
+    return backgroundColor.computeLuminance() > 0.5 
+        ? Colors.black87 
+        : Colors.white;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -56,11 +63,11 @@ class DuplicatePhoneDialog extends StatelessWidget {
             ),
             SizedBox(height: 16.h),
 
-            // 기존 버튼 정보 카드
+            // 🆕 기존 버튼 정보 카드 (색상 기반)
             Container(
               padding: EdgeInsets.all(16.w),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: existingButton.color, // 🆕 색상 배경
                 borderRadius: BorderRadius.circular(12.r),
                 border: Border.all(
                   color: Colors.grey[300]!,
@@ -71,10 +78,15 @@ class DuplicatePhoneDialog extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        existingButton.iconData,
-                        size: 32.sp,
-                        color: Colors.blue[700],
+                      // 🆕 아이콘 대신 색상 원형 표시
+                      Container(
+                        width: 32.w,
+                        height: 32.w,
+                        decoration: BoxDecoration(
+                          color: _getTextColorForBackground(existingButton.color)
+                              .withOpacity(0.3),
+                          shape: BoxShape.circle,
+                        ),
                       ),
                       SizedBox(width: 12.w),
                       Expanded(
@@ -85,7 +97,8 @@ class DuplicatePhoneDialog extends StatelessWidget {
                               '기존 단축키',
                               style: TextStyle(
                                 fontSize: 12.sp,
-                                color: Colors.grey[600],
+                                color: _getTextColorForBackground(existingButton.color)
+                                    .withOpacity(0.7),
                               ),
                             ),
                             Text(
@@ -93,14 +106,15 @@ class DuplicatePhoneDialog extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 18.sp,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                                color: _getTextColorForBackground(existingButton.color),
                               ),
                             ),
                             Text(
                               PhoneFormatter.format(existingButton.phoneNumber),
                               style: TextStyle(
                                 fontSize: 14.sp,
-                                color: Colors.grey[700],
+                                color: _getTextColorForBackground(existingButton.color)
+                                    .withOpacity(0.9),
                               ),
                             ),
                           ],

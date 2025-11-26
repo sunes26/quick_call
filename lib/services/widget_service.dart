@@ -18,7 +18,7 @@ class WidgetService {
         'id': button.id,
         'name': button.name,
         'phoneNumber': button.phoneNumber,
-        'iconCodePoint': button.iconData.codePoint,
+        'color': button.color.value, // 🆕 color 추가
         'group': button.group,
       }).toList();
       
@@ -60,7 +60,7 @@ class WidgetService {
         'id': button.id,
         'name': button.name,
         'phoneNumber': button.phoneNumber,
-        'iconCodePoint': button.iconData.codePoint,
+        'color': button.color.value, // 🆕 color 추가
         'group': button.group,
       }).toList();
       
