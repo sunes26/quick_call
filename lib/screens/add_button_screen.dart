@@ -290,7 +290,6 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
                   // 이름
                   TextFormField(
                     controller: _nameController,
-                    maxLength: 10,
                     decoration: InputDecoration(
                       labelText: '이름',
                       hintText: '예: 엄마, 119',

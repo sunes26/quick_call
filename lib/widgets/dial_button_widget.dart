@@ -30,6 +30,33 @@ class _DialButtonWidgetState extends State<DialButtonWidget>
   late AnimationController _controller;
   late Animation<double> _animation;
 
+  // ========================================
+  // 패턴 사전 정의
+  // ========================================
+  
+  // 직책 (긴 것부터 매칭)
+  static const List<String> _positionPatterns = [
+    '본부장', '센터장', '지점장', '부사장', '선생님', '대표님',
+    '회장', '사장', '전무', '상무', '이사', '부장', '차장',
+    '과장', '대리', '주임', '사원', '팀장', '실장', '원장',
+    '관장', '교수', '박사', '님', '씨',
+  ];
+
+  // 조직 단위 (긴 것부터 매칭)
+  static const List<String> _organizationPatterns = [
+    '영업팀', '개발팀', '인사팀', '총무팀', '기획팀', '마케팅팀',
+    '경영지원팀', '고객지원팀', '연구소', '사업부', '지원팀',
+    '본부', '센터', '지점', '팀', '부', '실', '과', '국', '처',
+  ];
+
+  // 회사/기관 (긴 것부터 매칭)
+  static const List<String> _companyPatterns = [
+    '대학교', '고등학교', '중학교', '초등학교', '유치원',
+    '물산', '전자', '건설', '증권', '은행', '보험', '카드',
+    '병원', '약국', '의원', '치과', '한의원', '정형외과',
+    '회사', '그룹', '재단', '공사', '공단', '협회',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -87,12 +114,226 @@ class _DialButtonWidgetState extends State<DialButtonWidget>
     super.dispose();
   }
 
-  // 🆕 배경색에 따른 텍스트 색상 자동 결정
+  // 배경색에 따른 텍스트 색상 자동 결정
   Color _getTextColorForBackground(Color backgroundColor) {
     return backgroundColor.computeLuminance() > 0.5 
         ? Colors.black87 
         : Colors.white;
   }
+
+  // ========================================
+  // 하이브리드 줄바꿈 로직
+  // ========================================
+
+  /// 메인 포맷팅 함수 - 하이브리드 방식
+  String _formatNameWithOptimalLineBreaks(String name) {
+    final trimmed = name.trim();
+    
+    if (trimmed.isEmpty) return trimmed;
+    
+    // 1. 구분자 체크 (/, |)
+    if (trimmed.contains('/') || trimmed.contains('|')) {
+      final parts = trimmed
+          .split(RegExp(r'[/|]'))
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+      return _applyOptimalDistribution(parts);
+    }
+    
+    // 2. 공백 체크
+    if (trimmed.contains(RegExp(r'\s'))) {
+      final parts = trimmed
+          .split(RegExp(r'\s+'))
+          .where((s) => s.isNotEmpty)
+          .toList();
+      return _applyOptimalDistribution(parts);
+    }
+    
+    // 3. 패턴 인식 (공백/구분자 없는 경우)
+    final patternParts = _extractByPatterns(trimmed);
+    if (patternParts.length > 1) {
+      return _applyOptimalDistribution(patternParts);
+    }
+    
+    // 4. Fallback: 균등 분할 (7글자 이상)
+    if (trimmed.length >= 7) {
+      return _splitEvenly(trimmed);
+    }
+    
+    // 5. 짧은 텍스트: 그대로
+    return trimmed;
+  }
+
+  /// 패턴 기반 텍스트 분리
+  List<String> _extractByPatterns(String text) {
+    List<String> result = [];
+    String remaining = text;
+    
+    // 1. 뒤에서부터 직책 추출
+    String? positionMatch = _matchSuffixFromList(remaining, _positionPatterns);
+    if (positionMatch != null && positionMatch.length < remaining.length) {
+      result.add(positionMatch);
+      remaining = remaining.substring(0, remaining.length - positionMatch.length);
+    }
+    
+    // 2. 뒤에서부터 이름 추출 시도 (2-4글자, 직책 제거 후)
+    // 한국 이름은 보통 2-4글자
+    if (remaining.length > 4) {
+      // 이름 후보 추출 (2-4글자)
+      for (int nameLen = 3; nameLen >= 2; nameLen--) {
+        if (remaining.length > nameLen) {
+          String nameCandiate = remaining.substring(remaining.length - nameLen);
+          // 이름 후보가 조직/회사 패턴에 매칭되지 않으면 이름으로 간주
+          if (!_isOrganizationOrCompany(nameCandiate)) {
+            result.insert(0, nameCandiate);
+            remaining = remaining.substring(0, remaining.length - nameLen);
+            break;
+          }
+        }
+      }
+    }
+    
+    // 3. 뒤에서부터 조직 단위 추출
+    String? orgMatch = _matchSuffixFromList(remaining, _organizationPatterns);
+    if (orgMatch != null && orgMatch.length < remaining.length) {
+      result.insert(0, orgMatch);
+      remaining = remaining.substring(0, remaining.length - orgMatch.length);
+    }
+    
+    // 4. 앞에서부터 회사 패턴 확인
+    String? companyMatch = _matchCompanyPattern(remaining);
+    if (companyMatch != null) {
+      result.insert(0, companyMatch);
+      remaining = remaining.substring(companyMatch.length);
+    }
+    
+    // 5. 남은 부분이 있으면 맨 앞에 추가
+    if (remaining.isNotEmpty) {
+      result.insert(0, remaining);
+    }
+    
+    // 빈 요소 제거
+    result = result.where((s) => s.isNotEmpty).toList();
+    
+    // 결과가 원본과 같으면 분리 실패
+    if (result.length == 1 && result.first == text) {
+      return [text];
+    }
+    
+    return result.isEmpty ? [text] : result;
+  }
+
+  /// 리스트에서 suffix 매칭
+  String? _matchSuffixFromList(String text, List<String> patterns) {
+    for (final pattern in patterns) {
+      if (text.endsWith(pattern) && text.length > pattern.length) {
+        return pattern;
+      }
+    }
+    return null;
+  }
+
+  /// 회사 패턴 매칭 (앞에서부터)
+  String? _matchCompanyPattern(String text) {
+    for (final pattern in _companyPatterns) {
+      int index = text.indexOf(pattern);
+      if (index != -1) {
+        // 패턴까지 포함한 회사명 반환
+        return text.substring(0, index + pattern.length);
+      }
+    }
+    return null;
+  }
+
+  /// 조직 또는 회사 패턴인지 확인
+  bool _isOrganizationOrCompany(String text) {
+    for (final pattern in _organizationPatterns) {
+      if (text.endsWith(pattern)) return true;
+    }
+    for (final pattern in _companyPatterns) {
+      if (text.endsWith(pattern)) return true;
+    }
+    return false;
+  }
+
+  /// 단어 리스트를 최적 분배로 줄바꿈 적용
+  String _applyOptimalDistribution(List<String> words) {
+    if (words.isEmpty) return '';
+    if (words.length == 1) return words.first;
+    if (words.length == 2) return words.join('\n');
+    if (words.length == 3) return words.join('\n');
+    
+    // 4단어 이상: 최적 분배
+    return _findOptimalDistribution(words);
+  }
+
+  /// 4단어 이상일 때 최적의 3줄 분배 찾기
+  String _findOptimalDistribution(List<String> words) {
+    int bestVariance = 999999;
+    List<int> bestDistribution = [1, 1, words.length - 2];
+    
+    for (int line1 = 1; line1 <= words.length - 2; line1++) {
+      for (int line2 = 1; line2 <= words.length - line1 - 1; line2++) {
+        int line3 = words.length - line1 - line2;
+        
+        int chars1 = _countChars(words.sublist(0, line1));
+        int chars2 = _countChars(words.sublist(line1, line1 + line2));
+        int chars3 = _countChars(words.sublist(line1 + line2));
+        
+        int maxChars = [chars1, chars2, chars3].reduce(math.max);
+        int minChars = [chars1, chars2, chars3].reduce(math.min);
+        int variance = maxChars - minChars;
+        
+        if (variance < bestVariance) {
+          bestVariance = variance;
+          bestDistribution = [line1, line2, line3];
+        } else if (variance == bestVariance) {
+          if (line1 > bestDistribution[0] || 
+              (line1 == bestDistribution[0] && line2 > bestDistribution[1])) {
+            bestDistribution = [line1, line2, line3];
+          }
+        }
+      }
+    }
+    
+    int idx1 = bestDistribution[0];
+    int idx2 = idx1 + bestDistribution[1];
+    
+    String line1 = words.sublist(0, idx1).join(' ');
+    String line2 = words.sublist(idx1, idx2).join(' ');
+    String line3 = words.sublist(idx2).join(' ');
+    
+    return '$line1\n$line2\n$line3';
+  }
+
+  /// 글자 수 균등 분할 (패턴 인식 실패 시 fallback)
+  String _splitEvenly(String text) {
+    final length = text.length;
+    
+    if (length <= 6) {
+      return text;
+    }
+    
+    // 2줄로 분할 (7-12글자)
+    if (length <= 12) {
+      final mid = (length / 2).ceil();
+      return '${text.substring(0, mid)}\n${text.substring(mid)}';
+    }
+    
+    // 3줄로 균등 분할 (13글자 이상)
+    final third = (length / 3).ceil();
+    final twoThirds = (length * 2 / 3).ceil();
+    
+    return '${text.substring(0, third)}\n${text.substring(third, twoThirds)}\n${text.substring(twoThirds)}';
+  }
+
+  /// 단어 리스트의 총 글자 수 계산
+  int _countChars(List<String> words) {
+    return words.fold(0, (sum, word) => sum + word.length);
+  }
+
+  // ========================================
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +359,7 @@ class _DialButtonWidgetState extends State<DialButtonWidget>
                   height: double.infinity,
                   clipBehavior: Clip.hardEdge,
                   decoration: BoxDecoration(
-                    color: widget.button.color, // 🆕 색상 배경 적용
+                    color: widget.button.color,
                     borderRadius: BorderRadius.circular(16.r),
                     boxShadow: const [
                       BoxShadow(
@@ -132,18 +373,18 @@ class _DialButtonWidgetState extends State<DialButtonWidget>
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 12.h),
                       child: AutoSizeText(
-                        widget.button.name,
+                        _formatNameWithOptimalLineBreaks(widget.button.name),
                         style: TextStyle(
-                          fontSize: 22.sp, // 🆕 글자 크기 증가 (15 → 22)
-                          fontWeight: FontWeight.bold, // 🆕 굵게
-                          color: _getTextColorForBackground(widget.button.color), // 🆕 자동 텍스트 색상
+                          fontSize: 22.sp,
+                          fontWeight: FontWeight.bold,
+                          color: _getTextColorForBackground(widget.button.color),
                           height: 1.2,
                         ),
-                        maxLines: 3, // 🆕 최대 3줄
-                        minFontSize: 12, // 🆕 최소 크기 증가 (10 → 12)
-                        maxFontSize: 22, // 🆕 최대 크기 증가 (15 → 22)
+                        maxLines: 3,
+                        minFontSize: 12,
+                        maxFontSize: 22,
                         textAlign: TextAlign.center,
-                        overflow: TextOverflow.visible,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),
