@@ -314,16 +314,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               final isSelected = provider.currentSortOption == option;
               return ListTile(
                 title: Text(option.displayName),
-                leading: Radio<SortOption>(
-                  value: option,
-                  groupValue: provider.currentSortOption,
-                  activeColor: Colors.blue[700],
-                  onChanged: (value) {
-                    if (value != null) {
-                      provider.setSortOption(value);
-                      Navigator.pop(dialogContext);
-                    }
-                  },
+                leading: Icon(
+                  isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                  color: isSelected ? Colors.blue[700] : Colors.grey,
                 ),
                 selected: isSelected,
                 onTap: () {

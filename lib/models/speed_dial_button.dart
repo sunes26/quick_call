@@ -60,7 +60,7 @@ class SpeedDialButton {
       'id': id,
       'name': name,
       'phoneNumber': phoneNumber,
-      'color': color.value,
+      'color': color.toARGB32(),
       'group': group,
       'position': position,
       'createdAt': createdAt.toIso8601String(),

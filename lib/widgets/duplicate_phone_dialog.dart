@@ -84,7 +84,7 @@ class DuplicatePhoneDialog extends StatelessWidget {
                         height: 32.w,
                         decoration: BoxDecoration(
                           color: _getTextColorForBackground(existingButton.color)
-                              .withOpacity(0.3),
+                              .withValues(alpha: 0.3),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -98,7 +98,7 @@ class DuplicatePhoneDialog extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 12.sp,
                                 color: _getTextColorForBackground(existingButton.color)
-                                    .withOpacity(0.7),
+                                    .withValues(alpha: 0.7),
                               ),
                             ),
                             Text(
@@ -114,7 +114,7 @@ class DuplicatePhoneDialog extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 14.sp,
                                 color: _getTextColorForBackground(existingButton.color)
-                                    .withOpacity(0.9),
+                                    .withValues(alpha: 0.9),
                               ),
                             ),
                           ],

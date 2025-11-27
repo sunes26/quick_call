@@ -88,7 +88,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Offset? _dragStartPosition;
   Timer? _edgeTimer;
   EdgeSide _currentEdge = EdgeSide.none;
-  int? _draggedButtonIndex;
   SpeedDialButton? _draggedButton; // 🆕 드래그 중인 버튼 객체
   static const double _edgeThreshold = 50.0; // 가장자리 감지 영역 (픽셀)
   static const double _dragThreshold = 20.0; // 드래그 시작 판단 거리
@@ -156,7 +155,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _onPointerDown(PointerDownEvent event) {
     _dragStartPosition = event.position;
     _isDragging = false;
-    _draggedButtonIndex = null;
   }
 
   // 🆕 포인터 이동 처리
@@ -217,7 +215,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _resetDragState() {
     _isDragging = false;
     _dragStartPosition = null;
-    _draggedButtonIndex = null;
     _draggedButton = null; // 🆕 드래그 중인 버튼도 초기화
     _cancelEdgeTimer();
     _currentEdge = EdgeSide.none;
@@ -270,7 +267,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // 🆕 드래그 중인 버튼이 있으면 그룹 변경
     if (_draggedButton != null) {
       final buttonToMove = _draggedButton!;
-      final oldGroup = buttonToMove.group;
       
       // 버튼 그룹 변경
       final success = await provider.moveButtonToGroup(buttonToMove, targetGroup);
@@ -1086,8 +1082,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   provider.reorderButtons(oldIndex, newIndex);
                 },
                 dragWidgetBuilder: (index, child) {
-                  // 드래그 시작 시 인덱스와 버튼 객체 저장
-                  _draggedButtonIndex = index;
+                  // 드래그 시작 시 버튼 객체 저장
                   if (index < groupButtons.length) {
                     _draggedButton = groupButtons[index];
                   }
@@ -1158,8 +1153,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           end: side == EdgeSide.left ? Alignment.centerRight : Alignment.centerLeft,
           colors: [
             canMove 
-                ? Colors.blue.withOpacity(0.3)
-                : Colors.red.withOpacity(0.3),
+                ? Colors.blue.withValues(alpha: 0.3)
+                : Colors.red.withValues(alpha: 0.3),
             Colors.transparent,
           ],
         ),

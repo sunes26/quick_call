@@ -63,6 +63,14 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
     });
   }
 
+  // 두 색상이 같은지 비교하는 헬퍼 메서드
+  bool _colorsEqual(Color a, Color b) {
+    return (a.r * 255.0).round() == (b.r * 255.0).round() &&
+        (a.g * 255.0).round() == (b.g * 255.0).round() &&
+        (a.b * 255.0).round() == (b.b * 255.0).round() &&
+        (a.a * 255.0).round() == (b.a * 255.0).round();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -131,10 +139,7 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
               itemCount: colorPalette.length,
               itemBuilder: (context, index) {
                 final color = colorPalette[index];
-                final isSelected = _selectedColor.red == color.red &&
-                    _selectedColor.green == color.green &&
-                    _selectedColor.blue == color.blue &&
-                    _selectedColor.alpha == color.alpha;
+                final isSelected = _colorsEqual(_selectedColor, color);
 
                 return GestureDetector(
                   onTap: () => _selectColor(color),
@@ -150,7 +155,7 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
                       boxShadow: isSelected
                           ? [
                               BoxShadow(
-                                color: Colors.blue.withOpacity(0.3),
+                                color: Colors.blue.withValues(alpha: 0.3),
                                 blurRadius: 6,
                                 offset: const Offset(0, 2),
                               ),

@@ -410,7 +410,7 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           DropdownButtonFormField<String>(
-                            value: _isAddingNewGroup ? null : _selectedGroup,
+                            initialValue: _isAddingNewGroup ? null : _selectedGroup,
                             decoration: InputDecoration(
                               labelText: '그룹',
                               border: OutlineInputBorder(
