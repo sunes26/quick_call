@@ -122,6 +122,70 @@ class _DialButtonWidgetState extends State<DialButtonWidget>
   }
 
   // ========================================
+  // 🆕 가중치 기반 유효 글자수 계산
+  // ========================================
+  
+  /// 문자별 가중치 반환
+  double _getCharWeight(String char) {
+    final codeUnit = char.codeUnitAt(0);
+    
+    // 한글 (가-힣): 0xAC00 ~ 0xD7A3
+    if (codeUnit >= 0xAC00 && codeUnit <= 0xD7A3) {
+      return 1.0;
+    }
+    // 한글 자모 (ㄱ-ㅎ, ㅏ-ㅣ): 0x3130 ~ 0x318F
+    if (codeUnit >= 0x3130 && codeUnit <= 0x318F) {
+      return 0.8;
+    }
+    // 영문 대문자 (A-Z)
+    if (codeUnit >= 0x41 && codeUnit <= 0x5A) {
+      return 0.6;
+    }
+    // 영문 소문자 (a-z)
+    if (codeUnit >= 0x61 && codeUnit <= 0x7A) {
+      return 0.5;
+    }
+    // 숫자 (0-9)
+    if (codeUnit >= 0x30 && codeUnit <= 0x39) {
+      return 0.5;
+    }
+    // 공백
+    if (char == ' ' || char == '\t' || char == '\n') {
+      return 0.0; // 공백은 계산에서 제외
+    }
+    // 특수문자 (-, _, ., 등)
+    return 0.4;
+  }
+
+  /// 유효 글자수 계산 (가중치 적용)
+  double _calculateEffectiveLength(String name) {
+    double effectiveLength = 0;
+    
+    for (int i = 0; i < name.length; i++) {
+      effectiveLength += _getCharWeight(name[i]);
+    }
+    
+    return effectiveLength;
+  }
+
+  /// 유효 글자수 구간별 최대 폰트 크기 반환
+  double _getMaxFontSizeByLength(String name) {
+    final effectiveLength = _calculateEffectiveLength(name);
+    
+    if (effectiveLength <= 2.0) {
+      return 36; // 유효 1~2글자: 매우 크게
+    } else if (effectiveLength <= 4.0) {
+      return 30; // 유효 3~4글자: 크게
+    } else if (effectiveLength <= 6.0) {
+      return 26; // 유효 5~6글자: 중간
+    } else if (effectiveLength <= 8.0) {
+      return 22; // 유효 7~8글자: 약간 작게
+    } else {
+      return 18; // 유효 9글자 이상: 작게
+    }
+  }
+
+  // ========================================
   // 하이브리드 줄바꿈 로직
   // ========================================
 
@@ -337,6 +401,9 @@ class _DialButtonWidgetState extends State<DialButtonWidget>
 
   @override
   Widget build(BuildContext context) {
+    // 🆕 가중치 기반 유효 글자수로 최대 폰트 크기 계산
+    final maxFontSize = _getMaxFontSizeByLength(widget.button.name);
+    
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {
@@ -375,14 +442,14 @@ class _DialButtonWidgetState extends State<DialButtonWidget>
                       child: AutoSizeText(
                         _formatNameWithOptimalLineBreaks(widget.button.name),
                         style: TextStyle(
-                          fontSize: 22.sp,
+                          fontSize: maxFontSize.sp,
                           fontWeight: FontWeight.bold,
                           color: _getTextColorForBackground(widget.button.color),
                           height: 1.2,
                         ),
                         maxLines: 3,
                         minFontSize: 12,
-                        maxFontSize: 22,
+                        maxFontSize: maxFontSize,
                         textAlign: TextAlign.center,
                         overflow: TextOverflow.ellipsis,
                       ),

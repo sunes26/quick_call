@@ -486,7 +486,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 🆕 그룹 추가 다이얼로그 (DB에 저장)
+  // 그룹 추가 다이얼로그 (DB에 저장)
   Future<void> _showAddGroupDialog(
     BuildContext context,
     SpeedDialProvider provider,
@@ -576,7 +576,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
                 Navigator.pop(dialogContext);
 
-                // 🆕 그룹 추가 (DB에 저장)
+                // 그룹 추가 (DB에 저장)
                 final success = await provider.addCustomGroup(groupName);
                 
                 if (success) {
@@ -1023,7 +1023,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           padding: EdgeInsets.only(bottom: 100.h),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
-            childAspectRatio: 0.85,
+            childAspectRatio: 1.0, // 🆕 정사각형으로 변경
             crossAxisSpacing: 12.w,
             mainAxisSpacing: 12.h,
           ),
@@ -1089,7 +1089,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             padding: EdgeInsets.only(bottom: 100.h),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              childAspectRatio: 0.85,
+              childAspectRatio: 1.0, // 🆕 정사각형으로 변경
               crossAxisSpacing: 12.w,
               mainAxisSpacing: 12.h,
             ),
@@ -1184,7 +1184,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 padding: EdgeInsets.only(bottom: 100.h),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
-                  childAspectRatio: 0.85,
+                  childAspectRatio: 1.0, // 🆕 정사각형으로 변경
                   crossAxisSpacing: 20.w,
                   mainAxisSpacing: 20.h,
                 ),

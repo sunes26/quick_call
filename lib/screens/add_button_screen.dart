@@ -10,7 +10,7 @@ import 'package:quick_call/services/database_service.dart';
 import 'package:quick_call/widgets/duplicate_phone_dialog.dart';
 
 class AddButtonScreen extends StatefulWidget {
-  // 🆕 초기 그룹 파라미터 추가
+  // 초기 그룹 파라미터
   final String? initialGroup;
 
   const AddButtonScreen({
@@ -42,7 +42,7 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
         setState(() {
           final availableGroups = provider.groups.where((g) => g != '전체').toList();
           
-          // 🆕 initialGroup이 전달되었고, "전체"가 아니며, 사용 가능한 그룹에 포함되어 있으면 해당 그룹 선택
+          // initialGroup이 전달되었고, "전체"가 아니며, 사용 가능한 그룹에 포함되어 있으면 해당 그룹 선택
           if (widget.initialGroup != null && 
               widget.initialGroup != '전체' && 
               availableGroups.contains(widget.initialGroup)) {
@@ -302,47 +302,24 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
                   ),
                   SizedBox(height: 24.h),
 
-                  // 이름
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      labelText: '이름',
-                      hintText: '예: 엄마, 119',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      counterText: '',
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return '이름을 입력해주세요';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 16.h),
-
-                  // 전화번호 입력 + 연락처 버튼
+                  // 이름 입력 + 연락처 버튼 (🆕 버튼 위치 변경)
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: TextFormField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s]')),
-                          ],
+                          controller: _nameController,
                           decoration: InputDecoration(
-                            labelText: '전화번호',
-                            hintText: '010-1234-5678',
+                            labelText: '이름',
+                            hintText: '예: 엄마, 119',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.r),
                             ),
+                            counterText: '',
                           ),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
-                              return '전화번호를 입력해주세요';
+                              return '이름을 입력해주세요';
                             }
                             return null;
                           },
@@ -368,16 +345,28 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 8.h),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      '연락처에서 가져오기 버튼 (시뮬레이션)',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: Colors.grey[600],
+                  SizedBox(height: 16.h),
+
+                  // 전화번호 입력 (🆕 버튼 제거됨)
+                  TextFormField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s]')),
+                    ],
+                    decoration: InputDecoration(
+                      labelText: '전화번호',
+                      hintText: '010-1234-5678',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
                       ),
                     ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return '전화번호를 입력해주세요';
+                      }
+                      return null;
+                    },
                   ),
                   SizedBox(height: 16.h),
 
@@ -388,7 +377,7 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
                           .where((g) => g != '전체')
                           .toList();
                       
-                      // 🆕 수정: _selectedGroup이 null이고 아직 초기화되지 않은 경우에만 기본값 설정
+                      // _selectedGroup이 null이고 아직 초기화되지 않은 경우에만 기본값 설정
                       if (_selectedGroup == null && availableGroups.isNotEmpty && !_isAddingNewGroup) {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (mounted && _selectedGroup == null) {

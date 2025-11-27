@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:quick_call/models/speed_dial_button.dart';
 import 'package:quick_call/providers/speed_dial_provider.dart';
-import 'package:quick_call/widgets/color_picker_widget.dart'; // 🆕 변경
+import 'package:quick_call/widgets/color_picker_widget.dart';
 import 'package:quick_call/widgets/contact_picker_widget.dart';
 import 'package:quick_call/services/database_service.dart';     
 import 'package:quick_call/widgets/duplicate_phone_dialog.dart';
@@ -27,7 +27,7 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
   late TextEditingController _phoneController;
   final _newGroupController = TextEditingController();
   
-  late Color _selectedColor; // 🆕 색상 선택
+  late Color _selectedColor;
   late String _selectedGroup;
   bool _isAddingNewGroup = false;
   bool _isSaving = false;
@@ -38,7 +38,7 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
     super.initState();
     _nameController = TextEditingController(text: widget.button.name);
     _phoneController = TextEditingController(text: widget.button.phoneNumber);
-    _selectedColor = widget.button.color; // 🆕 색상 초기화
+    _selectedColor = widget.button.color;
     _selectedGroup = widget.button.group;
   }
 
@@ -50,7 +50,7 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
     super.dispose();
   }
 
-  // 🆕 색상 선택 모달 열기
+  // 색상 선택 모달 열기
   Future<void> _openColorPicker() async {
     final color = await showModalBottomSheet<Color>(
       context: context,
@@ -86,7 +86,7 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
     );
   }
 
-  // 🆕 텍스트 색상 자동 결정
+  // 텍스트 색상 자동 결정
   Color _getTextColorForBackground(Color backgroundColor) {
     return backgroundColor.computeLuminance() > 0.5 
         ? Colors.black87 
@@ -154,7 +154,7 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
         id: widget.button.id,
         name: _nameController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
-        color: _selectedColor, // 🆕 색상 저장
+        color: _selectedColor,
         group: _selectedGroup,
         position: widget.button.position,
         createdAt: widget.button.createdAt,
@@ -373,7 +373,7 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
           key: _formKey,
           child: Column(
             children: [
-              // 🆕 색상 선택 버튼
+              // 색상 선택 버튼
               GestureDetector(
                 onTap: _openColorPicker,
                 child: Container(
@@ -412,51 +412,26 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
               ),
               SizedBox(height: 24.h),
 
-              // 이름
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: '이름',
-                  hintText: '예: 엄마, 119',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  counterText: '',
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return '이름을 입력해주세요';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16.h),
-
-              // 전화번호 입력 + 연락처 버튼
+              // 이름 입력 + 연락처 버튼 (🆕 버튼 위치 변경)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: TextFormField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s]')),
-                      ],
+                      controller: _nameController,
                       decoration: InputDecoration(
-                        labelText: '전화번호',
-                        hintText: '010-1234-5678',
+                        labelText: '이름',
+                        hintText: '예: 엄마, 119',
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.r),
                         ),
+                        counterText: '',
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return '전화번호를 입력해주세요';
+                          return '이름을 입력해주세요';
                         }
                         return null;
                       },
@@ -482,16 +457,30 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
                   ),
                 ],
               ),
-              SizedBox(height: 8.h),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '연락처에서 가져오기 버튼 (시뮬레이션)',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: Colors.grey[600],
+              SizedBox(height: 16.h),
+
+              // 전화번호 입력 (🆕 버튼 제거됨)
+              TextFormField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s]')),
+                ],
+                decoration: InputDecoration(
+                  labelText: '전화번호',
+                  hintText: '010-1234-5678',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
                   ),
                 ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return '전화번호를 입력해주세요';
+                  }
+                  return null;
+                },
               ),
               SizedBox(height: 16.h),
 

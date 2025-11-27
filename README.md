@@ -13,14 +13,17 @@ Quick Call은 자주 연락하는 사람에게 빠르게 전화를 걸 수 있�
 - ✅ **직관적인 버튼 조작**: 
   - **클릭(탭)**: 버튼 편집 화면 열기 (모든 모드)
   - **롱프레스(꾹 누르기)**: 즉시 전화 걸기 (일반 모드, 햅틱 피드백)
+- ✅ **정사각형 버튼 디자인**: 홈 화면에서 균일한 정사각형 버튼 표시 (v1.10.0)
+- ✅ **스마트 폰트 크기 조절**: 글자수와 문자 유형에 따라 자동으로 폰트 크기 최적화 (v1.10.0)
 - ✅ **색상 커스터마이징**: 버튼별 배경색 지정 가능 (20가지 색상 팔레트)
 - ✅ **컴팩트 색상 선택 UI**: 스크롤 없이 20개 색상을 한눈에 확인
-- ✅ **큰 텍스트**: 아이콘 없이 이름만 크게 표시 (최대 22sp, 자동 크기 조정)
+- ✅ **큰 텍스트**: 아이콘 없이 이름만 크게 표시 (최대 36sp, 자동 크기 조정)
 - ✅ **하이브리드 줄바꿈**: 공백/구분자/패턴 인식으로 의미 단위 자동 줄바꿈
 - ✅ **글자수 무제한**: 이름 입력 글자수 제한 없음 (긴 이름도 자동 줄바꿈 처리)
 - ✅ **홈 화면 위젯**: 3가지 크기의 위젯 지원 (1×1, 2×3, 3×2)
 - ✅ **위젯 전화번호 표시**: 이름과 전화번호를 위젯에 함께 표시 (AutoSize 적용)
 - ✅ **연락처 연동**: 기존 연락처에서 전화번호 불러오기
+- ✅ **주소록 버튼 위치 개선**: 이름 입력칸 옆에 주소록 불러오기 버튼 배치 (v1.10.0)
 - ✅ **그룹 관리**: 가족, 친구, 직장 등 그룹별 분류
 - ✅ **그룹 영구 저장**: 빈 그룹도 앱 재시작 후 유지됨 (v1.9.0, DB 그룹 테이블)
 - ✅ **그룹 생성**: 우측 하단 FAB 버튼으로 새 그룹 생성
@@ -150,9 +153,9 @@ quick_call/
     │   └── speed_dial_provider.dart  # 단축키 데이터 관리 (그룹 DB 연동)
     │
     ├── screens/                      # 화면 UI
-    │   ├── home_screen.dart          # 메인 홈 화면 (드래그 그룹 이동 확인 다이얼로그)
-    │   ├── add_button_screen.dart    # 단축키 추가 화면 (색상 선택, 글자수 무제한, initialGroup 파라미터)
-    │   ├── edit_button_screen.dart   # 단축키 편집 화면 (색상 선택, 글자수 무제한)
+    │   ├── home_screen.dart          # 메인 홈 화면 (정사각형 버튼, 드래그 그룹 이동)
+    │   ├── add_button_screen.dart    # 단축키 추가 화면 (주소록 버튼 이름 옆 배치)
+    │   ├── edit_button_screen.dart   # 단축키 편집 화면 (주소록 버튼 이름 옆 배치)
     │   └── settings_screen.dart      # 설정 화면
     │
     ├── services/                     # 비즈니스 로직
@@ -168,7 +171,7 @@ quick_call/
     │   └── sort_options.dart         # 정렬 옵션
     │
     └── widgets/                      # 재사용 가능한 위젯
-        ├── dial_button_widget.dart       # 단축키 버튼 UI (색상 배경, 큰 텍스트, 하이브리드 줄바꿈)
+        ├── dial_button_widget.dart       # 단축키 버튼 UI (스마트 폰트 크기, 가중치 기반)
         ├── color_picker_widget.dart      # 색상 선택 위젯 (컴팩트 5x4 그리드)
         ├── contact_picker_widget.dart    # 연락처 선택 위젯
         ├── empty_state_widget.dart       # 빈 상태 UI
@@ -313,7 +316,118 @@ path_provider: ^2.1.1           # 파일 경로
 
 ## 🎨 주요 기능 구현
 
-### 1. 그룹 영구 저장 시스템 (v1.9.0)
+### 1. 정사각형 버튼 디자인 (v1.10.0)
+
+**기능 설명**:
+- 홈 화면의 단축키 버튼이 정사각형으로 표시됨
+- 모든 그리드(일반/편집/검색 모드)에서 일관된 버튼 형태
+
+**구현**:
+```dart
+// home_screen.dart - GridView의 childAspectRatio
+gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+  crossAxisCount: 3,
+  childAspectRatio: 1.0,  // 정사각형 (이전: 0.85)
+  crossAxisSpacing: 12.w,
+  mainAxisSpacing: 12.h,
+),
+```
+
+**UI 변경**:
+```
+변경 전 (세로로 긴 직사각형):     변경 후 (정사각형):
+┌─────┐ ┌─────┐ ┌─────┐          ┌────┐ ┌────┐ ┌────┐
+│     │ │     │ │     │          │    │ │    │ │    │
+│엄마 │ │아빠 │ │동생 │          │엄마│ │아빠│ │동생│
+│     │ │     │ │     │          │    │ │    │ │    │
+│     │ │     │ │     │          └────┘ └────┘ └────┘
+└─────┘ └─────┘ └─────┘
+```
+
+### 2. 스마트 폰트 크기 조절 시스템 (v1.10.0)
+
+**기능 설명**:
+- 글자수에 비례하여 폰트 크기 자동 조절
+- 문자 유형별 가중치를 적용하여 영문/숫자도 적절한 크기로 표시
+
+**문자별 가중치**:
+| 문자 유형 | 가중치 | 설명 |
+|----------|--------|------|
+| 한글 (가-힣) | 1.0 | 기준 |
+| 한글 자모 (ㄱ-ㅎ) | 0.8 | 약간 좁음 |
+| 영문 대문자 (A-Z) | 0.6 | 좁음 |
+| 영문 소문자 (a-z) | 0.5 | 더 좁음 |
+| 숫자 (0-9) | 0.5 | 더 좁음 |
+| 특수문자 | 0.4 | 가장 좁음 |
+| 공백 | 0.0 | 제외 |
+
+**유효 글자수 구간별 최대 폰트 크기**:
+| 유효 글자수 | 최대 폰트 크기 | 예시 |
+|------------|---------------|------|
+| 1~2 | 36sp | 엄마, 119, Mom |
+| 3~4 | 30sp | 아버지, ABC마트 |
+| 5~6 | 26sp | 김철수팀장 |
+| 7~8 | 22sp | 삼성전자영업팀 |
+| 9+ | 18sp | 한국전력공사본부장 |
+
+**예시 계산**:
+| 텍스트 | 실제 글자수 | 유효 글자수 | 최대 폰트 |
+|--------|------------|-------------|-----------|
+| 엄마 | 2 | 2.0 | 36sp |
+| 119 | 3 | 1.5 | 36sp |
+| Mom | 3 | 1.6 | 36sp |
+| ABC마트 | 5 | 3.8 | 30sp |
+| Pizza | 5 | 2.6 | 30sp |
+
+**구현**:
+```dart
+// dial_button_widget.dart
+double _getCharWeight(String char) {
+  final codeUnit = char.codeUnitAt(0);
+  
+  if (codeUnit >= 0xAC00 && codeUnit <= 0xD7A3) return 1.0;  // 한글
+  if (codeUnit >= 0x41 && codeUnit <= 0x5A) return 0.6;      // 대문자
+  if (codeUnit >= 0x61 && codeUnit <= 0x7A) return 0.5;      // 소문자
+  if (codeUnit >= 0x30 && codeUnit <= 0x39) return 0.5;      // 숫자
+  // ...
+}
+
+double _calculateEffectiveLength(String name) {
+  double effectiveLength = 0;
+  for (int i = 0; i < name.length; i++) {
+    effectiveLength += _getCharWeight(name[i]);
+  }
+  return effectiveLength;
+}
+```
+
+### 3. 주소록 버튼 위치 개선 (v1.10.0)
+
+**기능 설명**:
+- 연락처 불러오기 버튼을 전화번호 입력칸에서 이름 입력칸 옆으로 이동
+- 연락처 선택 시 이름과 전화번호가 동시에 채워지므로 더 직관적인 UX
+
+**UI 변경**:
+```
+변경 전:                          변경 후:
+┌────────────────────────┐        ┌────────────────────────┐
+│ 이름                   │        │ 이름                   │
+│ ┌────────────────────┐ │        │ ┌──────────────┐ ┌──┐ │
+│ │ [이름 입력]         │ │        │ │ [이름 입력]   │ │📒│ │
+│ └────────────────────┘ │        │ └──────────────┘ └──┘ │
+│                        │        │                        │
+│ 전화번호               │        │ 전화번호               │
+│ ┌──────────────┐ ┌──┐ │        │ ┌────────────────────┐ │
+│ │ [전화번호]    │ │📒│ │        │ │ [전화번호]          │ │
+│ └──────────────┘ └──┘ │        │ └────────────────────┘ │
+└────────────────────────┘        └────────────────────────┘
+```
+
+**적용 화면**:
+- `add_button_screen.dart`: 단축키 추가 화면
+- `edit_button_screen.dart`: 단축키 편집 화면
+
+### 4. 그룹 영구 저장 시스템 (v1.9.0)
 
 **기능 설명**:
 - 그룹 정보를 별도 테이블(`groups`)에 저장
@@ -357,7 +471,7 @@ Future<void> loadGroups() async {
 }
 ```
 
-### 2. 그룹별 기본값 자동 선택 (v1.8.0)
+### 5. 그룹별 기본값 자동 선택 (v1.8.0)
 
 **기능 설명**:
 - 단축키 추가 시 현재 활성화된 탭의 그룹이 기본 선택됨
@@ -378,45 +492,12 @@ AddButtonScreen 열림
 그룹 선택 드롭다운 기본값: 첫 번째 사용 가능한 그룹
 ```
 
-**구현**:
-```dart
-// AddButtonScreen 생성자
-class AddButtonScreen extends StatefulWidget {
-  final String? initialGroup;  // 초기 그룹 파라미터
-  
-  const AddButtonScreen({super.key, this.initialGroup});
-}
-
-// initState에서 기본값 설정
-@override
-void initState() {
-  super.initState();
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    final provider = context.read<SpeedDialProvider>();
-    final availableGroups = provider.groups.where((g) => g != '전체').toList();
-    
-    // initialGroup이 유효하면 해당 그룹, 아니면 첫 번째 그룹
-    if (widget.initialGroup != null && 
-        widget.initialGroup != '전체' && 
-        availableGroups.contains(widget.initialGroup)) {
-      _selectedGroup = widget.initialGroup;
-    } else {
-      _selectedGroup = availableGroups.isNotEmpty ? availableGroups.first : null;
-    }
-  });
-}
-```
-
-### 3. 드래그로 그룹 간 버튼 이동 (v1.9.0 개선)
+### 6. 드래그로 그룹 간 버튼 이동 (v1.9.0 개선)
 
 **기능 설명**:
 - 편집 모드에서 버튼을 화면 가장자리로 드래그하여 다른 그룹으로 이동
 - 1초 유지 후 손을 떼면 확인 다이얼로그 표시
 - "전체" 그룹으로는 이동 불가
-
-**v1.9.0 변경 사항**:
-- 기존: 드래그 중 즉시 탭 전환 → `reorderable_grid_view` 라이브러리 내부 에러 발생
-- 변경: 드래그 종료 후 확인 다이얼로그 방식으로 개선
 
 **동작 방식**:
 ```
@@ -435,72 +516,7 @@ void initState() {
 "이동" 클릭 → 버튼 그룹 변경 + 해당 탭으로 전환
 ```
 
-**UI 다이어그램**:
-```
-편집 모드 - 가장자리 드래그:
-┌─────────────────────────────────┐
-│ [전체] [가족] [친구]            │
-├─────────────────────────────────┤
-│ ┃                           ┃   │
-│ ┃파│  ┌─────┐  ┌─────┐  │파┃   │
-│ ┃란│  │ 엄마 │  │ 아빠 │  │란┃   │
-│ ┃색│  └─────┘  └─────┘  │색┃   │
-│ ┃  │                     │  ┃   │
-│ ┃◀ │  ┌─────┐            │▶ ┃   │
-│ ┃가│  │🔄동생│ ←드래그중  │친┃   │
-│ ┃족│  └─────┘            │구┃   │
-│ ┃━━│ (프로그레스 바)      │━━┃   │
-│ ┃                           ┃   │
-└─────────────────────────────────┘
-  ↑ 왼쪽 50px             오른쪽 50px ↑
-    1초 유지 후              1초 유지 후
-    손 떼면 확인창           손 떼면 확인창
-```
-
-**확인 다이얼로그**:
-```
-┌────────────────────────────┐
-│     📁 그룹 이동           │
-│                            │
-│ "동생"을(를)               │
-│ "가족" 그룹으로            │
-│ 이동하시겠습니까?          │
-│                            │
-│      [취소]  [이동]        │
-└────────────────────────────┘
-```
-
-**구현**:
-```dart
-// home_screen.dart - 상태 변수
-String? _pendingTargetGroup;  // 이동 대기 중인 타겟 그룹
-
-// 1초 유지 후 타겟 그룹 저장
-void _prepareGroupMove(SpeedDialProvider provider, EdgeSide edge) {
-  // ... 타겟 그룹 계산 ...
-  _pendingTargetGroup = targetGroup;
-  _showSnackBar('손을 떼면 "$targetGroup" 그룹으로 이동합니다', Colors.blue[700]!);
-}
-
-// 드래그 종료 시 확인 다이얼로그 표시
-void _onPointerUp(PointerUpEvent event) {
-  if (_pendingTargetGroup != null && _draggedButton != null) {
-    final targetGroup = _pendingTargetGroup!;
-    final buttonToMove = _draggedButton!;
-    _resetDragState();
-    
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _showMoveConfirmDialog(buttonToMove, targetGroup);
-      }
-    });
-  } else {
-    _resetDragState();
-  }
-}
-```
-
-### 4. 색상 커스터마이징 시스템
+### 7. 색상 커스터마이징 시스템
 
 **색상 팔레트** (5×4 그리드, 20가지 색상):
 ```dart
@@ -524,7 +540,7 @@ void _onPointerUp(PointerUpEvent event) {
 - 어두운 배경색(명도 ≤ 0.5): 흰색 텍스트
 - `Color.computeLuminance()` 사용
 
-### 5. 하이브리드 줄바꿈 시스템 (v1.7.0)
+### 8. 하이브리드 줄바꿈 시스템 (v1.7.0)
 
 버튼 이름을 의미 단위로 자동 줄바꿈하여 가독성을 높이는 시스템입니다.
 
@@ -537,7 +553,7 @@ void _onPointerUp(PointerUpEvent event) {
 5. 짧은 텍스트 (6글자-) → 그대로 1줄
 ```
 
-### 6. 버튼 조작 방식
+### 9. 버튼 조작 방식
 
 **일반 모드**:
 - **클릭(탭)**: 버튼 편집 화면 열기
@@ -549,19 +565,19 @@ void _onPointerUp(PointerUpEvent event) {
 - **드래그**: 순서 변경
 - **가장자리 드래그**: 다른 그룹으로 이동 (1초 유지 → 손 떼면 확인창)
 
-### 7. 스와이프 탭 전환 (v1.5.0)
+### 10. 스와이프 탭 전환 (v1.5.0)
 
 - 화면을 좌우로 스와이프하여 그룹 탭 간 자연스럽게 전환
 - 탭 클릭과 스와이프 모두 지원
 - **모든 모드(일반/편집)에서 스와이프 가능**
 
-### 8. 인라인 버튼 추가 (v1.6.0)
+### 11. 인라인 버튼 추가 (v1.6.0)
 
 - 각 그룹의 버튼 그리드 마지막에 점선 테두리의 "+" 버튼 표시
 - 클릭 시 단축키 추가 화면 열기 (현재 그룹 기본 선택)
 - 편집 모드에서는 숨김 처리
 
-### 9. 그룹 관리 시스템
+### 12. 그룹 관리 시스템
 
 **기본 그룹 정책**:
 - **"전체" 그룹만 기본 그룹**으로 존재 (가상 그룹, DB에 저장 안 됨)
@@ -650,6 +666,23 @@ flutter build appbundle --release
 
 ## ✨ 개발 히스토리
 
+### v1.10.0 (2024-12)
+- **정사각형 버튼 디자인**
+  - `childAspectRatio`를 1.0으로 변경
+  - 모든 그리드(일반/편집/검색)에 적용
+- **스마트 폰트 크기 조절**
+  - 가중치 기반 유효 글자수 계산
+  - 한글/영문/숫자별 차등 가중치 적용
+  - 유효 글자수 구간별 최대 폰트 크기 설정
+- **주소록 버튼 위치 개선**
+  - 전화번호 입력칸 → 이름 입력칸 옆으로 이동
+  - 추가/편집 화면 모두 적용
+- **수정된 파일**
+  - `lib/screens/home_screen.dart`: 정사각형 버튼
+  - `lib/screens/add_button_screen.dart`: 주소록 버튼 위치
+  - `lib/screens/edit_button_screen.dart`: 주소록 버튼 위치
+  - `lib/widgets/dial_button_widget.dart`: 스마트 폰트 크기
+
 ### v1.9.0 (2024-12)
 - **그룹 영구 저장 시스템**
   - `groups` 테이블 추가 (DB 버전 6)
@@ -663,11 +696,6 @@ flutter build appbundle --release
   - 기존: 드래그 중 즉시 탭 전환 (에러 발생)
   - 변경: 1초 유지 후 손 떼면 확인 다이얼로그 표시
   - `reorderable_grid_view` 라이브러리 unmount 에러 해결
-- **수정된 파일**
-  - `lib/services/database_service.dart`: groups 테이블, 그룹 CRUD 메서드
-  - `lib/services/backup_service.dart`: 그룹 백업/복원 로직
-  - `lib/providers/speed_dial_provider.dart`: 그룹 DB 연동
-  - `lib/screens/home_screen.dart`: 드래그 확인 다이얼로그 방식
 
 ### v1.8.0 (2024-12)
 - **그룹별 기본값 자동 선택**
