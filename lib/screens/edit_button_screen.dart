@@ -337,19 +337,23 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 🆕 다크 모드 대응: Theme에서 색상 가져오기
+    final theme = Theme.of(context);
+    final cardColor = theme.cardTheme.color ?? theme.cardColor;
+    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black87;
+
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: theme.scaffoldBackgroundColor, // 🆕 테마 배경색 사용
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
+        // 🆕 backgroundColor 제거 - 테마 기본값 사용
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.black87),
+          icon: Icon(Icons.close, color: theme.appBarTheme.foregroundColor),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           '단축키 편집',
           style: TextStyle(
-            color: Colors.black87,
+            color: theme.appBarTheme.foregroundColor, // 🆕 테마 텍스트 색상
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -423,7 +427,7 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
                         labelText: '이름',
                         hintText: '예: 엄마, 119',
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: cardColor, // 🆕 테마 카드 색상
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12.r),
                         ),
@@ -470,7 +474,7 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
                   labelText: '전화번호',
                   hintText: '010-1234-5678',
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: cardColor, // 🆕 테마 카드 색상
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.r),
                   ),
@@ -495,7 +499,7 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
                         decoration: InputDecoration(
                           labelText: '그룹',
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: cardColor, // 🆕 테마 카드 색상
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12.r),
                           ),
@@ -536,7 +540,7 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
                             labelText: '새 그룹 이름',
                             hintText: '그룹 이름 입력',
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: cardColor, // 🆕 테마 카드 색상
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.r),
                             ),

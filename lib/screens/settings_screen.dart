@@ -21,19 +21,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 🆕 다크 모드 대응: Theme에서 색상 가져오기
+    final theme = Theme.of(context);
+    final cardColor = theme.cardTheme.color ?? theme.cardColor;
+
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: theme.scaffoldBackgroundColor, // 🆕 테마 배경색 사용
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
+        // 🆕 backgroundColor 제거 - 테마 기본값 사용
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: theme.appBarTheme.foregroundColor),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           '설정',
           style: TextStyle(
-            color: Colors.black87,
+            color: theme.appBarTheme.foregroundColor, // 🆕 테마 텍스트 색상
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -45,34 +48,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               // 화면 설정
               _buildSectionHeader('화면'),
-              _buildThemeModeTile(settings),
+              _buildThemeModeTile(settings, cardColor),
               
               SizedBox(height: 16.h),
               
               // 정렬 설정
               _buildSectionHeader('정렬'),
-              _buildSortOptionTile(),
+              _buildSortOptionTile(cardColor),
               
               SizedBox(height: 16.h),
               
               // 백업/복원
               _buildSectionHeader('데이터'),
-              _buildBackupTile(),
-              _buildRestoreTile(),
-              _buildBackupListTile(),
+              _buildBackupTile(cardColor),
+              _buildRestoreTile(cardColor),
+              _buildBackupListTile(cardColor),
               
               SizedBox(height: 16.h),
               
               // 기타
               _buildSectionHeader('기타'),
-              _buildDatabaseInfoTile(),
-              _buildResetSettingsTile(settings),
+              _buildDatabaseInfoTile(cardColor),
+              _buildResetSettingsTile(settings, cardColor),
               
               SizedBox(height: 16.h),
               
               // 앱 정보
               _buildSectionHeader('정보'),
-              _buildAppInfoTile(),
+              _buildAppInfoTile(cardColor),
             ],
           );
         },
@@ -94,11 +97,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildThemeModeTile(SettingsProvider settings) {
+  Widget _buildThemeModeTile(SettingsProvider settings, Color? cardColor) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // 🆕 테마 카드 색상
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: ListTile(
@@ -120,11 +123,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSortOptionTile() {
+  Widget _buildSortOptionTile(Color? cardColor) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // 🆕 테마 카드 색상
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Consumer<SpeedDialProvider>(
@@ -144,11 +147,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildBackupTile() {
+  Widget _buildBackupTile(Color? cardColor) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // 🆕 테마 카드 색상
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: ListTile(
@@ -173,11 +176,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildRestoreTile() {
+  Widget _buildRestoreTile(Color? cardColor) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // 🆕 테마 카드 색상
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: ListTile(
@@ -202,11 +205,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildBackupListTile() {
+  Widget _buildBackupListTile(Color? cardColor) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // 🆕 테마 카드 색상
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: ListTile(
@@ -222,11 +225,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildDatabaseInfoTile() {
+  Widget _buildDatabaseInfoTile(Color? cardColor) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // 🆕 테마 카드 색상
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Consumer<SpeedDialProvider>(
@@ -246,11 +249,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildResetSettingsTile(SettingsProvider settings) {
+  Widget _buildResetSettingsTile(SettingsProvider settings, Color? cardColor) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // 🆕 테마 카드 색상
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: ListTile(
@@ -266,11 +269,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildAppInfoTile() {
+  Widget _buildAppInfoTile(Color? cardColor) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // 🆕 테마 카드 색상
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: ListTile(

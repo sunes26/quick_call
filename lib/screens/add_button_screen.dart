@@ -237,13 +237,18 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 🆕 다크 모드 대응: Theme에서 색상 가져오기
+    final theme = Theme.of(context);
+    final cardColor = theme.cardTheme.color ?? theme.cardColor;
+    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black87;
+
     return Center(
       child: Material(
         color: Colors.transparent,
         child: Container(
           margin: EdgeInsets.symmetric(horizontal: 32.w),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: cardColor, // 🆕 테마 색상 사용
             borderRadius: BorderRadius.circular(20.r),
           ),
           child: SingleChildScrollView(
@@ -259,6 +264,7 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
                     style: TextStyle(
                       fontSize: 22.sp,
                       fontWeight: FontWeight.bold,
+                      color: textColor, // 🆕 명시적 텍스트 색상
                     ),
                   ),
                   SizedBox(height: 24.h),

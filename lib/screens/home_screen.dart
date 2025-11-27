@@ -486,131 +486,211 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 그룹 추가 다이얼로그 (DB에 저장)
-  Future<void> _showAddGroupDialog(
+  // 그룹 추가 다이얼로그 (DB에 저장) - 🆕 오버플로우 수정
+Future<void> _showAddGroupDialog(
     BuildContext context,
     SpeedDialProvider provider,
   ) async {
     final textController = TextEditingController();
 
-    await showDialog(
+    await showModalBottomSheet(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20.r),
+      isScrollControlled: true, // 키보드에 따라 높이 자동 조정
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Padding(
+          // 🆕 키보드 높이만큼 자동으로 padding 추가
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
           ),
-          title: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(8.w),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.create_new_folder,
-                  color: Colors.blue[600],
-                  size: 24.sp,
-                ),
-              ),
-              SizedBox(width: 12.w),
-              Text(
-                '새 그룹 만들기',
-                style: TextStyle(
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: textController,
-                autofocus: true,
-                maxLength: 10,
-                decoration: InputDecoration(
-                  labelText: '그룹 이름',
-                  hintText: '새 그룹 이름을 입력하세요',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  prefixIcon: Icon(
-                    Icons.folder_outlined,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                style: TextStyle(fontSize: 16.sp),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(
-                '취소',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: Colors.grey[600],
-                ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(24.r),
               ),
             ),
-            ElevatedButton(
-              onPressed: () async {
-                final groupName = textController.text.trim();
+            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 상단 바 (드래그 인디케이터)
+                  Center(
+                    child: Container(
+                      width: 40.w,
+                      height: 4.h,
+                      margin: EdgeInsets.only(bottom: 16.h),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2.r),
+                      ),
+                    ),
+                  ),
 
-                if (groupName.isEmpty) {
-                  _showSnackBar('그룹 이름을 입력해주세요', Colors.orange[700]!);
-                  return;
-                }
+                  // 타이틀 + 아이콘
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(8.w),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.create_new_folder,
+                          color: Colors.blue[600],
+                          size: 24.sp,
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      Text(
+                        '새 그룹 만들기',
+                        style: TextStyle(
+                          fontSize: 20.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
 
-                // 중복 그룹명 체크
-                if (provider.groups.contains(groupName)) {
-                  _showSnackBar('이미 존재하는 그룹 이름입니다', Colors.orange[700]!);
-                  return;
-                }
+                  SizedBox(height: 20.h),
 
-                Navigator.pop(dialogContext);
+                  // 그룹 이름 입력 필드
+                  TextField(
+                    controller: textController,
+                    autofocus: true,
+                    maxLength: 10,
+                    decoration: InputDecoration(
+                      labelText: '그룹 이름',
+                      hintText: '새 그룹 이름을 입력하세요',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide(color: Colors.blue[600]!, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[50],
+                      prefixIcon: Icon(
+                        Icons.folder_outlined,
+                        color: Colors.grey[600],
+                      ),
+                      counterStyle: TextStyle(
+                        fontSize: 12.sp,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      color: Colors.black87,
+                    ),
+                  ),
 
-                // 그룹 추가 (DB에 저장)
-                final success = await provider.addCustomGroup(groupName);
-                
-                if (success) {
-                  _showSnackBar('"$groupName" 그룹이 생성되었습니다', Colors.green[700]!);
-                  
-                  // 새로 생성된 그룹으로 이동
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    final newIndex = provider.groups.indexOf(groupName);
-                    if (newIndex != -1 && mounted) {
-                      _tabController.animateTo(newIndex);
-                      provider.selectGroup(groupName);
-                    }
-                  });
-                } else {
-                  _showSnackBar('그룹 생성에 실패했습니다', Colors.red[700]!);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue[600],
-              ),
-              child: Text(
-                '만들기',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: Colors.white,
-                ),
+                  SizedBox(height: 20.h),
+
+                  // 하단 버튼들
+                  Row(
+                    children: [
+                      // 취소 버튼
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(sheetContext),
+                          style: OutlinedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 14.h),
+                            side: BorderSide(color: Colors.grey[400]!, width: 1.5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                          ),
+                          child: Text(
+                            '취소',
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(width: 12.w),
+
+                      // 만들기 버튼
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            final groupName = textController.text.trim();
+
+                            if (groupName.isEmpty) {
+                              Navigator.pop(sheetContext);
+                              _showSnackBar('그룹 이름을 입력해주세요', Colors.orange[700]!);
+                              return;
+                            }
+
+                            // 중복 그룹명 체크
+                            if (provider.groups.contains(groupName)) {
+                              Navigator.pop(sheetContext);
+                              _showSnackBar('이미 존재하는 그룹 이름입니다', Colors.orange[700]!);
+                              return;
+                            }
+
+                            Navigator.pop(sheetContext);
+
+                            // 그룹 추가 (DB에 저장)
+                            final success = await provider.addCustomGroup(groupName);
+                            
+                            if (success) {
+                              _showSnackBar('"$groupName" 그룹이 생성되었습니다', Colors.green[700]!);
+                              
+                              // 새로 생성된 그룹으로 이동
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                final newIndex = provider.groups.indexOf(groupName);
+                                if (newIndex != -1 && mounted) {
+                                  _tabController.animateTo(newIndex);
+                                  provider.selectGroup(groupName);
+                                }
+                              });
+                            } else {
+                              _showSnackBar('그룹 생성에 실패했습니다', Colors.red[700]!);
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 14.h),
+                            backgroundColor: Colors.blue[600],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            '만들기',
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         );
       },
     );
   }
-
   // 그룹 삭제 확인 다이얼로그
   Future<void> _showDeleteGroupConfirmDialog(
     BuildContext context,
