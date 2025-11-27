@@ -16,8 +16,10 @@ class BackupService {
 
   final DatabaseService _databaseService = DatabaseService();
 
-  /// 백업 데이터 구조
-  static const String _backupVersion = '1.0.0';
+  /// 백업 데이터 구조 버전
+  /// 1.0.0: 초기 버전 (버튼만)
+  /// 1.1.0: 그룹 테이블 추가
+  static const String _backupVersion = '1.1.0';
 
   /// 백업 파일 생성
   /// 
@@ -26,13 +28,18 @@ class BackupService {
     try {
       // 모든 버튼 데이터 가져오기
       final buttons = await _databaseService.exportAllData();
+      
+      // 🆕 모든 그룹 데이터 가져오기
+      final groups = await _databaseService.exportAllGroups();
 
       // 백업 데이터 구조
       final backupData = {
         'version': _backupVersion,
         'timestamp': DateTime.now().toIso8601String(),
         'buttonCount': buttons.length,
+        'groupCount': groups.length,
         'buttons': buttons.map((b) => b.toMap()).toList(),
+        'groups': groups, // 🆕 그룹 데이터 추가
       };
 
       // JSON 문자열로 변환
@@ -48,7 +55,7 @@ class BackupService {
       final file = File(filePath);
       await file.writeAsString(jsonString);
 
-      debugPrint('백업 완료: $filePath');
+      debugPrint('백업 완료: $filePath (버튼 ${buttons.length}개, 그룹 ${groups.length}개)');
       return filePath;
     } catch (e) {
       debugPrint('백업 오류: $e');
@@ -84,14 +91,36 @@ class BackupService {
           .map((data) => SpeedDialButton.fromMap(data as Map<String, dynamic>))
           .toList();
 
-      // 데이터베이스에 복원
+      // 🆕 그룹 데이터 추출 (버전 1.1.0 이상)
+      List<Map<String, dynamic>>? groupsData;
+      if (backupData.containsKey('groups')) {
+        groupsData = (backupData['groups'] as List<dynamic>)
+            .map((data) => data as Map<String, dynamic>)
+            .toList();
+      }
+
+      // 🆕 그룹 데이터 먼저 복원 (버전 1.1.0 이상)
+      if (groupsData != null && groupsData.isNotEmpty) {
+        final groupSuccess = await _databaseService.importGroups(
+          groupsData,
+          clearExisting: clearExisting,
+        );
+        if (!groupSuccess) {
+          debugPrint('그룹 데이터 복원 실패 (계속 진행)');
+        }
+      } else if (clearExisting) {
+        // 그룹 데이터가 없는 구버전 백업인 경우, 버튼의 그룹 정보로 그룹 생성
+        await _migrateGroupsFromButtons(buttons);
+      }
+
+      // 버튼 데이터 복원
       final success = await _databaseService.importData(
         buttons,
         clearExisting: clearExisting,
       );
 
       if (success) {
-        debugPrint('복원 완료: ${buttons.length}개 버튼');
+        debugPrint('복원 완료: ${buttons.length}개 버튼, ${groupsData?.length ?? 0}개 그룹');
         return buttons.length;
       } else {
         throw Exception('데이터 복원에 실패했습니다');
@@ -99,6 +128,36 @@ class BackupService {
     } catch (e) {
       debugPrint('복원 오류: $e');
       rethrow;
+    }
+  }
+
+  /// 🆕 구버전 백업에서 버튼의 그룹 정보를 기반으로 그룹 테이블 생성
+  Future<void> _migrateGroupsFromButtons(List<SpeedDialButton> buttons) async {
+    try {
+      // 버튼들의 고유한 그룹 추출
+      final uniqueGroups = buttons
+          .map((b) => b.group)
+          .where((g) => g != '전체' && g.isNotEmpty)
+          .toSet()
+          .toList();
+
+      // 그룹 데이터 생성
+      final groupsData = <Map<String, dynamic>>[];
+      for (int i = 0; i < uniqueGroups.length; i++) {
+        groupsData.add({
+          'name': uniqueGroups[i],
+          'position': i,
+          'createdAt': DateTime.now().toIso8601String(),
+        });
+      }
+
+      // 그룹 복원
+      if (groupsData.isNotEmpty) {
+        await _databaseService.importGroups(groupsData, clearExisting: true);
+        debugPrint('구버전 백업에서 ${groupsData.length}개 그룹 마이그레이션 완료');
+      }
+    } catch (e) {
+      debugPrint('그룹 마이그레이션 오류: $e');
     }
   }
 
@@ -127,7 +186,9 @@ class BackupService {
             fileName: file.path.split('/').last,
             timestamp: DateTime.parse(backupData['timestamp'] as String),
             buttonCount: backupData['buttonCount'] as int,
+            groupCount: backupData['groupCount'] as int? ?? 0, // 🆕 그룹 개수
             fileSize: await file.length(),
+            version: backupData['version'] as String? ?? '1.0.0', // 🆕 버전 정보
           );
 
           backupFiles.add(info);
@@ -223,14 +284,18 @@ class BackupFileInfo {
   final String fileName;
   final DateTime timestamp;
   final int buttonCount;
+  final int groupCount; // 🆕 그룹 개수
   final int fileSize;
+  final String version; // 🆕 백업 버전
 
   BackupFileInfo({
     required this.path,
     required this.fileName,
     required this.timestamp,
     required this.buttonCount,
+    this.groupCount = 0,
     required this.fileSize,
+    this.version = '1.0.0',
   });
 
   /// 파일 크기를 사람이 읽기 쉬운 형태로 변환
@@ -251,6 +316,9 @@ class BackupFileInfo {
 
   /// 백업 파일 설명
   String get description {
+    if (groupCount > 0) {
+      return '$timestampFormatted • $buttonCount개 단축키 • $groupCount개 그룹 • $fileSizeFormatted';
+    }
     return '$timestampFormatted • $buttonCount개 단축키 • $fileSizeFormatted';
   }
 }

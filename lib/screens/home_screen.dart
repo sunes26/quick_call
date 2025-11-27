@@ -83,17 +83,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
-  // 🆕 드래그 & 가장자리 감지 관련
+  // 드래그 & 가장자리 감지 관련
   bool _isDragging = false;
   Offset? _dragStartPosition;
   Timer? _edgeTimer;
   EdgeSide _currentEdge = EdgeSide.none;
-  SpeedDialButton? _draggedButton; // 🆕 드래그 중인 버튼 객체
+  SpeedDialButton? _draggedButton; // 드래그 중인 버튼 객체
+  String? _pendingTargetGroup; // 이동 대기 중인 타겟 그룹
   static const double _edgeThreshold = 50.0; // 가장자리 감지 영역 (픽셀)
   static const double _dragThreshold = 20.0; // 드래그 시작 판단 거리
   static const Duration _edgeHoldDuration = Duration(seconds: 1); // 가장자리 유지 시간
 
-  // 🆕 가장자리 시각적 피드백
+  // 가장자리 시각적 피드백
   bool _showLeftEdgeIndicator = false;
   bool _showRightEdgeIndicator = false;
 
@@ -151,13 +152,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _tabController.addListener(_onTabChanged);
   }
 
-  // 🆕 포인터 다운 처리
+  // 포인터 다운 처리
   void _onPointerDown(PointerDownEvent event) {
     _dragStartPosition = event.position;
     _isDragging = false;
   }
 
-  // 🆕 포인터 이동 처리
+  // 포인터 이동 처리
   void _onPointerMove(PointerMoveEvent event, SpeedDialProvider provider) {
     if (_dragStartPosition == null) return;
 
@@ -168,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
 
     // 드래그 중일 때만 가장자리 감지
-    if (_isDragging && provider.isEditMode) {
+    if (_isDragging && provider.isEditMode && _draggedButton != null) {
       final screenWidth = MediaQuery.of(context).size.width;
       final x = event.position.dx;
 
@@ -201,44 +202,65 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  // 🆕 포인터 업 처리
+  // 포인터 업 처리
   void _onPointerUp(PointerUpEvent event) {
-    _resetDragState();
+    // 드래그 종료 시 대기 중인 그룹 이동이 있으면 처리
+    if (_pendingTargetGroup != null && _draggedButton != null) {
+      final targetGroup = _pendingTargetGroup!;
+      final buttonToMove = _draggedButton!;
+      
+      // 상태 먼저 초기화
+      _resetDragState();
+      
+      // 다음 프레임에서 이동 처리 (드래그가 완전히 끝난 후)
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _showMoveConfirmDialog(buttonToMove, targetGroup);
+        }
+      });
+    } else {
+      _resetDragState();
+    }
   }
 
-  // 🆕 포인터 취소 처리
+  // 포인터 취소 처리
   void _onPointerCancel(PointerCancelEvent event) {
     _resetDragState();
   }
 
-  // 🆕 드래그 상태 초기화
+  // 드래그 상태 초기화
   void _resetDragState() {
     _isDragging = false;
     _dragStartPosition = null;
-    _draggedButton = null; // 🆕 드래그 중인 버튼도 초기화
+    _draggedButton = null;
+    _pendingTargetGroup = null;
     _cancelEdgeTimer();
     _currentEdge = EdgeSide.none;
-    setState(() {
-      _showLeftEdgeIndicator = false;
-      _showRightEdgeIndicator = false;
-    });
+    if (mounted) {
+      setState(() {
+        _showLeftEdgeIndicator = false;
+        _showRightEdgeIndicator = false;
+      });
+    }
   }
 
-  // 🆕 가장자리 타이머 시작
+  // 가장자리 타이머 시작
   void _startEdgeTimer(SpeedDialProvider provider, EdgeSide edge) {
     _edgeTimer = Timer(_edgeHoldDuration, () {
-      _moveToAdjacentGroup(provider, edge);
+      if (mounted) {
+        _prepareGroupMove(provider, edge);
+      }
     });
   }
 
-  // 🆕 가장자리 타이머 취소
+  // 가장자리 타이머 취소
   void _cancelEdgeTimer() {
     _edgeTimer?.cancel();
     _edgeTimer = null;
   }
 
-  // 🆕 인접 그룹으로 이동
-  Future<void> _moveToAdjacentGroup(SpeedDialProvider provider, EdgeSide edge) async {
+  // 그룹 이동 준비 (실제 이동은 드래그 종료 시)
+  void _prepareGroupMove(SpeedDialProvider provider, EdgeSide edge) {
     final currentIndex = _tabController.index;
     final groups = provider.groups;
     int targetIndex;
@@ -251,7 +273,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     // 범위 체크
     if (targetIndex < 0 || targetIndex >= groups.length) {
-      _resetDragState();
+      _showSnackBar('이동할 수 있는 그룹이 없습니다', Colors.orange[700]!);
+      setState(() {
+        _showLeftEdgeIndicator = false;
+        _showRightEdgeIndicator = false;
+      });
       return;
     }
 
@@ -260,24 +286,115 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // "전체" 그룹으로는 이동 불가
     if (targetGroup == '전체') {
       _showSnackBar('"전체" 그룹으로는 이동할 수 없습니다', Colors.orange[700]!);
-      _resetDragState();
+      setState(() {
+        _showLeftEdgeIndicator = false;
+        _showRightEdgeIndicator = false;
+      });
       return;
     }
 
-    // 🆕 드래그 중인 버튼이 있으면 그룹 변경
-    if (_draggedButton != null) {
-      final buttonToMove = _draggedButton!;
-      
-      // 버튼 그룹 변경
-      final success = await provider.moveButtonToGroup(buttonToMove, targetGroup);
+    // 타겟 그룹 저장 (드래그 종료 시 처리)
+    _pendingTargetGroup = targetGroup;
+    
+    // 시각적 피드백
+    setState(() {
+      _showLeftEdgeIndicator = false;
+      _showRightEdgeIndicator = false;
+    });
+    
+    _showSnackBar(
+      '손을 떼면 "$targetGroup" 그룹으로 이동합니다',
+      Colors.blue[700]!,
+    );
+  }
+
+  // 이동 확인 다이얼로그
+  Future<void> _showMoveConfirmDialog(SpeedDialButton button, String targetGroup) async {
+    final provider = context.read<SpeedDialProvider>();
+    
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.drive_file_move,
+                  color: Colors.blue[600],
+                  size: 24.sp,
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Text(
+                  '그룹 이동',
+                  style: TextStyle(
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            '"${button.name}"을(를)\n"$targetGroup" 그룹으로 이동하시겠습니까?',
+            style: TextStyle(
+              fontSize: 16.sp,
+              color: Colors.grey[700],
+              height: 1.5,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(
+                '취소',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[600],
+              ),
+              child: Text(
+                '이동',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true && mounted) {
+      final success = await provider.moveButtonToGroup(button, targetGroup);
       
       if (success) {
-        // 탭 전환
-        _tabController.animateTo(targetIndex);
-        provider.selectGroup(targetGroup);
+        // 타겟 그룹으로 탭 전환
+        final targetIndex = provider.groups.indexOf(targetGroup);
+        if (targetIndex != -1) {
+          _tabController.animateTo(targetIndex);
+          provider.selectGroup(targetGroup);
+        }
         
         _showSnackBar(
-          '"${buttonToMove.name}"을(를) "$targetGroup" 그룹으로 이동했습니다',
+          '"${button.name}"을(를) "$targetGroup" 그룹으로 이동했습니다',
           Colors.green[700]!,
         );
       } else {
@@ -286,18 +403,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Colors.red[700]!,
         );
       }
-    } else {
-      // 드래그 중인 버튼이 없으면 탭만 전환
-      _tabController.animateTo(targetIndex);
-      provider.selectGroup(targetGroup);
-      
-      _showSnackBar(
-        '"$targetGroup" 그룹으로 이동했습니다',
-        Colors.blue[700]!,
-      );
     }
-
-    _resetDragState();
   }
 
   // 블러 효과와 함께 다이얼로그 열기
@@ -380,7 +486,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 그룹 추가 다이얼로그
+  // 🆕 그룹 추가 다이얼로그 (DB에 저장)
   Future<void> _showAddGroupDialog(
     BuildContext context,
     SpeedDialProvider provider,
@@ -470,19 +576,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
                 Navigator.pop(dialogContext);
 
-                // 그룹 추가 (메모리에 추가)
-                provider.addCustomGroup(groupName);
+                // 🆕 그룹 추가 (DB에 저장)
+                final success = await provider.addCustomGroup(groupName);
                 
-                _showSnackBar('"$groupName" 그룹이 생성되었습니다', Colors.green[700]!);
-                
-                // 새로 생성된 그룹으로 이동
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  final newIndex = provider.groups.indexOf(groupName);
-                  if (newIndex != -1 && mounted) {
-                    _tabController.animateTo(newIndex);
-                    provider.selectGroup(groupName);
-                  }
-                });
+                if (success) {
+                  _showSnackBar('"$groupName" 그룹이 생성되었습니다', Colors.green[700]!);
+                  
+                  // 새로 생성된 그룹으로 이동
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    final newIndex = provider.groups.indexOf(groupName);
+                    if (newIndex != -1 && mounted) {
+                      _tabController.animateTo(newIndex);
+                      provider.selectGroup(groupName);
+                    }
+                  });
+                } else {
+                  _showSnackBar('그룹 생성에 실패했습니다', Colors.red[700]!);
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue[600],
@@ -596,6 +706,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // SnackBar 헬퍼 메서드
   void _showSnackBar(String message, Color backgroundColor) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -1049,7 +1160,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 🆕 편집 모드 그리드 (드래그 앤 드롭 + 가장자리 감지)
+  // 편집 모드 그리드 (드래그 앤 드롭 + 가장자리 감지)
   Widget _buildReorderableGrid(
     BuildContext context, 
     SpeedDialProvider provider,
@@ -1079,11 +1190,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 itemCount: groupButtons.length,
                 onReorder: (oldIndex, newIndex) {
+                  // 인덱스 유효성 검사
+                  if (oldIndex < 0 || oldIndex >= groupButtons.length ||
+                      newIndex < 0 || newIndex >= groupButtons.length) {
+                    debugPrint('Invalid reorder index: old=$oldIndex, new=$newIndex, length=${groupButtons.length}');
+                    return;
+                  }
                   provider.reorderButtons(oldIndex, newIndex);
                 },
                 dragWidgetBuilder: (index, child) {
                   // 드래그 시작 시 버튼 객체 저장
-                  if (index < groupButtons.length) {
+                  if (index >= 0 && index < groupButtons.length) {
                     _draggedButton = groupButtons[index];
                   }
                   return Material(
@@ -1111,7 +1228,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ),
 
-        // 🆕 왼쪽 가장자리 인디케이터
+        // 왼쪽 가장자리 인디케이터
         if (_showLeftEdgeIndicator)
           Positioned(
             left: 0,
@@ -1120,7 +1237,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             child: _buildEdgeIndicator(EdgeSide.left, provider),
           ),
 
-        // 🆕 오른쪽 가장자리 인디케이터
+        // 오른쪽 가장자리 인디케이터
         if (_showRightEdgeIndicator)
           Positioned(
             right: 0,
@@ -1132,7 +1249,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 🆕 가장자리 인디케이터 위젯
+  // 가장자리 인디케이터 위젯
   Widget _buildEdgeIndicator(EdgeSide side, SpeedDialProvider provider) {
     final currentIndex = _tabController.index;
     final groups = provider.groups;

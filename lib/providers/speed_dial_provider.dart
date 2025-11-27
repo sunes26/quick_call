@@ -233,22 +233,14 @@ class SpeedDialProvider extends ChangeNotifier {
     return sortedButtons;
   }
 
-  // 그룹 목록 로드
+  // 🆕 그룹 목록 로드 (DB에서)
   Future<void> loadGroups() async {
     try {
       final dbGroups = await _databaseService.getAllGroups();
       
-      // 기본 그룹은 "전체"만 존재
-      final defaultGroups = ['전체'];
+      // "전체"는 가상 그룹으로 항상 맨 앞에
+      _groups = ['전체', ...dbGroups];
       
-      final allGroups = <String>{...defaultGroups};
-      for (var group in dbGroups) {
-        if (group != '전체') {
-          allGroups.add(group);
-        }
-      }
-      
-      _groups = allGroups.toList();
       notifyListeners();
     } catch (e) {
       _error = '그룹을 불러오는 중 오류가 발생했습니다: $e';
@@ -280,6 +272,14 @@ class SpeedDialProvider extends ChangeNotifier {
   // 버튼 추가
   Future<bool> addButton(SpeedDialButton button) async {
     try {
+      // 🆕 버튼의 그룹이 DB에 없으면 추가
+      if (button.group != '전체' && button.group.isNotEmpty) {
+        final groupExists = await _databaseService.groupExists(button.group);
+        if (!groupExists) {
+          await _databaseService.insertGroup(button.group);
+        }
+      }
+
       final id = await _databaseService.insertButton(button);
       if (id > 0) {
         await loadButtons();
@@ -298,6 +298,14 @@ class SpeedDialProvider extends ChangeNotifier {
   // 버튼 업데이트
   Future<bool> updateButton(SpeedDialButton button) async {
     try {
+      // 🆕 버튼의 그룹이 DB에 없으면 추가
+      if (button.group != '전체' && button.group.isNotEmpty) {
+        final groupExists = await _databaseService.groupExists(button.group);
+        if (!groupExists) {
+          await _databaseService.insertGroup(button.group);
+        }
+      }
+
       final success = await _databaseService.updateButton(button);
       if (success) {
         await loadButtons();
@@ -409,7 +417,7 @@ class SpeedDialProvider extends ChangeNotifier {
     }
   }
 
-  // 🆕 버튼을 다른 그룹으로 이동
+  // 버튼을 다른 그룹으로 이동
   Future<bool> moveButtonToGroup(SpeedDialButton button, String newGroup) async {
     try {
       if (button.id == null) {
@@ -428,6 +436,12 @@ class SpeedDialProvider extends ChangeNotifier {
       // 같은 그룹이면 무시
       if (button.group == newGroup) {
         return true;
+      }
+
+      // 🆕 타겟 그룹이 DB에 없으면 추가
+      final groupExists = await _databaseService.groupExists(newGroup);
+      if (!groupExists) {
+        await _databaseService.insertGroup(newGroup);
       }
 
       // 새 그룹의 마지막 위치 계산
@@ -481,11 +495,32 @@ class SpeedDialProvider extends ChangeNotifier {
     return counts;
   }
 
-  // 사용자 정의 그룹 추가
-  void addCustomGroup(String groupName) {
-    if (!_groups.contains(groupName)) {
-      _groups.add(groupName);
+  // 🆕 사용자 정의 그룹 추가 (DB에 저장)
+  Future<bool> addCustomGroup(String groupName) async {
+    try {
+      if (groupName.isEmpty || groupName == '전체') {
+        return false;
+      }
+
+      // 중복 체크
+      if (_groups.contains(groupName)) {
+        return false;
+      }
+
+      // DB에 추가
+      final id = await _databaseService.insertGroup(groupName);
+      
+      if (id > 0) {
+        await loadGroups();
+        return true;
+      }
+      
+      return false;
+    } catch (e) {
+      _error = '그룹 추가 중 오류가 발생했습니다: $e';
+      debugPrint(_error);
       notifyListeners();
+      return false;
     }
   }
 
@@ -507,18 +542,15 @@ class SpeedDialProvider extends ChangeNotifier {
 
       final count = await _databaseService.renameGroup(oldName, newName);
       
-      if (count > 0) {
-        await loadGroups();
-        await loadButtons();
-        
-        if (_selectedGroup == oldName) {
-          _selectedGroup = newName;
-        }
-        
-        return true;
+      // 🆕 그룹 이름 변경은 버튼이 없어도 성공 (count >= 0)
+      await loadGroups();
+      await loadButtons();
+      
+      if (_selectedGroup == oldName) {
+        _selectedGroup = newName;
       }
       
-      return false;
+      return true;
     } catch (e) {
       _error = '그룹 이름 변경 중 오류가 발생했습니다: $e';
       debugPrint(_error);
@@ -527,7 +559,7 @@ class SpeedDialProvider extends ChangeNotifier {
     }
   }
 
-  // 그룹 삭제
+  // 🆕 그룹 삭제 (DB에서도 삭제)
   Future<bool> deleteGroup(String groupName) async {
     try {
       // "전체" 그룹만 기본 그룹으로 간주
@@ -537,7 +569,8 @@ class SpeedDialProvider extends ChangeNotifier {
         return false;
       }
 
-      final count = await _databaseService.deleteButtonsByGroup(groupName);
+      // 그룹과 해당 버튼들 모두 삭제
+      final count = await _databaseService.deleteGroupAndButtons(groupName);
       
       if (count >= 0) {
         await loadGroups();

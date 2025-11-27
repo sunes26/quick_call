@@ -22,17 +22,17 @@ Quick Call은 자주 연락하는 사람에게 빠르게 전화를 걸 수 있�
 - ✅ **위젯 전화번호 표시**: 이름과 전화번호를 위젯에 함께 표시 (AutoSize 적용)
 - ✅ **연락처 연동**: 기존 연락처에서 전화번호 불러오기
 - ✅ **그룹 관리**: 가족, 친구, 직장 등 그룹별 분류
+- ✅ **그룹 영구 저장**: 빈 그룹도 앱 재시작 후 유지됨 (v1.9.0, DB 그룹 테이블)
 - ✅ **그룹 생성**: 우측 하단 FAB 버튼으로 새 그룹 생성
 - ✅ **그룹 편집**: 그룹 탭 재클릭으로 그룹 이름 변경 및 삭제 (전체 그룹 제외, 모든 모드에서 동일)
 - ✅ **스와이프 탭 전환**: 화면을 좌우로 스와이프하여 그룹 간 자연스럽게 전환 (모든 모드에서 동작)
 - ✅ **인라인 버튼 추가**: 각 그룹 마지막에 점선 테두리 + 버튼으로 빠른 추가
 - ✅ **그룹별 기본값 자동 선택**: 단축키 추가 시 현재 탭의 그룹이 기본 선택됨 (v1.8.0)
-- ✅ **드래그로 그룹 간 이동**: 편집 모드에서 버튼을 가장자리로 드래그하여 다른 그룹으로 이동 (v1.8.0)
+- ✅ **드래그로 그룹 간 이동**: 편집 모드에서 버튼을 가장자리로 드래그하여 다른 그룹으로 이동 (v1.9.0 개선)
 - ✅ **드래그 앤 드롭**: 편집 모드에서 순서 변경 가능
 - ✅ **검색 기능**: 이름/전화번호로 빠른 검색
 - ✅ **다크 모드**: 라이트/다크 테마 지원
-- ✅ **백업/복원**: JSON 형식으로 데이터 백업 및 복원
-- ✅ **위젯 설정 UI**: 3열 그리드 레이아웃, 직관적인 선택 표시
+- ✅ **백업/복원**: JSON 형식으로 데이터 백업 및 복원 (그룹 데이터 포함, v1.9.0)
 
 ---
 
@@ -147,20 +147,20 @@ quick_call/
     │
     ├── providers/                    # 상태 관리 (Provider)
     │   ├── settings_provider.dart    # 앱 설정 관리
-    │   └── speed_dial_provider.dart  # 단축키 데이터 관리 (getButtonsForGroup, moveButtonToGroup 메서드 포함)
+    │   └── speed_dial_provider.dart  # 단축키 데이터 관리 (그룹 DB 연동)
     │
     ├── screens/                      # 화면 UI
-    │   ├── home_screen.dart          # 메인 홈 화면 (TabBarView 스와이프, 인라인 추가 버튼, 그룹 생성 FAB, 드래그 그룹 이동)
+    │   ├── home_screen.dart          # 메인 홈 화면 (드래그 그룹 이동 확인 다이얼로그)
     │   ├── add_button_screen.dart    # 단축키 추가 화면 (색상 선택, 글자수 무제한, initialGroup 파라미터)
     │   ├── edit_button_screen.dart   # 단축키 편집 화면 (색상 선택, 글자수 무제한)
     │   └── settings_screen.dart      # 설정 화면
     │
     ├── services/                     # 비즈니스 로직
-    │   ├── database_service.dart     # SQLite 데이터베이스 관리 (버전 5)
+    │   ├── database_service.dart     # SQLite 데이터베이스 관리 (버전 6, groups 테이블)
     │   ├── phone_service.dart        # 전화 걸기 기능
     │   ├── permission_service.dart   # 권한 관리
     │   ├── widget_service.dart       # 위젯 통신 (color 지원)
-    │   └── backup_service.dart       # 백업/복원 기능
+    │   └── backup_service.dart       # 백업/복원 기능 (버전 1.1.0, 그룹 포함)
     │
     ├── utils/                        # 유틸리티
     │   ├── phone_formatter.dart      # 전화번호 포맷팅
@@ -220,7 +220,7 @@ path_provider: ^2.1.1           # 파일 경로
 
 ## 📦 데이터베이스 스키마
 
-### speed_dial_buttons 테이블 (버전 5)
+### speed_dial_buttons 테이블 (버전 6)
 
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
@@ -240,17 +240,124 @@ path_provider: ^2.1.1           # 파일 경로
 - `idx_group`: group 컬럼
 - `idx_widget`: (isInWidget, widgetPosition) 복합 인덱스
 
+### groups 테이블 (버전 6, v1.9.0 신규)
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| id | INTEGER | 기본 키 (자동 증가) |
+| name | TEXT | 그룹 이름 (UNIQUE) |
+| position | INTEGER | 탭 순서 |
+| createdAt | TEXT | 생성 일시 (ISO8601) |
+
+**인덱스**:
+- `idx_group_position`: position 컬럼
+
+**특징**:
+- "전체" 그룹은 가상 그룹으로 DB에 저장되지 않음
+- 빈 그룹도 앱 재시작 후 유지됨
+- 그룹 순서 커스터마이징 가능 (향후 확장)
+
 **마이그레이션 히스토리**:
 - v1-v2: group 컬럼 추가
 - v2-v3: isInWidget, widgetPosition 컬럼 추가
 - v3-v4: color 컬럼 추가
 - v4-v5: iconCodePoint, iconFontFamily, iconFontPackage 컬럼 제거
+- v5-v6: groups 테이블 추가, 기존 버튼의 그룹 정보 자동 마이그레이션
+
+---
+
+## 💾 백업 데이터 구조
+
+### 백업 파일 형식 (버전 1.1.0)
+
+```json
+{
+  "version": "1.1.0",
+  "timestamp": "2024-12-27T10:30:00.000Z",
+  "buttonCount": 10,
+  "groupCount": 3,
+  "buttons": [
+    {
+      "id": 1,
+      "name": "엄마",
+      "phoneNumber": "010-1234-5678",
+      "color": 4293467747,
+      "group": "가족",
+      "position": 0,
+      "createdAt": "2024-12-01T09:00:00.000Z",
+      "lastCalled": "2024-12-26T15:30:00.000Z",
+      "isInWidget": 1,
+      "widgetPosition": 0
+    }
+  ],
+  "groups": [
+    {
+      "name": "가족",
+      "position": 0,
+      "createdAt": "2024-12-01T09:00:00.000Z"
+    },
+    {
+      "name": "친구",
+      "position": 1,
+      "createdAt": "2024-12-01T09:00:00.000Z"
+    }
+  ]
+}
+```
+
+**버전 호환성**:
+- v1.0.0 백업 파일: 버튼만 포함 (그룹 정보는 버튼에서 추출하여 자동 생성)
+- v1.1.0 백업 파일: 버튼 + 그룹 데이터 모두 포함
 
 ---
 
 ## 🎨 주요 기능 구현
 
-### 1. 그룹별 기본값 자동 선택 (v1.8.0)
+### 1. 그룹 영구 저장 시스템 (v1.9.0)
+
+**기능 설명**:
+- 그룹 정보를 별도 테이블(`groups`)에 저장
+- 빈 그룹(버튼이 없는 그룹)도 앱 재시작 후 유지
+- 백업/복원 시 그룹 데이터도 함께 처리
+
+**기존 문제**:
+```
+그룹 생성 → 버튼 없이 앱 종료 → 앱 재시작 → 그룹 사라짐 ❌
+```
+
+**해결 후**:
+```
+그룹 생성 → DB에 저장 → 앱 재시작 → 그룹 유지됨 ✅
+```
+
+**구현**:
+```dart
+// database_service.dart - 그룹 CRUD
+Future<int> insertGroup(String groupName) async { ... }
+Future<bool> deleteGroup(String groupName) async { ... }
+Future<int> renameGroup(String oldName, String newName) async { ... }
+Future<bool> groupExists(String groupName) async { ... }
+Future<List<String>> getAllGroups() async { ... }
+
+// speed_dial_provider.dart - 그룹 관리
+Future<bool> addCustomGroup(String groupName) async {
+  // DB에 그룹 추가
+  final id = await _databaseService.insertGroup(groupName);
+  if (id > 0) {
+    await loadGroups();
+    return true;
+  }
+  return false;
+}
+
+Future<void> loadGroups() async {
+  final dbGroups = await _databaseService.getAllGroups();
+  _groups = ['전체', ...dbGroups];  // "전체"는 가상 그룹
+  notifyListeners();
+}
+```
+
+### 2. 그룹별 기본값 자동 선택 (v1.8.0)
 
 **기능 설명**:
 - 단축키 추가 시 현재 활성화된 탭의 그룹이 기본 선택됨
@@ -275,7 +382,7 @@ AddButtonScreen 열림
 ```dart
 // AddButtonScreen 생성자
 class AddButtonScreen extends StatefulWidget {
-  final String? initialGroup;  // 🆕 초기 그룹 파라미터
+  final String? initialGroup;  // 초기 그룹 파라미터
   
   const AddButtonScreen({super.key, this.initialGroup});
 }
@@ -300,43 +407,32 @@ void initState() {
 }
 ```
 
-**호출 위치**:
-```dart
-// home_screen.dart - 인라인 추가 버튼
-Widget _buildAddButtonPlaceholder(String group) {
-  return GestureDetector(
-    onTap: () => _showAddButtonDialog(initialGroup: group),  // 현재 그룹 전달
-    // ...
-  );
-}
-
-// home_screen.dart - 빈 상태 위젯
-NoSpeedDialsWidget(
-  groupName: group,
-  onAddPressed: () => _showAddButtonDialog(initialGroup: group),
-)
-```
-
-### 2. 드래그로 그룹 간 버튼 이동 (v1.8.0)
+### 3. 드래그로 그룹 간 버튼 이동 (v1.9.0 개선)
 
 **기능 설명**:
 - 편집 모드에서 버튼을 화면 가장자리로 드래그하여 다른 그룹으로 이동
-- 1초 유지 시 자동으로 탭 전환 및 버튼 그룹 변경
+- 1초 유지 후 손을 떼면 확인 다이얼로그 표시
 - "전체" 그룹으로는 이동 불가
+
+**v1.9.0 변경 사항**:
+- 기존: 드래그 중 즉시 탭 전환 → `reorderable_grid_view` 라이브러리 내부 에러 발생
+- 변경: 드래그 종료 후 확인 다이얼로그 방식으로 개선
 
 **동작 방식**:
 ```
 편집 모드에서 버튼 롱프레스 → 드래그 시작
    ↓
-화면 왼쪽 가장자리(50px)로 이동
+화면 왼쪽/오른쪽 가장자리(50px)로 이동
    ↓
 파란색 인디케이터 표시 + 타겟 그룹명
    ↓
-1초 유지
+1초 유지 → 스낵바: "손을 떼면 'XX' 그룹으로 이동합니다"
    ↓
-버튼 그룹 변경 + 왼쪽 탭으로 전환
+손을 뗌 (드래그 종료)
    ↓
-"버튼을 'XX' 그룹으로 이동했습니다" 스낵바
+확인 다이얼로그: "'버튼명'을 'XX' 그룹으로 이동하시겠습니까?"
+   ↓
+"이동" 클릭 → 버튼 그룹 변경 + 해당 탭으로 전환
 ```
 
 **UI 다이어그램**:
@@ -357,89 +453,54 @@ NoSpeedDialsWidget(
 │ ┃                           ┃   │
 └─────────────────────────────────┘
   ↑ 왼쪽 50px             오른쪽 50px ↑
-    1초 유지 시              1초 유지 시
-    가족 탭으로 이동          친구 탭으로 이동
+    1초 유지 후              1초 유지 후
+    손 떼면 확인창           손 떼면 확인창
 ```
 
-**가장자리 인디케이터**:
-- 이동 가능: 파란색 그라데이션 + 화살표 + 타겟 그룹명 + 프로그레스 바
-- 이동 불가: 빨간색 그라데이션 + "이동 불가" 텍스트
+**확인 다이얼로그**:
+```
+┌────────────────────────────┐
+│     📁 그룹 이동           │
+│                            │
+│ "동생"을(를)               │
+│ "가족" 그룹으로            │
+│ 이동하시겠습니까?          │
+│                            │
+│      [취소]  [이동]        │
+└────────────────────────────┘
+```
 
 **구현**:
 ```dart
 // home_screen.dart - 상태 변수
-enum EdgeSide { left, right, none }
+String? _pendingTargetGroup;  // 이동 대기 중인 타겟 그룹
 
-bool _isDragging = false;
-Timer? _edgeTimer;
-EdgeSide _currentEdge = EdgeSide.none;
-SpeedDialButton? _draggedButton;
-static const double _edgeThreshold = 50.0;  // 가장자리 감지 영역
-static const Duration _edgeHoldDuration = Duration(seconds: 1);
+// 1초 유지 후 타겟 그룹 저장
+void _prepareGroupMove(SpeedDialProvider provider, EdgeSide edge) {
+  // ... 타겟 그룹 계산 ...
+  _pendingTargetGroup = targetGroup;
+  _showSnackBar('손을 떼면 "$targetGroup" 그룹으로 이동합니다', Colors.blue[700]!);
+}
 
-// Listener로 포인터 위치 감지
-Listener(
-  onPointerDown: _onPointerDown,
-  onPointerMove: (event) => _onPointerMove(event, provider),
-  onPointerUp: _onPointerUp,
-  onPointerCancel: _onPointerCancel,
-  child: ReorderableGridView.builder(
-    dragWidgetBuilder: (index, child) {
-      _draggedButton = groupButtons[index];  // 드래그 중인 버튼 저장
-      return /* 드래그 위젯 */;
-    },
-    // ...
-  ),
-)
-
-// 가장자리 감지 및 타이머
-void _onPointerMove(PointerMoveEvent event, SpeedDialProvider provider) {
-  final x = event.position.dx;
-  final screenWidth = MediaQuery.of(context).size.width;
-  
-  EdgeSide newEdge = EdgeSide.none;
-  if (x < _edgeThreshold) newEdge = EdgeSide.left;
-  else if (x > screenWidth - _edgeThreshold) newEdge = EdgeSide.right;
-  
-  if (newEdge != _currentEdge) {
-    _cancelEdgeTimer();
-    _currentEdge = newEdge;
-    if (newEdge != EdgeSide.none) {
-      _startEdgeTimer(provider, newEdge);  // 1초 타이머 시작
-    }
+// 드래그 종료 시 확인 다이얼로그 표시
+void _onPointerUp(PointerUpEvent event) {
+  if (_pendingTargetGroup != null && _draggedButton != null) {
+    final targetGroup = _pendingTargetGroup!;
+    final buttonToMove = _draggedButton!;
+    _resetDragState();
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _showMoveConfirmDialog(buttonToMove, targetGroup);
+      }
+    });
+  } else {
+    _resetDragState();
   }
 }
 ```
 
-**Provider 메서드**:
-```dart
-// speed_dial_provider.dart
-Future<bool> moveButtonToGroup(SpeedDialButton button, String newGroup) async {
-  // "전체" 그룹으로는 이동 불가
-  if (newGroup == '전체') return false;
-  
-  // 같은 그룹이면 무시
-  if (button.group == newGroup) return true;
-  
-  // 새 그룹의 마지막 위치 계산
-  final newGroupButtons = _buttons.where((b) => b.group == newGroup).toList();
-  final newPosition = newGroupButtons.isEmpty 
-      ? _buttons.length 
-      : newGroupButtons.map((b) => b.position).reduce((a, b) => a > b ? a : b) + 1;
-  
-  // 버튼 업데이트
-  final updatedButton = button.copyWith(group: newGroup, position: newPosition);
-  final success = await _databaseService.updateButton(updatedButton);
-  
-  if (success) {
-    await loadButtons();
-    await loadGroups();
-  }
-  return success;
-}
-```
-
-### 3. 색상 커스터마이징 시스템
+### 4. 색상 커스터마이징 시스템
 
 **색상 팔레트** (5×4 그리드, 20가지 색상):
 ```dart
@@ -463,7 +524,7 @@ Future<bool> moveButtonToGroup(SpeedDialButton button, String newGroup) async {
 - 어두운 배경색(명도 ≤ 0.5): 흰색 텍스트
 - `Color.computeLuminance()` 사용
 
-### 4. 하이브리드 줄바꿈 시스템 (v1.7.0)
+### 5. 하이브리드 줄바꿈 시스템 (v1.7.0)
 
 버튼 이름을 의미 단위로 자동 줄바꿈하여 가독성을 높이는 시스템입니다.
 
@@ -476,7 +537,7 @@ Future<bool> moveButtonToGroup(SpeedDialButton button, String newGroup) async {
 5. 짧은 텍스트 (6글자-) → 그대로 1줄
 ```
 
-### 5. 버튼 조작 방식
+### 6. 버튼 조작 방식
 
 **일반 모드**:
 - **클릭(탭)**: 버튼 편집 화면 열기
@@ -486,29 +547,30 @@ Future<bool> moveButtonToGroup(SpeedDialButton button, String newGroup) async {
 - **클릭(탭)**: 버튼 편집 화면 열기
 - **X 버튼**: 버튼 삭제
 - **드래그**: 순서 변경
-- **가장자리 드래그**: 다른 그룹으로 이동 (v1.8.0)
+- **가장자리 드래그**: 다른 그룹으로 이동 (1초 유지 → 손 떼면 확인창)
 
-### 6. 스와이프 탭 전환 (v1.5.0)
+### 7. 스와이프 탭 전환 (v1.5.0)
 
 - 화면을 좌우로 스와이프하여 그룹 탭 간 자연스럽게 전환
 - 탭 클릭과 스와이프 모두 지원
 - **모든 모드(일반/편집)에서 스와이프 가능**
 
-### 7. 인라인 버튼 추가 (v1.6.0)
+### 8. 인라인 버튼 추가 (v1.6.0)
 
 - 각 그룹의 버튼 그리드 마지막에 점선 테두리의 "+" 버튼 표시
 - 클릭 시 단축키 추가 화면 열기 (현재 그룹 기본 선택)
 - 편집 모드에서는 숨김 처리
 
-### 8. 그룹 관리 시스템
+### 9. 그룹 관리 시스템
 
 **기본 그룹 정책**:
-- **"전체" 그룹만 기본 그룹**으로 존재
+- **"전체" 그룹만 기본 그룹**으로 존재 (가상 그룹, DB에 저장 안 됨)
 - 편집 및 삭제 불가능
 
 **사용자 그룹**:
 - 그룹 이름 변경 가능 (최대 10자)
 - 그룹 삭제 시 해당 그룹의 모든 버튼도 함께 삭제
+- **빈 그룹도 영구 저장** (v1.9.0)
 
 ---
 
@@ -554,33 +616,33 @@ flutter build appbundle --release
 ```dart
 - buttons: List<SpeedDialButton>       // 현재 표시 중인 버튼 목록
 - allButtons: List<SpeedDialButton>    // 전체 버튼 목록
-- groups: List<String>                 // 그룹 목록
+- groups: List<String>                 // 그룹 목록 (DB에서 로드)
 - selectedGroup: String                // 선택된 그룹
 - isEditMode: bool                     // 편집 모드 여부
 - searchQuery: String                  // 검색어
 - currentSortOption: SortOption        // 정렬 옵션
 
-// 🆕 v1.5.0 추가 메서드
-- getButtonsForGroup(String group)     // 특정 그룹의 버튼 목록 반환
+// 그룹 관련 메서드
+- loadGroups()                         // DB에서 그룹 로드
+- addCustomGroup(String groupName)     // 새 그룹 추가 (DB 저장)
+- renameGroup(oldName, newName)        // 그룹 이름 변경
+- deleteGroup(groupName)               // 그룹 삭제 (버튼 포함)
 
-// 🆕 v1.8.0 추가 메서드
+// 버튼 관련 메서드
+- getButtonsForGroup(String group)     // 특정 그룹의 버튼 목록 반환
 - moveButtonToGroup(button, newGroup)  // 버튼을 다른 그룹으로 이동
-- addCustomGroup(String groupName)     // 새 그룹 추가 (메모리)
 ```
 
 ---
 
 ## 🐛 알려진 이슈 및 제한사항
 
-1. **드래그 그룹 이동 제한** (v1.8.0)
+1. **드래그 그룹 이동 제한**
    - "전체" 그룹으로는 버튼 이동 불가 (의도된 동작)
    - 첫 번째/마지막 탭에서 범위 밖으로 이동 불가
+   - 드래그 중 탭 전환 불가 (라이브러리 제약, 확인 다이얼로그 방식으로 대체)
 
-2. **빈 그룹 영속성**
-   - 빈 그룹(버튼이 없는 그룹)은 앱 재시작 시 사라짐
-   - 그룹에 버튼을 추가해야 영구 저장됨
-
-3. **위젯 업데이트 지연**
+2. **위젯 업데이트 지연**
    - 위젯 데이터 변경 시 즉시 반영되지 않을 수 있음
    - 해결: 위젯 재배치 또는 앱 재시작
 
@@ -588,24 +650,33 @@ flutter build appbundle --release
 
 ## ✨ 개발 히스토리
 
+### v1.9.0 (2024-12)
+- **그룹 영구 저장 시스템**
+  - `groups` 테이블 추가 (DB 버전 6)
+  - 빈 그룹도 앱 재시작 후 유지됨
+  - 기존 버튼의 그룹 정보 자동 마이그레이션
+- **백업/복원 그룹 지원**
+  - 백업 버전 1.1.0으로 업그레이드
+  - 백업 파일에 그룹 데이터 포함
+  - 구버전(1.0.0) 백업 파일 호환성 유지
+- **드래그 그룹 이동 방식 개선**
+  - 기존: 드래그 중 즉시 탭 전환 (에러 발생)
+  - 변경: 1초 유지 후 손 떼면 확인 다이얼로그 표시
+  - `reorderable_grid_view` 라이브러리 unmount 에러 해결
+- **수정된 파일**
+  - `lib/services/database_service.dart`: groups 테이블, 그룹 CRUD 메서드
+  - `lib/services/backup_service.dart`: 그룹 백업/복원 로직
+  - `lib/providers/speed_dial_provider.dart`: 그룹 DB 연동
+  - `lib/screens/home_screen.dart`: 드래그 확인 다이얼로그 방식
+
 ### v1.8.0 (2024-12)
 - **그룹별 기본값 자동 선택**
   - `AddButtonScreen`에 `initialGroup` 파라미터 추가
   - 홈 화면에서 "+" 버튼 클릭 시 현재 탭의 그룹이 기본 선택됨
-  - "가족" 탭에서 클릭 → 기본값 "가족"
-  - "전체" 탭에서 클릭 → 첫 번째 사용 가능한 그룹
-  - 빈 상태 위젯에서도 동일하게 동작
 - **드래그로 그룹 간 버튼 이동**
   - 편집 모드에서 버튼을 화면 가장자리(50px)로 드래그
-  - 1초 유지 시 인접 그룹으로 버튼 이동 및 탭 전환
   - 시각적 피드백: 가장자리 인디케이터 (파란색/빨간색)
-  - 타겟 그룹명 표시 및 프로그레스 바
-  - "전체" 그룹으로는 이동 불가
   - `SpeedDialProvider`에 `moveButtonToGroup()` 메서드 추가
-- **수정된 파일**
-  - `lib/screens/home_screen.dart`: 드래그 감지, 가장자리 인디케이터, initialGroup 전달
-  - `lib/screens/add_button_screen.dart`: initialGroup 파라미터 처리
-  - `lib/providers/speed_dial_provider.dart`: moveButtonToGroup 메서드 추가
 
 ### v1.7.0 (2024-12)
 - **하이브리드 줄바꿈 시스템 추가**
