@@ -48,8 +48,8 @@
 -keep class com.github.frappe.contacts.** { *; }
 
 # 앱 데이터 모델 유지
--keep class com.example.quick_call.models.** { *; }
--keepclassmembers class com.example.quick_call.models.** { *; }
+-keep class com.oceancode.quick_call.models.** { *; }
+-keepclassmembers class com.oceancode.quick_call.models.** { *; }
 
 # Native 메서드 유지
 -keepclasseswithmembernames class * {

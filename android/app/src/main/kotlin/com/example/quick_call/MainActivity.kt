@@ -1,5 +1,5 @@
 // android/app/src/main/kotlin/com/example/quick_call/MainActivity.kt
-package com.example.quick_call
+package com.oceancode.quick_call
 
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
@@ -7,12 +7,12 @@ import android.content.Context
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import com.example.quick_call.widget.SpeedDialWidgetProvider1x1
-import com.example.quick_call.widget.SpeedDialWidgetProvider2x3
-import com.example.quick_call.widget.SpeedDialWidgetProvider3x2
+import com.oceancode.quick_call.widget.SpeedDialWidgetProvider1x1
+import com.oceancode.quick_call.widget.SpeedDialWidgetProvider2x3
+import com.oceancode.quick_call.widget.SpeedDialWidgetProvider3x2
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "com.example.quick_call/widget"
+    private val CHANNEL = "com.oceancode.quick_call/widget"
     private val PREFS_NAME = "QuickCallWidgetPrefs"
     private val PREF_ALL_BUTTONS = "all_buttons_data"
 

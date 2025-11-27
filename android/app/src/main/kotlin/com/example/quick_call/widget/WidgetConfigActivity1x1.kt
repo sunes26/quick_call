@@ -1,4 +1,4 @@
-package com.example.quick_call.widget
+package com.oceancode.quick_call.widget
 
 import android.app.Activity
 import android.appwidget.AppWidgetManager
@@ -14,7 +14,7 @@ import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.quick_call.R
+import com.oceancode.quick_call.R
 import org.json.JSONArray
 import org.json.JSONObject
 

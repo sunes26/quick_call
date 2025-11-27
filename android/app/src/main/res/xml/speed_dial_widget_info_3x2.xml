@@ -8,7 +8,7 @@
     android:minResizeHeight="110dp"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_speed_dial_3x2"
-    android:configure="com.example.quick_call.widget.WidgetConfigActivity3x2"
+    android:configure="com.oceancode.quick_call.widget.WidgetConfigActivity3x2"
     android:resizeMode="none"
     android:widgetCategory="home_screen"
     android:description="@string/widget_description_3x2"

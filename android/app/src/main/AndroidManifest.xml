@@ -10,7 +10,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     
     <application
-        android:label="Quick Call"
+        android:label="단축번호"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         
@@ -78,7 +78,7 @@
             android:label="Quick Call 1×1">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.example.quick_call.ACTION_CALL_1X1" />
+                <action android:name="com.oceancode.quick_call.ACTION_CALL_1X1" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
@@ -92,7 +92,7 @@
             android:label="Quick Call 2×3">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.example.quick_call.ACTION_CALL_2X3" />
+                <action android:name="com.oceancode.quick_call.ACTION_CALL_2X3" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
@@ -106,7 +106,7 @@
             android:label="Quick Call 3×2">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.example.quick_call.ACTION_CALL_3X2" />
+                <action android:name="com.oceancode.quick_call.ACTION_CALL_3X2" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"

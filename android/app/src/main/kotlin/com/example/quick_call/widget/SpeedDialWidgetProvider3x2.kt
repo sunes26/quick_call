@@ -1,5 +1,5 @@
 // android/app/src/main/kotlin/com/example/quick_call/widget/SpeedDialWidgetProvider3x2.kt
-package com.example.quick_call.widget
+package com.oceancode.quick_call.widget
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -10,7 +10,7 @@ import android.content.Intent
 import android.net.Uri
 import android.view.View
 import android.widget.RemoteViews
-import com.example.quick_call.R
+import com.oceancode.quick_call.R
 import org.json.JSONArray
 
 /**
@@ -22,7 +22,7 @@ class SpeedDialWidgetProvider3x2 : AppWidgetProvider() {
         private const val PREFS_NAME = "QuickCallWidgetPrefs"
         private const val PREF_PREFIX = "widget_data_3x2_"
         private const val PREF_ALL_BUTTONS = "all_buttons_data"
-        private const val ACTION_CALL = "com.example.quick_call.ACTION_CALL_3X2"
+        private const val ACTION_CALL = "com.oceancode.quick_call.ACTION_CALL_3X2"
         private const val EXTRA_PHONE_NUMBER = "phone_number"
         private const val MAX_BUTTONS = 6
         

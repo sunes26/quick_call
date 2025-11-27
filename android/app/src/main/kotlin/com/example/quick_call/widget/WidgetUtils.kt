@@ -1,5 +1,5 @@
 // android/app/src/main/kotlin/com/example/quick_call/widget/WidgetUtils.kt
-package com.example.quick_call.widget
+package com.oceancode.quick_call.widget
 
 import android.app.PendingIntent
 import android.content.Context

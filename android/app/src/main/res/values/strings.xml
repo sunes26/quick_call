@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Quick Call</string>
+    <string name="app_name">단축번호</string>
     <string name="widget_empty">앱에서 단축키를 추가해주세요</string>
     <string name="widget_call_error">전화를 걸 수 없습니다</string>
     <string name="widget_description">빠른 전화 걸기 위젯</string>
