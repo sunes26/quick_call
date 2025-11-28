@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:quick_call/providers/speed_dial_provider.dart';
 import 'package:quick_call/providers/settings_provider.dart';
+import 'package:quick_call/services/database_service.dart';
 import 'package:quick_call/widgets/dial_button_widget.dart';
 import 'package:quick_call/widgets/loading_widget.dart';
 import 'package:quick_call/widgets/empty_state_widget.dart';
@@ -86,7 +87,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
-  // 드래그 & 가장자리 감지 관련
+  // 드래그 & 가장자리 감지 관련 (버튼 이동용)
   bool _isDragging = false;
   Offset? _dragStartPosition;
   Timer? _edgeTimer;
@@ -100,6 +101,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // 가장자리 시각적 피드백
   bool _showLeftEdgeIndicator = false;
   bool _showRightEdgeIndicator = false;
+
+  // 🆕 그룹 탭 드래그 관련
+  int? _draggingTabIndex; // 드래그 중인 탭 인덱스
+  int? _hoveredTabIndex; // 호버 중인 위치 (드롭 위치)
+  List<String> _reorderedGroups = []; // 실시간 재배열된 그룹 목록
+  bool _onAcceptCalled = false; // onAccept 호출 여부 추적
 
   @override
   void initState() {
@@ -836,6 +843,246 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+
+  // 🆕 편집 모드용 드래그 가능한 TabBar (탭 사이 간격에 드롭)
+  Widget _buildDraggableTabBar(SpeedDialProvider provider) {
+    // 드래그 중이면 재배열된 그룹 목록 사용, 아니면 원본 사용
+    final displayGroups = _draggingTabIndex != null ? _reorderedGroups : _cachedGroups;
+
+    return Container(
+      height: 48.h,
+      color: Colors.white,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: 8.w),
+        children: [
+          // 각 탭과 그 사이의 갭을 생성
+          for (int i = 0; i <= displayGroups.length; i++) ...[
+            // 갭 (드롭 영역)
+            _buildDropGap(i, provider, displayGroups),
+            
+            // 탭 (마지막 갭 뒤에는 탭 없음)
+            if (i < displayGroups.length)
+              _buildDraggableTab(i, displayGroups[i], provider),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // 드롭 가능한 갭 위젯
+  Widget _buildDropGap(int gapIndex, SpeedDialProvider provider, List<String> displayGroups) {
+    final isHovered = _hoveredTabIndex == gapIndex;
+    
+    return DragTarget<int>(
+      onWillAccept: (draggedIndex) {
+        final willAccept = draggedIndex != null;
+        debugPrint('onWillAccept: draggedIndex=$draggedIndex, gapIndex=$gapIndex, willAccept=$willAccept');
+        return willAccept;
+      },
+      onAccept: (draggedIndex) {
+        // onAccept 호출됨을 표시
+        _onAcceptCalled = true;
+        
+        // 실제 순서 변경 처리
+        debugPrint('onAccept 호출: draggedIndex=$draggedIndex, gapIndex=$gapIndex');
+        
+        // 갭 인덱스를 그대로 전달 (provider에서 조정함)
+        // 마지막 갭(gapIndex == _cachedGroups.length)도 그대로 전달
+        int targetIndex = gapIndex;
+        
+        debugPrint('드롭: oldIndex=$draggedIndex, targetIndex=$targetIndex (gapIndex=$gapIndex)');
+        
+        if (draggedIndex != targetIndex) {
+          // async 함수는 별도로 호출
+          _applyGroupReorder(provider, draggedIndex, targetIndex);
+        }
+      },
+      onMove: (details) {
+        if (_draggingTabIndex != null) {
+          setState(() {
+            _hoveredTabIndex = gapIndex;
+            _updateReorderedGroupsByGap(_draggingTabIndex!, gapIndex);
+          });
+        }
+      },
+      onLeave: (data) {
+        // 드래그가 완전히 끝났을 때만 호버 해제
+        // (드래그 중에는 다른 갭으로 이동할 때 자동으로 업데이트됨)
+      },
+      builder: (context, candidateData, rejectedData) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: isHovered && _draggingTabIndex != null ? 24.w : 8.w,
+          height: 48.h,
+          child: Center(
+            child: isHovered && _draggingTabIndex != null
+                ? Container(
+                    width: 4.w,
+                    height: 30.h,
+                    decoration: BoxDecoration(
+                      color: Colors.blue[600],
+                      borderRadius: BorderRadius.circular(2.r),
+                    ),
+                  )
+                : null,
+          ),
+        );
+      },
+    );
+  }
+
+  // 드래그 가능한 탭 위젯
+  Widget _buildDraggableTab(int index, String group, SpeedDialProvider provider) {
+    final originalIndex = _cachedGroups.indexOf(group);
+    final isSelected = provider.selectedGroup == group;
+    final isDragging = _draggingTabIndex == originalIndex;
+
+    return LongPressDraggable<int>(
+      data: originalIndex,
+      feedback: Material(
+        elevation: 0,
+        color: Colors.transparent,
+        child: SizedBox.shrink(),
+      ),
+      childWhenDragging: Opacity(
+        opacity: 0.3,
+        child: _buildTabItem(group, isSelected, provider),
+      ),
+      onDragStarted: () {
+        setState(() {
+          _draggingTabIndex = originalIndex;
+          _reorderedGroups = List<String>.from(_cachedGroups);
+          _onAcceptCalled = false; // 플래그 초기화
+        });
+      },
+      onDragEnd: (details) {
+        // 백업 처리: onAccept가 호출되지 않았지만 파란색 | 표시됐던 경우
+        if (!_onAcceptCalled && _hoveredTabIndex != null && _draggingTabIndex != null) {
+          debugPrint('onDragEnd 백업 처리: draggedIndex=$_draggingTabIndex, hoveredGapIndex=$_hoveredTabIndex');
+          
+          final draggedIndex = _draggingTabIndex!;
+          final gapIndex = _hoveredTabIndex!;
+          
+          // 갭 인덱스를 그대로 전달 (provider에서 조정함)
+          int targetIndex = gapIndex;
+          
+          debugPrint('백업 처리: oldIndex=$draggedIndex, targetIndex=$targetIndex (gapIndex=$gapIndex)');
+          
+          if (draggedIndex != targetIndex) {
+            _applyGroupReorder(provider, draggedIndex, targetIndex);
+          }
+        } else if (_onAcceptCalled) {
+          debugPrint('onDragEnd: onAccept가 이미 호출되었으므로 스킵');
+        } else {
+          debugPrint('onDragEnd: 호버된 갭이 없으므로 이동 없음');
+        }
+        
+        // 드래그 종료 시 상태 초기화
+        setState(() {
+          _draggingTabIndex = null;
+          _hoveredTabIndex = null;
+          _reorderedGroups = [];
+          _onAcceptCalled = false;
+        });
+      },
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 150),
+        opacity: isDragging ? 0.3 : 1.0,
+        child: _buildTabItem(group, isSelected, provider),
+      ),
+    );
+  }
+
+  // 갭 인덱스 기준으로 그룹 재배열 (provider의 reorderGroups와 동일한 로직)
+  void _updateReorderedGroupsByGap(int draggedIndex, int gapIndex) {
+    final newGroups = List<String>.from(_cachedGroups);
+    
+    // provider의 reorderGroups와 동일한 로직
+    int adjustedNewIndex = gapIndex;
+    if (draggedIndex < gapIndex) {
+      adjustedNewIndex = gapIndex - 1;
+    }
+    
+    // 순서 변경
+    final draggedGroup = newGroups.removeAt(draggedIndex);
+    newGroups.insert(adjustedNewIndex, draggedGroup);
+    
+    _reorderedGroups = newGroups;
+  }
+
+  // 그룹 순서 변경 적용
+  Future<void> _applyGroupReorder(SpeedDialProvider provider, int oldIndex, int newIndex) async {
+    debugPrint('_applyGroupReorder 호출: oldIndex=$oldIndex, newIndex=$newIndex');
+    debugPrint('현재 그룹 순서: ${_cachedGroups}');
+    
+    final success = await provider.reorderGroups(oldIndex, newIndex);
+    
+    debugPrint('reorderGroups 결과: success=$success');
+    
+    if (success && mounted) {
+      _showSnackBar('그룹 순서가 변경되었습니다', Colors.green[700]!);
+      
+      // TabController 인덱스 조정
+      if (_tabController != null) {
+        final currentGroup = provider.selectedGroup;
+        final newTabIndex = provider.groups.indexOf(currentGroup);
+        if (newTabIndex != -1 && newTabIndex < _tabController!.length) {
+          _tabController!.animateTo(newTabIndex);
+        }
+      }
+    } else if (!success) {
+      debugPrint('그룹 순서 변경 실패!');
+    }
+  }
+
+  // 탭 아이템 빌드 헬퍼
+  Widget _buildTabItem(
+    String group,
+    bool isSelected,
+    SpeedDialProvider provider,
+  ) {
+    return InkWell(
+      onTap: () {
+        final index = _cachedGroups.indexOf(group);
+        if (_tabController != null && index != -1 && index < _tabController!.length) {
+          _tabController!.animateTo(index);
+          provider.selectGroup(group);
+        }
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: isSelected ? Colors.blue[600]! : Colors.transparent,
+              width: 3,
+            ),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.drag_handle,
+              size: 18.sp,
+              color: Colors.grey[400],
+            ),
+            SizedBox(width: 4.w),
+            Text(
+              group,
+              style: TextStyle(
+                fontSize: 15.sp,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected ? Colors.blue[600] : Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer2<SpeedDialProvider, SettingsProvider>(
@@ -975,39 +1222,45 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
             ],
-            // 🔧 수정: 캐싱된 그룹 사용
+            // 🆕 편집 모드일 때는 드래그 가능한 TabBar, 아닐 때는 일반 TabBar
             bottom: provider.isSearching
                 ? null
-                : TabBar(
-                    controller: _tabController,
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.start,
-                    indicatorColor: Colors.blue[600],
-                    indicatorWeight: 3,
-                    labelColor: Colors.blue[600],
-                    unselectedLabelColor: Colors.grey[600],
-                    labelStyle: TextStyle(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    unselectedLabelStyle: TextStyle(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    onTap: (index) {
-                      if (index >= _cachedGroups.length) return;
-                      
-                      final clickedGroup = _cachedGroups[index];
-                      
-                      if (provider.selectedGroup == clickedGroup && 
-                          clickedGroup != '전체') {
-                        _showGroupEditBottomSheet(context, provider, clickedGroup);
-                      }
-                    },
-                    // 🔧 핵심 수정: 캐싱된 그룹으로 탭 생성
-                    tabs: _cachedGroups.map((group) {
-                      return Tab(text: group);
-                    }).toList(),
+                : PreferredSize(
+                    preferredSize: Size.fromHeight(48.h),
+                    child: provider.isEditMode
+                        ? _buildDraggableTabBar(provider)
+                        : TabBar(
+                            controller: _tabController,
+                            isScrollable: true,
+                            tabAlignment: TabAlignment.start,
+                            indicatorColor: Colors.blue[600],
+                            indicatorWeight: 3,
+                            labelColor: Colors.blue[600],
+                            unselectedLabelColor: Colors.grey[600],
+                            labelStyle: TextStyle(
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            unselectedLabelStyle: TextStyle(
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            onTap: (index) {
+                              if (index >= _cachedGroups.length) return;
+                              
+                              final clickedGroup = _cachedGroups[index];
+                              
+                              // 일반 모드 + 재클릭: 그룹 편집
+                              if (!provider.isEditMode &&
+                                  provider.selectedGroup == clickedGroup && 
+                                  clickedGroup != '전체') {
+                                _showGroupEditBottomSheet(context, provider, clickedGroup);
+                              }
+                            },
+                            tabs: _cachedGroups.map((group) {
+                              return Tab(text: group);
+                            }).toList(),
+                          ),
                   ),
           ),
           body: _buildBody(context, provider),

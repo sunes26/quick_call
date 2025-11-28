@@ -33,6 +33,7 @@ Quick Call은 자주 연락하는 사람에게 빠르게 전화를 걸 수 있�
 - ✅ **그룹 영구 저장**: 빈 그룹도 앱 재시작 후 유지됨 (v1.9.0, DB 그룹 테이블)
 - ✅ **그룹 생성**: 우측 하단 FAB 버튼으로 새 그룹 생성
 - ✅ **그룹 편집**: 그룹 탭 재클릭으로 그룹 이름 변경 및 삭제 (모든 그룹 편집 가능, v1.12.0)
+- ✅ **그룹 탭 드래그 순서 변경**: 편집 모드에서 그룹 탭을 드래그하여 순서 자유롭게 변경 (v1.14.0)
 - ✅ **스와이프 탭 전환**: 화면을 좌우로 스와이프하여 그룹 간 자연스럽게 전환 (모든 모드에서 동작)
 - ✅ **인라인 버튼 추가**: 각 그룹 마지막에 점선 테두리 + 버튼으로 빠른 추가
 - ✅ **그룹별 기본값 자동 선택**: 단축키 추가 시 현재 탭의 그룹이 기본 선택됨 (v1.8.0)
@@ -157,7 +158,7 @@ quick_call/
     │   └── speed_dial_provider.dart  # 단축키 데이터 관리 (그룹 DB 연동, 전체 탭 제거)
     │
     ├── screens/                      # 화면 UI
-    │   ├── home_screen.dart          # 메인 홈 화면 (정사각형 버튼, 애니메이션 제거, 편집 모드 흔들림 유지)
+    │   ├── home_screen.dart          # 메인 홈 화면 (정사각형 버튼, 애니메이션 제거, 편집 모드 흔들림 유지, 그룹 탭 드래그 순서 변경)
     │   ├── add_button_screen.dart    # 단축키 추가 화면 (스마트 색상 자동 적용, v1.13.0)
     │   ├── edit_button_screen.dart   # 단축키 편집 화면 (주소록 버튼 이름 옆 배치)
     │   └── settings_screen.dart      # 설정 화면
@@ -262,7 +263,7 @@ path_provider: ^2.1.1           # 파일 경로
 **특징**:
 - **"전체" 그룹 제거됨** (v1.12.0): 모든 그룹이 사용자 정의 그룹
 - 빈 그룹도 앱 재시작 후 유지됨
-- 그룹 순서 커스터마이징 가능 (향후 확장)
+- 그룹 순서 커스터마이징 가능 (v1.14.0)
 - 모든 그룹 편집/삭제 가능
 
 **마이그레이션 히스토리**:
@@ -617,6 +618,181 @@ CustomPaint(
 - 그룹 삭제 시 해당 그룹의 모든 버튼도 함께 삭제
 - 그룹 탭 재클릭으로 편집 바텀시트 표시
 
+### 15. 그룹 탭 드래그 순서 변경 (v1.14.0)
+
+편집 모드에서 그룹 탭의 순서를 직관적으로 변경할 수 있는 기능입니다.
+
+#### 동작 방식
+
+**드래그 타겟**: 탭 **사이의 간격(갭)**을 드래그 타겟으로 사용
+- 각 탭 사이에 독립적인 드롭 영역 생성
+- 갭 개수 = 탭 개수 + 1
+
+**롱프레스 드래그**:
+1. 편집 모드에서 탭을 약 1초간 롱프레스
+2. 손을 떼지 말고 좌우로 드래그
+3. 원하는 갭(탭 사이 공간) 위로 이동
+
+**실시간 미리보기**:
+- 드래그 중 탭들이 실시간으로 재배열되어 표시
+- 드래그 중인 탭은 30% 불투명도로 표시
+- 최종 배치를 미리 확인 가능
+
+**드롭 인디케이터**:
+- 삽입될 위치에 **파란색 세로선(|)** 표시 (4px × 30px)
+- 갭에 호버하면 갭이 넓어지며 파란색 세로선 표시
+- 드래그 방향에 따라 적절한 위치에 인디케이터 표시
+
+#### 예시
+
+```
+초기 상태: |직장|친구|가족|
+
+[시나리오 1] 직장을 친구와 가족 사이로 이동:
+1. "직장" 탭을 롱프레스
+2. 친구와 가족 사이의 공간으로 드래그
+3. 파란색 세로선 표시: |친구| | |가족|
+4. 손을 떼면 완료: |친구|직장|가족| ✅
+
+[시나리오 2] 가족을 맨 앞으로 이동:
+1. "가족" 탭을 롱프레스
+2. 제일 왼쪽 갭으로 드래그
+3. 파란색 세로선 표시: | |직장|친구|
+4. 손을 떼면 완료: |가족|직장|친구| ✅
+
+[시나리오 3] 친구를 맨 뒤로 이동:
+1. "친구" 탭을 롱프레스
+2. 제일 오른쪽 갭으로 드래그
+3. 파란색 세로선 표시: |직장|가족| |
+4. 손을 떼면 완료: |직장|가족|친구| ✅
+```
+
+#### 기술 구현
+
+**갭 기반 드래그 구조**:
+```dart
+// home_screen.dart
+Widget _buildDraggableTabBar(SpeedDialProvider provider) {
+  return ListView(
+    scrollDirection: Axis.horizontal,
+    children: [
+      for (int i = 0; i <= displayGroups.length; i++) ...[
+        _buildDropGap(i, provider, displayGroups),  // 드롭 갭
+        if (i < displayGroups.length)
+          _buildDraggableTab(i, displayGroups[i], provider),  // 탭
+      ],
+    ],
+  );
+}
+```
+
+**드롭 갭 위젯**:
+```dart
+Widget _buildDropGap(int gapIndex, ...) {
+  return DragTarget<int>(
+    onWillAccept: (draggedIndex) => draggedIndex != null,
+    onAccept: (draggedIndex) {
+      // 갭 인덱스를 그대로 provider에 전달
+      _applyGroupReorder(provider, draggedIndex, gapIndex);
+    },
+    onMove: (details) {
+      setState(() {
+        _hoveredTabIndex = gapIndex;
+        _updateReorderedGroupsByGap(_draggingTabIndex!, gapIndex);
+      });
+    },
+    builder: (context, candidateData, rejectedData) {
+      // 호버 시 파란색 세로선 표시
+      return isHovered && _draggingTabIndex != null
+          ? Container(width: 4.w, height: 30.h, color: Colors.blue[600])
+          : SizedBox(width: 8.w);
+    },
+  );
+}
+```
+
+**Provider 순서 변경 로직**:
+```dart
+// speed_dial_provider.dart
+Future<bool> reorderGroups(int oldIndex, int newIndex) async {
+  // 유효성 검사: newIndex는 length와 같을 수 있음 (마지막 갭)
+  if (newIndex < 0 || newIndex > _groups.length) return false;
+  
+  final groupsCopy = List<String>.from(_groups);
+  final movedGroup = groupsCopy.removeAt(oldIndex);
+  
+  // 갭 인덱스 조정
+  int adjustedNewIndex = newIndex;
+  if (oldIndex < newIndex) {
+    adjustedNewIndex = newIndex - 1;
+  }
+  
+  groupsCopy.insert(adjustedNewIndex, movedGroup);
+  
+  // UI 즉시 업데이트
+  _groups = groupsCopy;
+  notifyListeners();
+  
+  // DB 저장
+  await _databaseService.updateGroupPositions(groupsCopy);
+  return true;
+}
+```
+
+**백업 처리 메커니즘**:
+```dart
+// onAccept가 호출되지 않은 경우 대비
+onDragEnd: (details) {
+  if (!_onAcceptCalled && _hoveredTabIndex != null && _draggingTabIndex != null) {
+    // 마지막 호버된 갭 위치로 이동
+    _applyGroupReorder(provider, _draggingTabIndex!, _hoveredTabIndex!);
+  }
+  
+  // 상태 초기화
+  setState(() {
+    _draggingTabIndex = null;
+    _hoveredTabIndex = null;
+    _reorderedGroups = [];
+    _onAcceptCalled = false;
+  });
+}
+```
+
+#### 핵심 특징
+
+**갭 기반 드래그**:
+- 탭 자체가 아닌 탭 사이의 **공간**을 타겟으로 함
+- 직관적: "여기 공간에 놓겠다" → "여기 삽입됨"
+- 마지막 위치로도 이동 가능 (마지막 갭)
+
+**실시간 미리보기**:
+- 드래그 중 `_reorderedGroups` 상태로 재배열된 탭 표시
+- 드래그 중인 탭: 30% 불투명도
+- 나머지 탭: 정상 불투명도
+
+**백업 처리**:
+- `onAccept` 호출 여부를 `_onAcceptCalled` 플래그로 추적
+- `onAccept` 미호출 시 `onDragEnd`에서 `_hoveredTabIndex` 사용하여 처리
+- 갭 밖에서 손을 떼도 마지막 호버 위치로 이동
+
+**데이터베이스 저장**:
+- `groups` 테이블의 `position` 컬럼에 순서 저장
+- `updateGroupPositions(List<String>)` 메서드 사용
+- UI 즉시 업데이트 후 백그라운드에서 DB 저장
+
+#### 수정된 파일
+
+**home_screen.dart**:
+- `_buildDraggableTabBar()`: 갭 기반 드래그 구조 구현
+- `_buildDropGap()`: 드롭 갭 위젯
+- `_buildDraggableTab()`: 드래그 가능한 탭 위젯
+- `_updateReorderedGroupsByGap()`: 실시간 미리보기 업데이트
+- `_applyGroupReorder()`: 순서 변경 적용
+
+**speed_dial_provider.dart**:
+- `reorderGroups()`: 유효성 검사 수정 (`newIndex > _groups.length` 허용)
+- 갭 인덱스를 받아서 적절한 삽입 인덱스로 변환
+
 ---
 
 ## 🚀 빌드 및 실행
@@ -672,6 +848,7 @@ flutter build appbundle --release
 - addCustomGroup(String groupName)     // 새 그룹 추가 (DB 저장)
 - renameGroup(oldName, newName)        // 그룹 이름 변경
 - deleteGroup(groupName)               // 그룹 삭제 (버튼 포함)
+- reorderGroups(oldIndex, newIndex)    // 그룹 순서 변경 (v1.14.0)
 
 // 버튼 관련 메서드
 - getButtonsForGroup(String group)     // 특정 그룹의 버튼 목록 반환
@@ -701,6 +878,19 @@ flutter build appbundle --release
 ---
 
 ## ✨ 개발 히스토리
+
+### v1.14.0 (2024-11-29)
+- **그룹 탭 드래그 순서 변경 기능**
+  - 편집 모드에서 그룹 탭을 드래그하여 순서 변경
+  - 갭 기반 드래그: 탭 사이의 공간을 드래그 타겟으로 사용
+  - 실시간 미리보기: 드래그 중 탭 재배열 실시간 표시
+  - 파란색 드롭 인디케이터로 삽입 위치 시각화
+  - 백업 처리: onAccept 미호출 시 onDragEnd에서 처리
+  - 마지막 갭 지원: 마지막 위치로도 이동 가능
+  - DB 저장: groups 테이블의 position 컬럼에 순서 저장
+- **수정된 파일**
+  - `lib/screens/home_screen.dart`: 갭 기반 드래그 구조 구현
+  - `lib/providers/speed_dial_provider.dart`: reorderGroups 유효성 검사 수정
 
 ### v1.13.0 (2024-11-28)
 - **애니메이션 최적화**

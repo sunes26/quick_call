@@ -427,6 +427,88 @@ class SpeedDialProvider extends ChangeNotifier {
     }
   }
 
+  // 🆕 그룹 순서 변경
+  Future<bool> reorderGroups(int oldIndex, int newIndex) async {
+    try {
+      // 유효성 검사: newIndex는 _groups.length와 같을 수 있음 (마지막 갭)
+      if (oldIndex < 0 || oldIndex >= _groups.length ||
+          newIndex < 0 || newIndex > _groups.length) {
+        debugPrint('Invalid group reorder index: old=$oldIndex, new=$newIndex, length=${_groups.length}');
+        return false;
+      }
+
+      // 로컬 그룹 목록 순서 변경
+      final groupsCopy = List<String>.from(_groups);
+      final movedGroup = groupsCopy.removeAt(oldIndex);
+      
+      // newIndex 조정 (ReorderableListView의 동작에 맞춤)
+      int adjustedNewIndex = newIndex;
+      if (oldIndex < newIndex) {
+        adjustedNewIndex = newIndex - 1;
+      }
+      
+      groupsCopy.insert(adjustedNewIndex, movedGroup);
+      
+      // UI 즉시 업데이트
+      _groups = groupsCopy;
+      notifyListeners();
+      
+      // DB에 순서 저장 (백그라운드)
+      final success = await _databaseService.updateGroupPositions(groupsCopy);
+      
+      if (!success) {
+        // DB 저장 실패 시 원래대로 복원
+        await loadGroups();
+        return false;
+      }
+      
+      debugPrint('Group reorder completed: ${groupsCopy.join(", ")}');
+      return true;
+    } catch (e) {
+      _error = '그룹 순서 변경 중 오류가 발생했습니다: $e';
+      debugPrint(_error);
+      notifyListeners();
+      
+      // 오류 발생 시 원래대로 복원
+      await loadGroups();
+      return false;
+    }
+  }
+
+  // 🆕 그룹 순서 전체 업데이트 (다이얼로그용)
+  Future<bool> updateGroupOrder(List<String> newOrder) async {
+    try {
+      if (newOrder.length != _groups.length) {
+        debugPrint('Invalid group order: length mismatch');
+        return false;
+      }
+
+      // UI 즉시 업데이트
+      _groups = List<String>.from(newOrder);
+      notifyListeners();
+      
+      // DB에 순서 저장
+      final success = await _databaseService.updateGroupPositions(newOrder);
+      
+      if (!success) {
+        // DB 저장 실패 시 원래대로 복원
+        await loadGroups();
+        return false;
+      }
+      
+      debugPrint('Group order updated: ${newOrder.join(", ")}');
+      return true;
+    } catch (e) {
+      _error = '그룹 순서 업데이트 중 오류가 발생했습니다: $e';
+      debugPrint(_error);
+      notifyListeners();
+      
+      // 오류 발생 시 원래대로 복원
+      await loadGroups();
+      return false;
+    }
+  }
+
   // 버튼을 다른 그룹으로 이동
   Future<bool> moveButtonToGroup(SpeedDialButton button, String newGroup) async {
     try {
