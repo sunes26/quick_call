@@ -30,33 +30,6 @@ class _DialButtonWidgetState extends State<DialButtonWidget>
   late AnimationController _controller;
   late Animation<double> _animation;
 
-  // ========================================
-  // 패턴 사전 정의
-  // ========================================
-  
-  // 직책 (긴 것부터 매칭)
-  static const List<String> _positionPatterns = [
-    '본부장', '센터장', '지점장', '부사장', '선생님', '대표님',
-    '회장', '사장', '전무', '상무', '이사', '부장', '차장',
-    '과장', '대리', '주임', '사원', '팀장', '실장', '원장',
-    '관장', '교수', '박사', '님', '씨',
-  ];
-
-  // 조직 단위 (긴 것부터 매칭)
-  static const List<String> _organizationPatterns = [
-    '영업팀', '개발팀', '인사팀', '총무팀', '기획팀', '마케팅팀',
-    '경영지원팀', '고객지원팀', '연구소', '사업부', '지원팀',
-    '본부', '센터', '지점', '팀', '부', '실', '과', '국', '처',
-  ];
-
-  // 회사/기관 (긴 것부터 매칭)
-  static const List<String> _companyPatterns = [
-    '대학교', '고등학교', '중학교', '초등학교', '유치원',
-    '물산', '전자', '건설', '증권', '은행', '보험', '카드',
-    '병원', '약국', '의원', '치과', '한의원', '정형외과',
-    '회사', '그룹', '재단', '공사', '공단', '협회',
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -113,6 +86,33 @@ class _DialButtonWidgetState extends State<DialButtonWidget>
     _controller.dispose();
     super.dispose();
   }
+
+  // ========================================
+  // 패턴 사전 정의
+  // ========================================
+  
+  // 직책 (긴 것부터 매칭)
+  static const List<String> _positionPatterns = [
+    '본부장', '센터장', '지점장', '부사장', '선생님', '대표님',
+    '회장', '사장', '전무', '상무', '이사', '부장', '차장',
+    '과장', '대리', '주임', '사원', '팀장', '실장', '원장',
+    '관장', '교수', '박사', '님', '씨',
+  ];
+
+  // 조직 단위 (긴 것부터 매칭)
+  static const List<String> _organizationPatterns = [
+    '영업팀', '개발팀', '인사팀', '총무팀', '기획팀', '마케팅팀',
+    '경영지원팀', '고객지원팀', '연구소', '사업부', '지원팀',
+    '본부', '센터', '지점', '팀', '부', '실', '과', '국', '처',
+  ];
+
+  // 회사/기관 (긴 것부터 매칭)
+  static const List<String> _companyPatterns = [
+    '대학교', '고등학교', '중학교', '초등학교', '유치원',
+    '물산', '전자', '건설', '증권', '은행', '보험', '카드',
+    '병원', '약국', '의원', '치과', '한의원', '정형외과',
+    '회사', '그룹', '재단', '공사', '공단', '협회',
+  ];
 
   // 배경색에 따른 텍스트 색상 자동 결정
   Color _getTextColorForBackground(Color backgroundColor) {

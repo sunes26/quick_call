@@ -17,30 +17,45 @@ class ColorPickerWidget extends StatefulWidget {
 class _ColorPickerWidgetState extends State<ColorPickerWidget> {
   late Color _selectedColor;
 
-  // 🎨 색상 팔레트 (5x4 = 20개)
+  // 🎨 확장된 색상 팔레트 (5x6 = 30개)
+  // 🌈 Row 1-2: 기본 색상 우선 배치 (빨주노초파남보검 + 흰색 + 회색)
   static const List<Color> colorPalette = [
-    // Row 1 - 진한 색상
-    Color(0xFFE53935), // 빨강
-    Color(0xFFD81B60), // 분홍
-    Color(0xFF8E24AA), // 보라
-    Color(0xFF3949AB), // 파랑
-    Color(0xFF00ACC1), // 청록
+    // Row 1 - 기본 색상 (빨주노초파)
+    Color(0xFFF44336), // 빨강 ❤️
+    Color(0xFFFF9800), // 주황 🧡
+    Color(0xFFFFEB3B), // 노랑 💛
+    Color(0xFF4CAF50), // 초록 💚
+    Color(0xFF2196F3), // 파랑 💙 (기본색)
 
-    // Row 2 - 중간 톤
-    Color(0xFF9E9D24), // 올리브
-    Color(0xFFFFB300), // 노랑
-    Color(0xFF6D4C41), // 갈색
-    Color(0xFF43A047), // 초록
-    Color(0xFF546E7A), // 회색
+    // Row 2 - 기본 색상 (남보검 + 흰회)
+    Color(0xFF3F51B5), // 남색 💙
+    Color(0xFF9C27B0), // 보라 💜
+    Color(0xFF212121), // 검정 🖤
+    Color(0xFFFFFFFF), // 흰색 🤍
+    Color(0xFF9E9E9E), // 회색 🩶
 
-    // Row 3 - 연한 파스텔
+    // Row 3 - 진한 보조 색상
+    Color(0xFFE91E63), // 진한 분홍
+    Color(0xFF00BCD4), // 진한 청록
+    Color(0xFF827717), // 진한 올리브
+    Color(0xFF5D4037), // 진한 갈색
+    Color(0xFFD32F2F), // 진한 빨강
+
+    // Row 4 - 중간 보조 색상
+    Color(0xFFAD1457), // 딥 핑크
+    Color(0xFF6A1B9A), // 딥 퍼플
+    Color(0xFF1565C0), // 다크 블루
+    Color(0xFF00838F), // 다크 시안
+    Color(0xFFEF6C00), // 다크 오렌지
+
+    // Row 5 - 연한 파스텔 톤
     Color(0xFFFFCDD2), // 연한 빨강
     Color(0xFFF8BBD0), // 연한 분홍
     Color(0xFFE1BEE7), // 연한 보라
     Color(0xFFBBDEFB), // 연한 파랑
     Color(0xFFB2EBF2), // 연한 청록
 
-    // Row 4 - 더 연한 톤
+    // Row 6 - 밝은 파스텔 톤
     Color(0xFFF0F4C3), // 연한 올리브
     Color(0xFFFFF9C4), // 연한 노랑
     Color(0xFFD7CCC8), // 연한 갈색
@@ -122,68 +137,81 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
               ],
             ),
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 12.h),
 
-          // 색상 그리드 (스크롤 없이 한눈에)
+          // 색상 그리드 (5x6 = 30개, 스크롤 가능)
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 20.w),
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 5,
-                childAspectRatio: 1.0,
-                crossAxisSpacing: 10.w,
-                mainAxisSpacing: 10.h,
-              ),
-              itemCount: colorPalette.length,
-              itemBuilder: (context, index) {
-                final color = colorPalette[index];
-                final isSelected = _colorsEqual(_selectedColor, color);
+            child: SizedBox(
+              height: 270.h, // 스크롤 영역 고정 높이 (오버플로우 방지)
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const BouncingScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 5,
+                  childAspectRatio: 1.0,
+                  crossAxisSpacing: 10.w,
+                  mainAxisSpacing: 10.h,
+                ),
+                itemCount: colorPalette.length,
+                itemBuilder: (context, index) {
+                  final color = colorPalette[index];
+                  final isSelected = _colorsEqual(_selectedColor, color);
+                  final isWhite = color.value == 0xFFFFFFFF; // 흰색 체크
 
-                return GestureDetector(
-                  onTap: () => _selectColor(color),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isSelected ? Colors.blue[700]! : Colors.grey[300]!,
-                        width: isSelected ? 3 : 1.5,
+                  return GestureDetector(
+                    onTap: () => _selectColor(color),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          // 흰색은 항상 진한 테두리, 선택 시에는 파란 테두리
+                          color: isSelected 
+                              ? Colors.blue[700]!
+                              : (isWhite ? Colors.grey[400]! : Colors.grey[300]!),
+                          width: isSelected ? 3 : (isWhite ? 2 : 1.5),
+                        ),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: Colors.blue.withValues(alpha: 0.3),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : [],
                       ),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: Colors.blue.withValues(alpha: 0.3),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
+                      child: isSelected
+                          ? Center(
+                              child: Container(
+                                padding: EdgeInsets.all(2.w),
+                                decoration: BoxDecoration(
+                                  // 흰색/밝은 색은 회색 배경, 어두운 색은 흰색 배경
+                                  color: color.computeLuminance() > 0.5
+                                      ? Colors.grey[700]
+                                      : Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.check,
+                                  size: 16.sp,
+                                  // 체크 아이콘도 배경에 따라 색상 변경
+                                  color: color.computeLuminance() > 0.5
+                                      ? Colors.white
+                                      : Colors.blue[700],
+                                ),
                               ),
-                            ]
-                          : [],
+                            )
+                          : null,
                     ),
-                    child: isSelected
-                        ? Center(
-                            child: Container(
-                              padding: EdgeInsets.all(2.w),
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.check,
-                                size: 16.sp,
-                                color: Colors.blue[700],
-                              ),
-                            ),
-                          )
-                        : null,
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
-          SizedBox(height: 20.h),
+          SizedBox(height: 16.h),
 
           // 버튼들
           Padding(

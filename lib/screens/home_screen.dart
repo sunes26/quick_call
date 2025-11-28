@@ -1178,11 +1178,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       return _buildReorderableGrid(context, provider, groupButtons);
     }
 
-    // 일반 모드: 기본 그리드 (애니메이션 + 마지막에 + 버튼 포함)
+    // 일반 모드: 기본 그리드 (+ 버튼 포함, 애니메이션 제거)
     return _buildNormalGrid(context, provider, groupButtons, group);
   }
 
-  // 일반 모드 그리드 (애니메이션 포함)
+  // ✨ 애니메이션 제거된 일반 모드 그리드
   Widget _buildNormalGrid(
     BuildContext context, 
     SpeedDialProvider provider, 
@@ -1196,51 +1196,32 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       onRefresh: () => provider.loadButtons(),
       child: Padding(
         padding: EdgeInsets.all(16.w),
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          switchInCurve: Curves.easeInOut,
-          switchOutCurve: Curves.easeInOut,
-          child: GridView.builder(
-            key: ValueKey('normal_${group}_${groupButtons.length}_${provider.searchQuery}_${provider.currentSortOption}'),
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.only(bottom: 100.h),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              childAspectRatio: 1.0,
-              crossAxisSpacing: 26.w,
-              mainAxisSpacing: 26.h,
-            ),
-            itemCount: itemCount,
-            itemBuilder: (context, index) {
-              // 마지막 아이템은 + 버튼
-              if (index == groupButtons.length) {
-                return _buildAddButtonPlaceholder(group);
-              }
-
-              final button = groupButtons[index];
-              return TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: Duration(milliseconds: 300 + (index * 50)),
-                curve: Curves.easeOutBack,
-                builder: (context, value, child) {
-                  return Transform.scale(
-                    scale: value,
-                    child: Opacity(
-                      opacity: value.clamp(0.0, 1.0),
-                      child: child,
-                    ),
-                  );
-                },
-                child: DialButtonWidget(
-                  button: button,
-                  isEditMode: false,
-                  onTap: () => _handleButtonTap(context, provider, button),
-                  onLongPress: () => _handleButtonLongPress(context, provider, button),
-                  onDelete: () => _handleDelete(context, provider, button, index),
-                ),
-              );
-            },
+        child: GridView.builder(
+          key: ValueKey('normal_${group}_${groupButtons.length}_${provider.searchQuery}_${provider.currentSortOption}'),
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.only(bottom: 100.h),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            childAspectRatio: 1.0,
+            crossAxisSpacing: 26.w,
+            mainAxisSpacing: 26.h,
           ),
+          itemCount: itemCount,
+          itemBuilder: (context, index) {
+            // 마지막 아이템은 + 버튼
+            if (index == groupButtons.length) {
+              return _buildAddButtonPlaceholder(group);
+            }
+
+            final button = groupButtons[index];
+            return DialButtonWidget(
+              button: button,
+              isEditMode: false,
+              onTap: () => _handleButtonTap(context, provider, button),
+              onLongPress: () => _handleButtonLongPress(context, provider, button),
+              onDelete: () => _handleDelete(context, provider, button, index),
+            );
+          },
         ),
       ),
     );

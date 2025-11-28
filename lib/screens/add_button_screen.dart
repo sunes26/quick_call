@@ -47,9 +47,24 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
               widget.initialGroup != '전체' && 
               availableGroups.contains(widget.initialGroup)) {
             _selectedGroup = widget.initialGroup;
+            
+            // 🆕 해당 그룹의 마지막 버튼 색상 가져오기
+            final groupButtons = provider.getButtonsForGroup(widget.initialGroup!);
+            if (groupButtons.isNotEmpty) {
+              // 마지막 버튼의 색상을 기본 색상으로 설정
+              _selectedColor = groupButtons.last.color;
+            }
           } else {
             // 그렇지 않으면 첫 번째 사용 가능한 그룹 선택
             _selectedGroup = availableGroups.isNotEmpty ? availableGroups.first : null;
+            
+            // 🆕 첫 번째 그룹의 마지막 버튼 색상 가져오기
+            if (_selectedGroup != null) {
+              final groupButtons = provider.getButtonsForGroup(_selectedGroup!);
+              if (groupButtons.isNotEmpty) {
+                _selectedColor = groupButtons.last.color;
+              }
+            }
           }
         });
       }
@@ -436,6 +451,12 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
                                   setState(() {
                                     _selectedGroup = value!;
                                     _isAddingNewGroup = false;
+                                    
+                                    // 🆕 그룹 변경 시 해당 그룹의 마지막 버튼 색상 적용
+                                    final groupButtons = provider.getButtonsForGroup(value);
+                                    if (groupButtons.isNotEmpty) {
+                                      _selectedColor = groupButtons.last.color;
+                                    }
                                   });
                                 }
                               },

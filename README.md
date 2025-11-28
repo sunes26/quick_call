@@ -15,12 +15,16 @@ Quick Call은 자주 연락하는 사람에게 빠르게 전화를 걸 수 있�
   - **롱프레스(꾹 누르기)**: 즉시 전화 걸기 (일반 모드, 햅틱 피드백)
 - ✅ **정사각형 버튼 디자인**: 홈 화면에서 균일한 정사각형 버튼 표시 (v1.10.0)
 - ✅ **스마트 폰트 크기 조절**: 글자수와 문자 유형에 따라 자동으로 폰트 크기 최적화 (v1.10.0)
-- ✅ **색상 커스터마이징**: 버튼별 배경색 지정 가능 (20가지 색상 팔레트)
-- ✅ **컴팩트 색상 선택 UI**: 스크롤 없이 20개 색상을 한눈에 확인
+- ✅ **확장된 색상 팔레트**: 30가지 색상 지원 - 빨주노초파남보검 기본 색상 포함 (v1.13.0)
+- ✅ **스마트 색상 자동 적용**: 새 단축키 추가 시 같은 그룹의 마지막 버튼 색상 자동 적용 (v1.13.0)
+- ✅ **색상 커스터마이징**: 버튼별 배경색 지정 가능 (30가지 색상 팔레트)
+- ✅ **컴팩트 색상 선택 UI**: 스크롤로 30개 색상을 편리하게 선택
 - ✅ **큰 텍스트**: 아이콘 없이 이름만 크게 표시 (최대 36sp, 자동 크기 조정)
 - ✅ **하이브리드 줄바꿈**: 공백/구분자/패턴 인식으로 의미 단위 자동 줄바꿈
 - ✅ **글자수 무제한**: 이름 입력 글자수 제한 없음 (긴 이름도 자동 줄바꿈 처리)
 - ✅ **일관된 UI/UX**: 시스템 테마와 관계없이 항상 동일한 라이트 모드 제공 (v1.11.0)
+- ✅ **부드러운 사용 경험**: 탭 전환 시 애니메이션 제거로 즉각적인 반응 (v1.13.0)
+- ✅ **편집 모드 피드백**: 편집 모드에서 버튼 흔들림 효과로 시각적 피드백 제공 (v1.13.0)
 - ✅ **홈 화면 위젯**: 3가지 크기의 위젯 지원 (1×1, 2×3, 3×2)
 - ✅ **위젯 전화번호 표시**: 이름과 전화번호를 위젯에 함께 표시 (AutoSize 적용)
 - ✅ **연락처 연동**: 기존 연락처에서 전화번호 불러오기
@@ -153,8 +157,8 @@ quick_call/
     │   └── speed_dial_provider.dart  # 단축키 데이터 관리 (그룹 DB 연동, 전체 탭 제거)
     │
     ├── screens/                      # 화면 UI
-    │   ├── home_screen.dart          # 메인 홈 화면 (정사각형 버튼, 드래그 그룹 이동, TabController 캐싱)
-    │   ├── add_button_screen.dart    # 단축키 추가 화면 (주소록 버튼 이름 옆 배치)
+    │   ├── home_screen.dart          # 메인 홈 화면 (정사각형 버튼, 애니메이션 제거, 편집 모드 흔들림 유지)
+    │   ├── add_button_screen.dart    # 단축키 추가 화면 (스마트 색상 자동 적용, v1.13.0)
     │   ├── edit_button_screen.dart   # 단축키 편집 화면 (주소록 버튼 이름 옆 배치)
     │   └── settings_screen.dart      # 설정 화면
     │
@@ -171,8 +175,8 @@ quick_call/
     │   └── sort_options.dart         # 정렬 옵션
     │
     └── widgets/                      # 재사용 가능한 위젯
-        ├── dial_button_widget.dart       # 단축키 버튼 UI (스마트 폰트 크기, 가중치 기반)
-        ├── color_picker_widget.dart      # 색상 선택 위젯 (컴팩트 5x4 그리드)
+        ├── dial_button_widget.dart       # 단축키 버튼 UI (편집 모드 흔들림 유지, v1.13.0)
+        ├── color_picker_widget.dart      # 색상 선택 위젯 (30개 색상, 빨주노초파남보검, v1.13.0)
         ├── contact_picker_widget.dart    # 연락처 선택 위젯
         ├── empty_state_widget.dart       # 빈 상태 UI
         ├── loading_widget.dart           # 로딩 UI
@@ -375,58 +379,95 @@ _groups = dbGroups;  // DB 그룹만 사용
 - "새 그룹 만들기" 버튼
 - FAB 버튼으로도 그룹 생성 가능
 
-### 3. TabController 동기화 개선 (v1.12.0)
+### 3. 애니메이션 최적화 (v1.13.0)
 
-**문제 상황**:
-- 그룹 추가/삭제 시 TabController 길이와 실제 탭 수 불일치
-- `RangeError`, `Controller's length property does not match` 오류 발생
+**제거된 애니메이션**:
+- ❌ 탭 전환 시 버튼 등장 애니메이션 (Scale, Opacity, 순차 딜레이)
+- ❌ 그리드 전환 애니메이션 (AnimatedSwitcher)
 
-**해결 방법**:
+**유지된 애니메이션**:
+- ✅ 편집 모드 버튼 흔들림 효과 (사용자 피드백용)
+
+**이점**:
+- 즉각적인 탭 전환으로 반응성 향상
+- 불필요한 애니메이션 제거로 깔끔한 UX
+- 편집 모드에서는 흔들림으로 시각적 피드백 제공
+
+### 4. 확장된 색상 팔레트 (v1.13.0)
+
+**색상 구성 (5×6 = 30개)**:
+
+**Row 1-2: 기본 색상 (빨주노초파남보검 + 흰회)**
+- 🌈 Row 1: 빨강, 주황, 노랑, 초록, 파랑
+- 🌈 Row 2: 남색, 보라, 검정, 흰색, 회색
+
+**Row 3-6: 보조 색상 (20개)**
+- 진한 톤 (5개): 진한 분홍, 진한 청록, 진한 올리브, 진한 갈색, 진한 빨강
+- 중간 톤 (5개): 딥 핑크, 딥 퍼플, 다크 블루, 다크 시안, 다크 오렌지
+- 연한 파스텔 (5개): 연한 빨강, 연한 분홍, 연한 보라, 연한 파랑, 연한 청록
+- 밝은 파스텔 (5개): 연한 올리브, 연한 노랑, 연한 갈색, 연한 초록, 연한 회색
+
+**UI 개선**:
+- 스크롤 가능한 그리드 (높이 270.h)
+- 흰색 버튼 가시성 향상 (진한 테두리)
+- 밝은 색 선택 시 어두운 체크마크
+- 어두운 색 선택 시 밝은 체크마크
+
+### 5. 스마트 색상 자동 적용 (v1.13.0)
+
+**기능 설명**:
+- 새 단축키 추가 시 같은 그룹의 마지막 버튼 색상을 자동으로 가져옴
+- 그룹 드롭다운 변경 시 해당 그룹의 마지막 버튼 색상으로 즉시 변경
+- 빈 그룹인 경우 기본 파란색(#2196F3) 유지
+
+**동작 시나리오**:
+
+**시나리오 1: + 버튼으로 추가**
+```
+"가족" 그룹:
+┌──────────┐
+│ 엄마 (빨강) │ ← 마지막 버튼
+└──────────┘
+┌──────────┐
+│ + 버튼    │ ← 클릭
+└──────────┘
+
+→ 추가 화면 열림
+→ 색상이 자동으로 빨강색으로 선택됨 ✅
+```
+
+**시나리오 2: 그룹 변경**
+```
+현재: "가족" 선택 (마지막 버튼: 빨강)
+→ "친구"로 변경 (마지막 버튼: 파랑)
+→ 색상이 자동으로 파랑색으로 변경됨 ✅
+```
+
+**시나리오 3: 빈 그룹**
+```
+"직장" 그룹: (버튼 없음)
+→ 기본 파란색(#2196F3) 유지 ✅
+```
+
+**구현 위치**:
 ```dart
-// home_screen.dart
-// 캐싱된 그룹 목록 사용
-List<String> _cachedGroups = [];
+// add_button_screen.dart
+// 1. initState() - 초기 그룹의 마지막 버튼 색상 가져오기
+final groupButtons = provider.getButtonsForGroup(widget.initialGroup!);
+if (groupButtons.isNotEmpty) {
+  _selectedColor = groupButtons.last.color;
+}
 
-void _syncTabController(List<String> newGroups, String selectedGroup) {
-  // 그룹 목록이 변경되었을 때만 TabController 재생성
-  if (_tabController != null && 
-      _cachedGroups.length == newGroups.length &&
-      _listEquals(_cachedGroups, newGroups)) {
-    return;  // 변경 없으면 스킵
+// 2. 드롭다운 onChanged - 그룹 변경 시 색상 업데이트
+onChanged: (value) {
+  final groupButtons = provider.getButtonsForGroup(value);
+  if (groupButtons.isNotEmpty) {
+    _selectedColor = groupButtons.last.color;
   }
-  
-  // 캐싱된 그룹 업데이트 후 TabController 생성
-  _cachedGroups = List<String>.from(newGroups);
-  _tabController = TabController(
-    length: _cachedGroups.length,
-    vsync: this,
-    initialIndex: newIndex,
-  );
 }
 ```
 
-**핵심 원리**:
-- TabBar, TabBarView 모두 `_cachedGroups` 참조
-- Provider.groups 직접 참조 대신 캐싱된 그룹 사용
-- 동기화 보장으로 길이 불일치 방지
-
-### 4. 위젯 통신 채널명 수정 (v1.12.0)
-
-**문제 상황**:
-- `MissingPluginException` 오류 발생
-- Flutter와 Native 간 채널명 불일치
-
-**수정 내용**:
-```dart
-// widget_service.dart
-// 변경 전
-static const MethodChannel _channel = MethodChannel('com.example.quick_call/widget');
-
-// 변경 후
-static const MethodChannel _channel = MethodChannel('com.oceancode.quick_call/widget');
-```
-
-### 5. 정사각형 버튼 디자인 (v1.10.0)
+### 6. 정사각형 버튼 디자인 (v1.10.0)
 
 **기능 설명**:
 - 홈 화면의 단축키 버튼이 정사각형으로 표시됨
@@ -443,7 +484,7 @@ gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
 ),
 ```
 
-### 6. 스마트 폰트 크기 조절 시스템 (v1.10.0)
+### 7. 스마트 폰트 크기 조절 시스템 (v1.10.0)
 
 **기능 설명**:
 - 글자수에 비례하여 폰트 크기 자동 조절
@@ -469,7 +510,7 @@ gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
 | 7~8 | 22sp | 삼성전자영업팀 |
 | 9+ | 18sp | 한국전력공사본부장 |
 
-### 7. 단축키 버튼 UI 커스터마이징
+### 8. 단축키 버튼 UI 커스터마이징
 
 **파일 위치**: `lib/widgets/dial_button_widget.dart`
 
@@ -497,7 +538,7 @@ AutoSizeText(
 )
 ```
 
-### 8. 단축키 추가 버튼 (+) 커스터마이징
+### 9. 단축키 추가 버튼 (+) 커스터마이징
 
 **파일 위치**: `home_screen.dart`의 `_buildAddButtonPlaceholder()` 메서드
 
@@ -525,37 +566,18 @@ CustomPaint(
 )
 ```
 
-### 9. 그룹 영구 저장 시스템 (v1.9.0)
+### 10. 그룹 영구 저장 시스템 (v1.9.0)
 
 **기능 설명**:
 - 그룹 정보를 별도 테이블(`groups`)에 저장
 - 빈 그룹(버튼이 없는 그룹)도 앱 재시작 후 유지
 - 백업/복원 시 그룹 데이터도 함께 처리
 
-### 10. 드래그로 그룹 간 버튼 이동 (v1.9.0 개선)
+### 11. 드래그로 그룹 간 버튼 이동 (v1.9.0 개선)
 
 **기능 설명**:
 - 편집 모드에서 버튼을 화면 가장자리로 드래그하여 다른 그룹으로 이동
 - 1초 유지 후 손을 떼면 확인 다이얼로그 표시
-
-### 11. 색상 커스터마이징 시스템
-
-**색상 팔레트** (5×4 그리드, 20가지 색상):
-```dart
-// Row 1 - 진한 색상
-빨강(#E53935), 분홍(#D81B60), 보라(#8E24AA), 파랑(#3949AB), 청록(#00ACC1)
-
-// Row 2 - 중간 톤
-올리브(#9E9D24), 노랑(#FFB300), 갈색(#6D4C41), 초록(#43A047), 회색(#546E7A)
-
-// Row 3 - 연한 파스텔
-연한 빨강(#FFCDD2), 연한 분홍(#F8BBD0), 연한 보라(#E1BEE7), 
-연한 파랑(#BBDEFB), 연한 청록(#B2EBF2)
-
-// Row 4 - 더 연한 톤
-연한 올리브(#F0F4C3), 연한 노랑(#FFF9C4), 연한 갈색(#D7CCC8), 
-연한 초록(#C8E6C9), 연한 회색(#CFD8DC)
-```
 
 ### 12. 하이브리드 줄바꿈 시스템 (v1.7.0)
 
@@ -581,6 +603,7 @@ CustomPaint(
 - **X 버튼**: 버튼 삭제
 - **드래그**: 순서 변경
 - **가장자리 드래그**: 다른 그룹으로 이동 (1초 유지 → 손 떼면 확인창)
+- **흔들림 효과**: 편집 가능 상태 시각적 피드백
 
 ### 14. 그룹 관리 시스템 (v1.12.0 업데이트)
 
@@ -678,6 +701,30 @@ flutter build appbundle --release
 ---
 
 ## ✨ 개발 히스토리
+
+### v1.13.0 (2024-11-28)
+- **애니메이션 최적화**
+  - 탭 전환 시 버튼 등장 애니메이션 제거 (즉각적인 반응)
+  - 그리드 전환 애니메이션 제거 (부드러운 UX)
+  - 편집 모드 버튼 흔들림 효과 유지 (시각적 피드백)
+- **확장된 색상 팔레트 (30개)**
+  - 기존 20개 → 30개로 확장
+  - 빨주노초파남보검 기본 색상 우선 배치
+  - 흰색, 검정 추가
+  - 진한 톤, 중간 톤, 파스텔 톤 등 다양한 색상
+- **스마트 색상 자동 적용**
+  - 새 단축키 추가 시 같은 그룹의 마지막 버튼 색상 자동 적용
+  - 그룹 변경 시 해당 그룹의 마지막 버튼 색상으로 자동 변경
+  - 빈 그룹은 기본 파란색 유지
+- **색상 UI 개선**
+  - 스크롤 가능한 색상 그리드 (높이 270.h)
+  - 흰색 버튼 가시성 향상 (진한 테두리)
+  - 밝은 색/어두운 색에 따른 스마트 체크마크 색상
+- **수정된 파일**
+  - `lib/screens/home_screen.dart`: 버튼 등장 애니메이션 제거
+  - `lib/widgets/dial_button_widget.dart`: 편집 모드 흔들림 유지
+  - `lib/widgets/color_picker_widget.dart`: 30개 색상, 빨주노초파남보검 추가
+  - `lib/screens/add_button_screen.dart`: 스마트 색상 자동 적용
 
 ### v1.12.0 (2024-11-28)
 - **"전체" 탭 제거**
