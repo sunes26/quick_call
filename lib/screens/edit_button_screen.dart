@@ -340,7 +340,7 @@ class _EditButtonScreenState extends State<EditButtonScreen> {
     // 🆕 다크 모드 대응: Theme에서 색상 가져오기
     final theme = Theme.of(context);
     final cardColor = theme.cardTheme.color ?? theme.cardColor;
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black87;
+    // 🔧 수정: textColor 변수 제거 (미사용)
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor, // 🆕 테마 배경색 사용

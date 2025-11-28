@@ -96,31 +96,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildThemeModeTile(SettingsProvider settings, Color? cardColor) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
-      decoration: BoxDecoration(
-        color: cardColor, // 🆕 테마 카드 색상
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: ListTile(
-        leading: Icon(
-          settings.isDarkMode ? Icons.dark_mode : Icons.light_mode,
-          color: Colors.blue[700],
-        ),
-        title: const Text('다크 모드'),
-        subtitle: Text(
-          settings.isDarkMode ? '어두운 화면' : '밝은 화면',
-          style: TextStyle(fontSize: 13.sp),
-        ),
-        trailing: Switch(
-          value: settings.isDarkMode,
-          onChanged: (value) => settings.toggleDarkMode(),
-          activeThumbColor: Colors.blue[700],
-        ),
-      ),
-    );
-  }
+  // 🔧 수정: _buildThemeModeTile 메서드 제거 (미사용)
 
   Widget _buildSortOptionTile(Color? cardColor) {
     return Container(

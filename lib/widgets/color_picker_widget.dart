@@ -157,7 +157,8 @@ class _ColorPickerWidgetState extends State<ColorPickerWidget> {
                 itemBuilder: (context, index) {
                   final color = colorPalette[index];
                   final isSelected = _colorsEqual(_selectedColor, color);
-                  final isWhite = color.value == 0xFFFFFFFF; // 흰색 체크
+                  // 🔧 수정: deprecated Color.value를 toARGB32()로 변경
+                  final isWhite = color.toARGB32() == 0xFFFFFFFF; // 흰색 체크
 
                   return GestureDetector(
                     onTap: () => _selectColor(color),

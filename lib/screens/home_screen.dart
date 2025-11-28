@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:quick_call/providers/speed_dial_provider.dart';
 import 'package:quick_call/providers/settings_provider.dart';
-import 'package:quick_call/services/database_service.dart';
+// 🔧 수정: 미사용 import 제거 - database_service.dart
 import 'package:quick_call/widgets/dial_button_widget.dart';
 import 'package:quick_call/widgets/loading_widget.dart';
 import 'package:quick_call/widgets/empty_state_widget.dart';
@@ -875,17 +875,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final isHovered = _hoveredTabIndex == gapIndex;
     
     return DragTarget<int>(
-      onWillAccept: (draggedIndex) {
-        final willAccept = draggedIndex != null;
-        debugPrint('onWillAccept: draggedIndex=$draggedIndex, gapIndex=$gapIndex, willAccept=$willAccept');
+      // 🔧 수정: onWillAccept -> onWillAcceptWithDetails
+      onWillAcceptWithDetails: (details) {
+        final willAccept = details.data != null;
+        debugPrint('onWillAcceptWithDetails: draggedIndex=${details.data}, gapIndex=$gapIndex, willAccept=$willAccept');
         return willAccept;
       },
-      onAccept: (draggedIndex) {
+      // 🔧 수정: onAccept -> onAcceptWithDetails
+      onAcceptWithDetails: (details) {
+        final draggedIndex = details.data;
         // onAccept 호출됨을 표시
         _onAcceptCalled = true;
         
         // 실제 순서 변경 처리
-        debugPrint('onAccept 호출: draggedIndex=$draggedIndex, gapIndex=$gapIndex');
+        debugPrint('onAcceptWithDetails 호출: draggedIndex=$draggedIndex, gapIndex=$gapIndex');
         
         // 갭 인덱스를 그대로 전달 (provider에서 조정함)
         // 마지막 갭(gapIndex == _cachedGroups.length)도 그대로 전달
@@ -917,6 +920,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           height: 48.h,
           child: Center(
             child: isHovered && _draggingTabIndex != null
+                // 🔧 수정: const 키워드 추가
                 ? Container(
                     width: 4.w,
                     height: 30.h,
@@ -925,7 +929,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       borderRadius: BorderRadius.circular(2.r),
                     ),
                   )
-                : null,
+                // 🔧 수정: const 키워드 추가
+                : const SizedBox.shrink(),
           ),
         );
       },
@@ -943,7 +948,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       feedback: Material(
         elevation: 0,
         color: Colors.transparent,
-        child: SizedBox.shrink(),
+        child: const SizedBox.shrink(),
       ),
       childWhenDragging: Opacity(
         opacity: 0.3,
@@ -1014,7 +1019,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // 그룹 순서 변경 적용
   Future<void> _applyGroupReorder(SpeedDialProvider provider, int oldIndex, int newIndex) async {
     debugPrint('_applyGroupReorder 호출: oldIndex=$oldIndex, newIndex=$newIndex');
-    debugPrint('현재 그룹 순서: ${_cachedGroups}');
+    // 🔧 수정: 불필요한 중괄호 제거
+    debugPrint('현재 그룹 순서: $_cachedGroups');
     
     final success = await provider.reorderGroups(oldIndex, newIndex);
     
@@ -1554,7 +1560,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   }
                   return Material(
                     elevation: 8,
-                    borderRadius: BorderRadius.circular(20.r),
+                    borderRadius: BorderRadius.circular(30.r),
                     child: Opacity(
                       opacity: 0.8,
                       child: child,

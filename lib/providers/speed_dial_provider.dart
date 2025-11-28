@@ -615,7 +615,8 @@ class SpeedDialProvider extends ChangeNotifier {
         return false;
       }
 
-      final count = await _databaseService.renameGroup(oldName, newName);
+      // 🔧 수정: count 변수를 _로 변경하여 미사용 경고 해결
+      final _ = await _databaseService.renameGroup(oldName, newName);
       
       await loadGroups();
       await loadButtons();
