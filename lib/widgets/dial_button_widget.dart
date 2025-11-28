@@ -427,7 +427,7 @@ class _DialButtonWidgetState extends State<DialButtonWidget>
                   clipBehavior: Clip.hardEdge,
                   decoration: BoxDecoration(
                     color: widget.button.color,
-                    borderRadius: BorderRadius.circular(16.r),
+                    borderRadius: BorderRadius.circular(32.r),
                     boxShadow: const [
                       BoxShadow(
                         color: Color.fromRGBO(0, 0, 0, 0.1),

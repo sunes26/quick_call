@@ -28,13 +28,13 @@ Quick Call은 자주 연락하는 사람에게 빠르게 전화를 걸 수 있�
 - ✅ **그룹 관리**: 가족, 친구, 직장 등 그룹별 분류
 - ✅ **그룹 영구 저장**: 빈 그룹도 앱 재시작 후 유지됨 (v1.9.0, DB 그룹 테이블)
 - ✅ **그룹 생성**: 우측 하단 FAB 버튼으로 새 그룹 생성
-- ✅ **그룹 편집**: 그룹 탭 재클릭으로 그룹 이름 변경 및 삭제 (전체 그룹 제외, 모든 모드에서 동일)
+- ✅ **그룹 편집**: 그룹 탭 재클릭으로 그룹 이름 변경 및 삭제 (모든 그룹 편집 가능, v1.12.0)
 - ✅ **스와이프 탭 전환**: 화면을 좌우로 스와이프하여 그룹 간 자연스럽게 전환 (모든 모드에서 동작)
 - ✅ **인라인 버튼 추가**: 각 그룹 마지막에 점선 테두리 + 버튼으로 빠른 추가
 - ✅ **그룹별 기본값 자동 선택**: 단축키 추가 시 현재 탭의 그룹이 기본 선택됨 (v1.8.0)
 - ✅ **드래그로 그룹 간 이동**: 편집 모드에서 버튼을 가장자리로 드래그하여 다른 그룹으로 이동 (v1.9.0 개선)
 - ✅ **드래그 앤 드롭**: 편집 모드에서 순서 변경 가능
-- ✅ **검색 기능**: 이름/전화번호로 빠른 검색
+- ✅ **검색 기능**: 이름/전화번호로 빠른 검색 (모든 그룹에서 검색)
 - ✅ **백업/복원**: JSON 형식으로 데이터 백업 및 복원 (그룹 데이터 포함, v1.9.0)
 
 ---
@@ -150,10 +150,10 @@ quick_call/
     │
     ├── providers/                    # 상태 관리 (Provider)
     │   ├── settings_provider.dart    # 앱 설정 관리
-    │   └── speed_dial_provider.dart  # 단축키 데이터 관리 (그룹 DB 연동)
+    │   └── speed_dial_provider.dart  # 단축키 데이터 관리 (그룹 DB 연동, 전체 탭 제거)
     │
     ├── screens/                      # 화면 UI
-    │   ├── home_screen.dart          # 메인 홈 화면 (정사각형 버튼, 드래그 그룹 이동)
+    │   ├── home_screen.dart          # 메인 홈 화면 (정사각형 버튼, 드래그 그룹 이동, TabController 캐싱)
     │   ├── add_button_screen.dart    # 단축키 추가 화면 (주소록 버튼 이름 옆 배치)
     │   ├── edit_button_screen.dart   # 단축키 편집 화면 (주소록 버튼 이름 옆 배치)
     │   └── settings_screen.dart      # 설정 화면
@@ -162,7 +162,7 @@ quick_call/
     │   ├── database_service.dart     # SQLite 데이터베이스 관리 (버전 6, groups 테이블)
     │   ├── phone_service.dart        # 전화 걸기 기능
     │   ├── permission_service.dart   # 권한 관리
-    │   ├── widget_service.dart       # 위젯 통신 (color 지원)
+    │   ├── widget_service.dart       # 위젯 통신 (color 지원, 채널명 수정)
     │   └── backup_service.dart       # 백업/복원 기능 (버전 1.1.0, 그룹 포함)
     │
     ├── utils/                        # 유틸리티
@@ -256,9 +256,10 @@ path_provider: ^2.1.1           # 파일 경로
 - `idx_group_position`: position 컬럼
 
 **특징**:
-- "전체" 그룹은 가상 그룹으로 DB에 저장되지 않음
+- **"전체" 그룹 제거됨** (v1.12.0): 모든 그룹이 사용자 정의 그룹
 - 빈 그룹도 앱 재시작 후 유지됨
 - 그룹 순서 커스터마이징 가능 (향후 확장)
+- 모든 그룹 편집/삭제 가능
 
 **마이그레이션 히스토리**:
 - v1-v2: group 컬럼 추가
@@ -350,13 +351,82 @@ ThemeMode _themeMode = ThemeMode.light;  // 항상 라이트 모드
 자동        →     라이트 모드 ✅ (강제)
 ```
 
-**추가 개선사항**:
-- 설정 화면에서 다크모드 토글 제거
-- "새 그룹 만들기" AlertDialog → ModalBottomSheet로 변경
-- 키보드 오버플로우 에러 해결 (`isScrollControlled: true` 적용)
-- 하드코딩된 색상을 Theme 기반 색상으로 변경
+### 2. "전체" 탭 제거 (v1.12.0)
 
-### 2. 정사각형 버튼 디자인 (v1.10.0)
+**기능 설명**:
+- 기존의 "전체" 가상 그룹 제거
+- 모든 그룹이 사용자 정의 그룹으로 동일하게 관리
+- 그룹이 없을 때 "새 그룹 만들기" 안내 화면 표시
+
+**변경사항**:
+```dart
+// speed_dial_provider.dart
+// 변경 전
+List<String> _groups = ['전체'];
+_groups = ['전체', ...dbGroups];
+
+// 변경 후
+List<String> _groups = [];
+_groups = dbGroups;  // DB 그룹만 사용
+```
+
+**그룹 없음 상태 UI**:
+- 폴더 아이콘 + "그룹이 없습니다" 메시지
+- "새 그룹 만들기" 버튼
+- FAB 버튼으로도 그룹 생성 가능
+
+### 3. TabController 동기화 개선 (v1.12.0)
+
+**문제 상황**:
+- 그룹 추가/삭제 시 TabController 길이와 실제 탭 수 불일치
+- `RangeError`, `Controller's length property does not match` 오류 발생
+
+**해결 방법**:
+```dart
+// home_screen.dart
+// 캐싱된 그룹 목록 사용
+List<String> _cachedGroups = [];
+
+void _syncTabController(List<String> newGroups, String selectedGroup) {
+  // 그룹 목록이 변경되었을 때만 TabController 재생성
+  if (_tabController != null && 
+      _cachedGroups.length == newGroups.length &&
+      _listEquals(_cachedGroups, newGroups)) {
+    return;  // 변경 없으면 스킵
+  }
+  
+  // 캐싱된 그룹 업데이트 후 TabController 생성
+  _cachedGroups = List<String>.from(newGroups);
+  _tabController = TabController(
+    length: _cachedGroups.length,
+    vsync: this,
+    initialIndex: newIndex,
+  );
+}
+```
+
+**핵심 원리**:
+- TabBar, TabBarView 모두 `_cachedGroups` 참조
+- Provider.groups 직접 참조 대신 캐싱된 그룹 사용
+- 동기화 보장으로 길이 불일치 방지
+
+### 4. 위젯 통신 채널명 수정 (v1.12.0)
+
+**문제 상황**:
+- `MissingPluginException` 오류 발생
+- Flutter와 Native 간 채널명 불일치
+
+**수정 내용**:
+```dart
+// widget_service.dart
+// 변경 전
+static const MethodChannel _channel = MethodChannel('com.example.quick_call/widget');
+
+// 변경 후
+static const MethodChannel _channel = MethodChannel('com.oceancode.quick_call/widget');
+```
+
+### 5. 정사각형 버튼 디자인 (v1.10.0)
 
 **기능 설명**:
 - 홈 화면의 단축키 버튼이 정사각형으로 표시됨
@@ -368,12 +438,12 @@ ThemeMode _themeMode = ThemeMode.light;  // 항상 라이트 모드
 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
   crossAxisCount: 3,
   childAspectRatio: 1.0,  // 정사각형 (이전: 0.85)
-  crossAxisSpacing: 12.w,
-  mainAxisSpacing: 12.h,
+  crossAxisSpacing: 26.w,  // 버튼 간격 (v1.12.0 조정)
+  mainAxisSpacing: 26.h,
 ),
 ```
 
-### 3. 스마트 폰트 크기 조절 시스템 (v1.10.0)
+### 6. 스마트 폰트 크기 조절 시스템 (v1.10.0)
 
 **기능 설명**:
 - 글자수에 비례하여 폰트 크기 자동 조절
@@ -399,27 +469,76 @@ gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
 | 7~8 | 22sp | 삼성전자영업팀 |
 | 9+ | 18sp | 한국전력공사본부장 |
 
-### 4. 주소록 버튼 위치 개선 (v1.10.0)
+### 7. 단축키 버튼 UI 커스터마이징
 
-**기능 설명**:
-- 연락처 불러오기 버튼을 전화번호 입력칸에서 이름 입력칸 옆으로 이동
-- 연락처 선택 시 이름과 전화번호가 동시에 채워지므로 더 직관적인 UX
+**파일 위치**: `lib/widgets/dial_button_widget.dart`
 
-### 5. 그룹 영구 저장 시스템 (v1.9.0)
+**수정 가능한 항목**:
+```dart
+// 버튼 컨테이너
+Container(
+  decoration: BoxDecoration(
+    color: widget.button.color,              // 배경색
+    borderRadius: BorderRadius.circular(16.r), // 둥근 모서리
+    boxShadow: [...],                        // 그림자
+  ),
+)
+
+// 텍스트 스타일
+AutoSizeText(
+  style: TextStyle(
+    fontSize: maxFontSize.sp,    // 폰트 크기
+    fontWeight: FontWeight.bold, // 굵기
+    color: textColor,            // 색상
+    height: 1.2,                 // 줄 간격
+  ),
+  maxLines: 3,                   // 최대 줄 수
+  minFontSize: 12,               // 최소 폰트 크기
+)
+```
+
+### 8. 단축키 추가 버튼 (+) 커스터마이징
+
+**파일 위치**: `home_screen.dart`의 `_buildAddButtonPlaceholder()` 메서드
+
+**수정 가능한 항목**:
+```dart
+CustomPaint(
+  painter: DashedBorderPainter(
+    color: Colors.grey[400]!,    // 점선 테두리 색상
+    strokeWidth: 2,              // 점선 두께
+    gap: 6,                      // 점선 간격
+    dashWidth: 6,                // 점선 길이
+    borderRadius: 16.r,          // 둥근 모서리
+  ),
+  child: Container(
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(16.r),  // 컨테이너 radius
+      color: Colors.grey[50],                      // 배경색
+    ),
+    child: Icon(
+      Icons.add,
+      size: 40.sp,              // + 아이콘 크기
+      color: Colors.grey[400],  // + 아이콘 색상
+    ),
+  ),
+)
+```
+
+### 9. 그룹 영구 저장 시스템 (v1.9.0)
 
 **기능 설명**:
 - 그룹 정보를 별도 테이블(`groups`)에 저장
 - 빈 그룹(버튼이 없는 그룹)도 앱 재시작 후 유지
 - 백업/복원 시 그룹 데이터도 함께 처리
 
-### 6. 드래그로 그룹 간 버튼 이동 (v1.9.0 개선)
+### 10. 드래그로 그룹 간 버튼 이동 (v1.9.0 개선)
 
 **기능 설명**:
 - 편집 모드에서 버튼을 화면 가장자리로 드래그하여 다른 그룹으로 이동
 - 1초 유지 후 손을 떼면 확인 다이얼로그 표시
-- "전체" 그룹으로는 이동 불가
 
-### 7. 색상 커스터마이징 시스템
+### 11. 색상 커스터마이징 시스템
 
 **색상 팔레트** (5×4 그리드, 20가지 색상):
 ```dart
@@ -438,7 +557,7 @@ gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
 연한 초록(#C8E6C9), 연한 회색(#CFD8DC)
 ```
 
-### 8. 하이브리드 줄바꿈 시스템 (v1.7.0)
+### 12. 하이브리드 줄바꿈 시스템 (v1.7.0)
 
 버튼 이름을 의미 단위로 자동 줄바꿈하여 가독성을 높이는 시스템입니다.
 
@@ -451,7 +570,7 @@ gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
 5. 짧은 텍스트 (6글자-) → 그대로 1줄
 ```
 
-### 9. 버튼 조작 방식
+### 13. 버튼 조작 방식
 
 **일반 모드**:
 - **클릭(탭)**: 버튼 편집 화면 열기
@@ -463,16 +582,17 @@ gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
 - **드래그**: 순서 변경
 - **가장자리 드래그**: 다른 그룹으로 이동 (1초 유지 → 손 떼면 확인창)
 
-### 10. 그룹 관리 시스템
+### 14. 그룹 관리 시스템 (v1.12.0 업데이트)
 
-**기본 그룹 정책**:
-- **"전체" 그룹만 기본 그룹**으로 존재 (가상 그룹, DB에 저장 안 됨)
-- 편집 및 삭제 불가능
+**그룹 정책**:
+- **기본 그룹 없음**: 모든 그룹이 사용자 정의 그룹
+- 모든 그룹 편집/삭제 가능
+- 빈 그룹도 영구 저장
 
 **사용자 그룹**:
 - 그룹 이름 변경 가능 (최대 10자)
 - 그룹 삭제 시 해당 그룹의 모든 버튼도 함께 삭제
-- **빈 그룹도 영구 저장** (v1.9.0)
+- 그룹 탭 재클릭으로 편집 바텀시트 표시
 
 ---
 
@@ -518,7 +638,7 @@ flutter build appbundle --release
 ```dart
 - buttons: List<SpeedDialButton>       // 현재 표시 중인 버튼 목록
 - allButtons: List<SpeedDialButton>    // 전체 버튼 목록
-- groups: List<String>                 // 그룹 목록 (DB에서 로드)
+- groups: List<String>                 // 그룹 목록 (DB에서 로드, 전체 탭 없음)
 - selectedGroup: String                // 선택된 그룹
 - isEditMode: bool                     // 편집 모드 여부
 - searchQuery: String                  // 검색어
@@ -548,7 +668,6 @@ flutter build appbundle --release
 ## 🐛 알려진 이슈 및 제한사항
 
 1. **드래그 그룹 이동 제한**
-   - "전체" 그룹으로는 버튼 이동 불가 (의도된 동작)
    - 첫 번째/마지막 탭에서 범위 밖으로 이동 불가
    - 드래그 중 탭 전환 불가 (라이브러리 제약, 확인 다이얼로그 방식으로 대체)
 
@@ -559,6 +678,25 @@ flutter build appbundle --release
 ---
 
 ## ✨ 개발 히스토리
+
+### v1.12.0 (2024-11-28)
+- **"전체" 탭 제거**
+  - 모든 그룹이 사용자 정의 그룹으로 동일하게 관리
+  - 그룹이 없을 때 "새 그룹 만들기" 안내 화면 표시
+  - 검색 시 모든 그룹의 버튼에서 검색
+- **TabController 동기화 개선**
+  - 캐싱된 그룹 목록(`_cachedGroups`) 사용
+  - 그룹 추가/삭제 시 발생하던 길이 불일치 오류 해결
+  - `RangeError`, `Controller's length property does not match` 오류 수정
+- **위젯 통신 채널명 수정**
+  - `com.example.quick_call/widget` → `com.oceancode.quick_call/widget`
+  - `MissingPluginException` 오류 해결
+- **버튼 간격 조정**
+  - GridView 간격: 12 → 26 (버튼 크기 감소)
+- **수정된 파일**
+  - `lib/providers/speed_dial_provider.dart`: 전체 탭 제거, 그룹 로직 수정
+  - `lib/screens/home_screen.dart`: TabController 캐싱, 빈 그룹 상태 UI
+  - `lib/services/widget_service.dart`: 채널명 수정
 
 ### v1.11.0 (2024-11-28)
 - **다크모드 호환성 개선**

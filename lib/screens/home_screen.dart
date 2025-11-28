@@ -76,8 +76,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  late TabController _tabController;
+  TabController? _tabController;
   SpeedDialButton? _deletedButton; // Undo를 위한 삭제된 버튼 임시 저장
+  
+  // 🔧 핵심 수정: 현재 TabController가 관리하는 그룹 목록 캐싱
+  List<String> _cachedGroups = [];
   
   // 검색 관련
   final TextEditingController _searchController = TextEditingController();
@@ -101,27 +104,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    final provider = context.read<SpeedDialProvider>();
-    _tabController = TabController(
-      length: provider.groups.length,
-      vsync: this,
-    );
     
-    // 탭 변경 감지
-    _tabController.addListener(_onTabChanged);
-
     // 검색어 변경 리스너
     _searchController.addListener(() {
       context.read<SpeedDialProvider>().setSearchQuery(_searchController.text);
     });
   }
 
-  // 탭 변경 리스너 분리
+  // 탭 변경 리스너
   void _onTabChanged() {
-    if (!_tabController.indexIsChanging) {
+    if (_tabController == null) return;
+    if (!_tabController!.indexIsChanging) {
       final provider = context.read<SpeedDialProvider>();
-      if (_tabController.index < provider.groups.length) {
-        provider.selectGroup(provider.groups[_tabController.index]);
+      // 🔧 수정: 캐싱된 그룹 사용
+      if (_tabController!.index < _cachedGroups.length) {
+        provider.selectGroup(_cachedGroups[_tabController!.index]);
       }
     }
   }
@@ -129,27 +126,63 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     _edgeTimer?.cancel();
-    _tabController.removeListener(_onTabChanged);
-    _tabController.dispose();
+    _tabController?.removeListener(_onTabChanged);
+    _tabController?.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
   }
 
-  // TabController 재생성 (그룹 변경 시)
-  void _recreateTabController(SpeedDialProvider provider) {
-    final currentIndex = provider.groups.indexOf(provider.selectedGroup).clamp(0, provider.groups.length - 1);
+  // 🔧 핵심 수정: TabController 동기적 업데이트
+  // 이 메서드는 build() 전에 호출되어 TabController와 캐싱된 그룹을 동기화
+  void _syncTabController(List<String> newGroups, String selectedGroup) {
+    // 그룹이 없으면 처리하지 않음
+    if (newGroups.isEmpty) {
+      return;
+    }
     
-    _tabController.removeListener(_onTabChanged);
-    _tabController.dispose();
+    // 그룹 목록이 변경되지 않았으면 스킵
+    if (_tabController != null && 
+        _cachedGroups.length == newGroups.length &&
+        _listEquals(_cachedGroups, newGroups)) {
+      return;
+    }
     
+    debugPrint('TabController 동기화: ${_cachedGroups.length} -> ${newGroups.length}');
+    
+    // 현재 인덱스 계산
+    int newIndex = newGroups.indexOf(selectedGroup);
+    if (newIndex == -1) {
+      newIndex = 0;
+    }
+    newIndex = newIndex.clamp(0, newGroups.length - 1);
+    
+    // 기존 컨트롤러 정리
+    _tabController?.removeListener(_onTabChanged);
+    _tabController?.dispose();
+    
+    // 캐싱된 그룹 업데이트 (TabController 생성 전에!)
+    _cachedGroups = List<String>.from(newGroups);
+    
+    // 새 컨트롤러 생성
     _tabController = TabController(
-      length: provider.groups.length,
+      length: _cachedGroups.length,
       vsync: this,
-      initialIndex: currentIndex,
+      initialIndex: newIndex,
     );
     
-    _tabController.addListener(_onTabChanged);
+    _tabController!.addListener(_onTabChanged);
+    
+    debugPrint('TabController 생성 완료: length=${_cachedGroups.length}, index=$newIndex');
+  }
+  
+  // 리스트 비교 헬퍼
+  bool _listEquals(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   // 포인터 다운 처리
@@ -261,8 +294,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // 그룹 이동 준비 (실제 이동은 드래그 종료 시)
   void _prepareGroupMove(SpeedDialProvider provider, EdgeSide edge) {
-    final currentIndex = _tabController.index;
-    final groups = provider.groups;
+    if (_tabController == null) return;
+    
+    final currentIndex = _tabController!.index;
     int targetIndex;
 
     if (edge == EdgeSide.left) {
@@ -271,8 +305,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       targetIndex = currentIndex + 1;
     }
 
+    // 🔧 수정: 캐싱된 그룹 사용
     // 범위 체크
-    if (targetIndex < 0 || targetIndex >= groups.length) {
+    if (targetIndex < 0 || targetIndex >= _cachedGroups.length) {
       _showSnackBar('이동할 수 있는 그룹이 없습니다', Colors.orange[700]!);
       setState(() {
         _showLeftEdgeIndicator = false;
@@ -281,7 +316,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       return;
     }
 
-    final targetGroup = groups[targetIndex];
+    final targetGroup = _cachedGroups[targetIndex];
 
     // "전체" 그룹으로는 이동 불가
     if (targetGroup == '전체') {
@@ -388,8 +423,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       if (success) {
         // 타겟 그룹으로 탭 전환
         final targetIndex = provider.groups.indexOf(targetGroup);
-        if (targetIndex != -1) {
-          _tabController.animateTo(targetIndex);
+        if (targetIndex != -1 && _tabController != null && targetIndex < _tabController!.length) {
+          _tabController!.animateTo(targetIndex);
           provider.selectGroup(targetGroup);
         }
         
@@ -486,8 +521,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 그룹 추가 다이얼로그 (DB에 저장) - 🆕 오버플로우 수정
-Future<void> _showAddGroupDialog(
+  // 그룹 추가 다이얼로그 (DB에 저장)
+  Future<void> _showAddGroupDialog(
     BuildContext context,
     SpeedDialProvider provider,
   ) async {
@@ -495,11 +530,10 @@ Future<void> _showAddGroupDialog(
 
     await showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // 키보드에 따라 높이 자동 조정
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         return Padding(
-          // 🆕 키보드 높이만큼 자동으로 padding 추가
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
           ),
@@ -653,10 +687,12 @@ Future<void> _showAddGroupDialog(
                               
                               // 새로 생성된 그룹으로 이동
                               WidgetsBinding.instance.addPostFrameCallback((_) {
-                                final newIndex = provider.groups.indexOf(groupName);
-                                if (newIndex != -1 && mounted) {
-                                  _tabController.animateTo(newIndex);
-                                  provider.selectGroup(groupName);
+                                if (mounted && _tabController != null) {
+                                  final newIndex = provider.groups.indexOf(groupName);
+                                  if (newIndex != -1 && newIndex < _tabController!.length) {
+                                    _tabController!.animateTo(newIndex);
+                                    provider.selectGroup(groupName);
+                                  }
                                 }
                               });
                             } else {
@@ -691,13 +727,14 @@ Future<void> _showAddGroupDialog(
       },
     );
   }
+
   // 그룹 삭제 확인 다이얼로그
   Future<void> _showDeleteGroupConfirmDialog(
     BuildContext context,
     SpeedDialProvider provider,
     String groupName,
   ) async {
-    final buttonCount = provider.buttons.where((b) => b.group == groupName).length;
+    final buttonCount = provider.allButtons.where((b) => b.group == groupName).length;
     
     await showDialog(
       context: context,
@@ -803,16 +840,18 @@ Future<void> _showAddGroupDialog(
   Widget build(BuildContext context) {
     return Consumer2<SpeedDialProvider, SettingsProvider>(
       builder: (context, provider, settings, child) {
-        // TabController 길이 업데이트 (그룹이 추가/삭제될 때)
-        if (_tabController.length != provider.groups.length) {
-          // 다음 프레임에서 TabController 재생성
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              setState(() {
-                _recreateTabController(provider);
-              });
-            }
-          });
+        // 🔧 핵심 수정: build() 시작 시 TabController 동기화
+        // 이렇게 하면 TabBar와 TabBarView가 항상 동일한 그룹 목록을 사용
+        _syncTabController(provider.groups, provider.selectedGroup);
+        
+        // TabController가 아직 없으면 로딩 표시
+        if (_tabController == null || _cachedGroups.isEmpty) {
+          return Scaffold(
+            backgroundColor: Colors.grey[100],
+            body: const LoadingWidget(
+              message: '로딩 중...',
+            ),
+          );
         }
 
         return Scaffold(
@@ -936,6 +975,7 @@ Future<void> _showAddGroupDialog(
                   ),
                 ),
             ],
+            // 🔧 수정: 캐싱된 그룹 사용
             bottom: provider.isSearching
                 ? null
                 : TabBar(
@@ -954,19 +994,18 @@ Future<void> _showAddGroupDialog(
                       fontSize: 15.sp,
                       fontWeight: FontWeight.w500,
                     ),
-                    // 탭 클릭 감지 - 같은 탭 재클릭 시 그룹 편집 (일반/편집 모드 모두)
                     onTap: (index) {
-                      final clickedGroup = provider.groups[index];
+                      if (index >= _cachedGroups.length) return;
                       
-                      // 현재 선택된 그룹과 클릭된 그룹이 같으면 그룹 편집 바텀시트 표시
-                      // "전체" 그룹은 편집 불가
+                      final clickedGroup = _cachedGroups[index];
+                      
                       if (provider.selectedGroup == clickedGroup && 
                           clickedGroup != '전체') {
                         _showGroupEditBottomSheet(context, provider, clickedGroup);
                       }
                     },
-                    // 편집 모드에서도 일반 탭으로 표시 (수정/X 버튼 제거)
-                    tabs: provider.groups.map((group) {
+                    // 🔧 핵심 수정: 캐싱된 그룹으로 탭 생성
+                    tabs: _cachedGroups.map((group) {
                       return Tab(text: group);
                     }).toList(),
                   ),
@@ -1034,12 +1073,11 @@ Future<void> _showAddGroupDialog(
       return _buildSearchResultGrid(context, provider);
     }
 
-    // 일반/편집 모드: TabBarView로 스와이프 지원
+    // 🔧 핵심 수정: 캐싱된 그룹으로 TabBarView 생성
     return TabBarView(
       controller: _tabController,
-      // 모든 모드에서 스와이프 탭 전환 활성화
       physics: const ClampingScrollPhysics(),
-      children: provider.groups.map((group) {
+      children: _cachedGroups.map((group) {
         return _buildGroupPage(context, provider, group);
       }).toList(),
     );
@@ -1103,7 +1141,7 @@ Future<void> _showAddGroupDialog(
           padding: EdgeInsets.only(bottom: 100.h),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
-            childAspectRatio: 1.0, // 🆕 정사각형으로 변경
+            childAspectRatio: 1.0,
             crossAxisSpacing: 12.w,
             mainAxisSpacing: 12.h,
           ),
@@ -1131,7 +1169,6 @@ Future<void> _showAddGroupDialog(
     if (groupButtons.isEmpty) {
       return NoSpeedDialsWidget(
         groupName: group,
-        // 현재 그룹 정보 전달
         onAddPressed: () => _showAddButtonDialog(initialGroup: group),
       );
     }
@@ -1169,15 +1206,14 @@ Future<void> _showAddGroupDialog(
             padding: EdgeInsets.only(bottom: 100.h),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              childAspectRatio: 1.0, // 🆕 정사각형으로 변경
-              crossAxisSpacing: 12.w,
-              mainAxisSpacing: 12.h,
+              childAspectRatio: 1.0,
+              crossAxisSpacing: 26.w,
+              mainAxisSpacing: 26.h,
             ),
             itemCount: itemCount,
             itemBuilder: (context, index) {
               // 마지막 아이템은 + 버튼
               if (index == groupButtons.length) {
-                // 현재 그룹 정보 전달
                 return _buildAddButtonPlaceholder(group);
               }
 
@@ -1211,7 +1247,6 @@ Future<void> _showAddGroupDialog(
   }
 
   // 점선 테두리의 + 버튼 (단축키 추가용)
-  // group 파라미터 추가: 현재 그룹 정보를 AddButtonScreen에 전달
   Widget _buildAddButtonPlaceholder(String group) {
     return GestureDetector(
       onTap: () => _showAddButtonDialog(initialGroup: group),
@@ -1221,11 +1256,11 @@ Future<void> _showAddGroupDialog(
           strokeWidth: 2,
           gap: 6,
           dashWidth: 6,
-          borderRadius: 16.r,
+          borderRadius: 30.r,
         ),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16.r),
+            borderRadius: BorderRadius.circular(30.r),
             color: Colors.grey[50],
           ),
           child: Center(
@@ -1264,7 +1299,7 @@ Future<void> _showAddGroupDialog(
                 padding: EdgeInsets.only(bottom: 100.h),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
-                  childAspectRatio: 1.0, // 🆕 정사각형으로 변경
+                  childAspectRatio: 1.0,
                   crossAxisSpacing: 20.w,
                   mainAxisSpacing: 20.h,
                 ),
@@ -1285,7 +1320,7 @@ Future<void> _showAddGroupDialog(
                   }
                   return Material(
                     elevation: 8,
-                    borderRadius: BorderRadius.circular(16.r),
+                    borderRadius: BorderRadius.circular(20.r),
                     child: Opacity(
                       opacity: 0.8,
                       child: child,
@@ -1331,15 +1366,16 @@ Future<void> _showAddGroupDialog(
 
   // 가장자리 인디케이터 위젯
   Widget _buildEdgeIndicator(EdgeSide side, SpeedDialProvider provider) {
-    final currentIndex = _tabController.index;
-    final groups = provider.groups;
+    if (_tabController == null) return const SizedBox.shrink();
+    
+    final currentIndex = _tabController!.index;
     
     int targetIndex = side == EdgeSide.left ? currentIndex - 1 : currentIndex + 1;
     
-    // 범위 체크 및 "전체" 그룹 체크
+    // 🔧 수정: 캐싱된 그룹 사용
     bool canMove = targetIndex >= 0 && 
-                   targetIndex < groups.length && 
-                   groups[targetIndex] != '전체';
+                   targetIndex < _cachedGroups.length && 
+                   _cachedGroups[targetIndex] != '전체';
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -1370,7 +1406,7 @@ Future<void> _showAddGroupDialog(
             SizedBox(height: 8.h),
             Text(
               canMove 
-                  ? groups[targetIndex]
+                  ? _cachedGroups[targetIndex]
                   : '이동 불가',
               style: TextStyle(
                 fontSize: 12.sp,

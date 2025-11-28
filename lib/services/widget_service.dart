@@ -7,7 +7,8 @@ import 'dart:convert';
 /// 홈 화면 위젯과 Flutter 앱 간 통신을 담당하는 서비스
 /// 다양한 위젯 크기 지원: 2×2(4), 3×2(6), 4×2(8), 3×3(9), 4×3(12), 4×4(16)
 class WidgetService {
-  static const MethodChannel _channel = MethodChannel('com.example.quick_call/widget');
+  // 🔧 수정: 채널명을 MainActivity.kt와 일치시킴
+  static const MethodChannel _channel = MethodChannel('com.oceancode.quick_call/widget');
   
   /// 전체 버튼 데이터 저장 (위젯 설정 화면용)
   /// 

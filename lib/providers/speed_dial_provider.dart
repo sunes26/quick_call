@@ -12,8 +12,8 @@ class SpeedDialProvider extends ChangeNotifier {
   final WidgetService _widgetService = WidgetService();
   
   List<SpeedDialButton> _buttons = [];
-  List<String> _groups = ['전체'];
-  String _selectedGroup = '전체';
+  List<String> _groups = []; // 🔧 수정: '전체' 제거
+  String _selectedGroup = ''; // 🔧 수정: 기본값 변경
   bool _isLoading = false;
   bool _isEditMode = false;
   String? _error;
@@ -24,7 +24,8 @@ class SpeedDialProvider extends ChangeNotifier {
 
   // Getters
   List<SpeedDialButton> get buttons {
-    var filteredButtons = _selectedGroup == '전체'
+    // 🔧 수정: '전체' 그룹 로직 제거
+    var filteredButtons = _selectedGroup.isEmpty
         ? _buttons
         : _buttons.where((b) => b.group == _selectedGroup).toList();
 
@@ -44,9 +45,8 @@ class SpeedDialProvider extends ChangeNotifier {
 
   // 특정 그룹의 버튼 목록 반환 (TabBarView용)
   List<SpeedDialButton> getButtonsForGroup(String group) {
-    var filteredButtons = group == '전체'
-        ? _buttons
-        : _buttons.where((b) => b.group == group).toList();
+    // 🔧 수정: '전체' 그룹 로직 제거
+    var filteredButtons = _buttons.where((b) => b.group == group).toList();
 
     if (_searchQuery.isNotEmpty) {
       filteredButtons = filteredButtons.where((button) {
@@ -233,13 +233,22 @@ class SpeedDialProvider extends ChangeNotifier {
     return sortedButtons;
   }
 
-  // 🆕 그룹 목록 로드 (DB에서)
+  // 🔧 수정: 그룹 목록 로드 (DB에서) - '전체' 제거
   Future<void> loadGroups() async {
     try {
       final dbGroups = await _databaseService.getAllGroups();
       
-      // "전체"는 가상 그룹으로 항상 맨 앞에
-      _groups = ['전체', ...dbGroups];
+      // 🔧 수정: "전체" 그룹 제거, DB 그룹만 사용
+      _groups = dbGroups;
+      
+      // 🔧 수정: 선택된 그룹이 없거나 유효하지 않으면 첫 번째 그룹 선택
+      if (_groups.isNotEmpty) {
+        if (_selectedGroup.isEmpty || !_groups.contains(_selectedGroup)) {
+          _selectedGroup = _groups.first;
+        }
+      } else {
+        _selectedGroup = '';
+      }
       
       notifyListeners();
     } catch (e) {
@@ -272,8 +281,8 @@ class SpeedDialProvider extends ChangeNotifier {
   // 버튼 추가
   Future<bool> addButton(SpeedDialButton button) async {
     try {
-      // 🆕 버튼의 그룹이 DB에 없으면 추가
-      if (button.group != '전체' && button.group.isNotEmpty) {
+      // 🔧 수정: 버튼의 그룹이 DB에 없으면 추가 ('전체' 체크 제거)
+      if (button.group.isNotEmpty) {
         final groupExists = await _databaseService.groupExists(button.group);
         if (!groupExists) {
           await _databaseService.insertGroup(button.group);
@@ -298,8 +307,8 @@ class SpeedDialProvider extends ChangeNotifier {
   // 버튼 업데이트
   Future<bool> updateButton(SpeedDialButton button) async {
     try {
-      // 🆕 버튼의 그룹이 DB에 없으면 추가
-      if (button.group != '전체' && button.group.isNotEmpty) {
+      // 🔧 수정: 버튼의 그룹이 DB에 없으면 추가 ('전체' 체크 제거)
+      if (button.group.isNotEmpty) {
         final groupExists = await _databaseService.groupExists(button.group);
         if (!groupExists) {
           await _databaseService.insertGroup(button.group);
@@ -374,7 +383,8 @@ class SpeedDialProvider extends ChangeNotifier {
       
       final groupButtonIndices = <int>[];
       for (int i = 0; i < allButtonsCopy.length; i++) {
-        if (_selectedGroup == '전체' || allButtonsCopy[i].group == _selectedGroup) {
+        // 🔧 수정: '전체' 그룹 로직 제거
+        if (_selectedGroup.isEmpty || allButtonsCopy[i].group == _selectedGroup) {
           groupButtonIndices.add(i);
         }
       }
@@ -426,19 +436,12 @@ class SpeedDialProvider extends ChangeNotifier {
         return false;
       }
 
-      // "전체" 그룹으로는 이동 불가
-      if (newGroup == '전체') {
-        _error = '"전체" 그룹으로는 이동할 수 없습니다';
-        notifyListeners();
-        return false;
-      }
-
       // 같은 그룹이면 무시
       if (button.group == newGroup) {
         return true;
       }
 
-      // 🆕 타겟 그룹이 DB에 없으면 추가
+      // 🔧 수정: 타겟 그룹이 DB에 없으면 추가
       final groupExists = await _databaseService.groupExists(newGroup);
       if (!groupExists) {
         await _databaseService.insertGroup(newGroup);
@@ -484,21 +487,18 @@ class SpeedDialProvider extends ChangeNotifier {
   Future<Map<String, int>> getGroupCounts() async {
     final counts = <String, int>{};
     
+    // 🔧 수정: '전체' 그룹 제거
     for (var group in _groups) {
-      if (group == '전체') {
-        counts[group] = _buttons.length;
-      } else {
-        counts[group] = _buttons.where((b) => b.group == group).length;
-      }
+      counts[group] = _buttons.where((b) => b.group == group).length;
     }
     
     return counts;
   }
 
-  // 🆕 사용자 정의 그룹 추가 (DB에 저장)
+  // 🔧 수정: 사용자 정의 그룹 추가 (DB에 저장)
   Future<bool> addCustomGroup(String groupName) async {
     try {
-      if (groupName.isEmpty || groupName == '전체') {
+      if (groupName.isEmpty) {
         return false;
       }
 
@@ -527,13 +527,6 @@ class SpeedDialProvider extends ChangeNotifier {
   // 그룹 이름 변경
   Future<bool> renameGroup(String oldName, String newName) async {
     try {
-      // "전체" 그룹만 기본 그룹으로 간주
-      if (oldName == '전체') {
-        _error = '"전체" 그룹은 이름을 변경할 수 없습니다';
-        notifyListeners();
-        return false;
-      }
-
       if (_groups.contains(newName)) {
         _error = '이미 존재하는 그룹 이름입니다';
         notifyListeners();
@@ -542,7 +535,6 @@ class SpeedDialProvider extends ChangeNotifier {
 
       final count = await _databaseService.renameGroup(oldName, newName);
       
-      // 🆕 그룹 이름 변경은 버튼이 없어도 성공 (count >= 0)
       await loadGroups();
       await loadButtons();
       
@@ -559,16 +551,9 @@ class SpeedDialProvider extends ChangeNotifier {
     }
   }
 
-  // 🆕 그룹 삭제 (DB에서도 삭제)
+  // 🔧 수정: 그룹 삭제 (DB에서도 삭제)
   Future<bool> deleteGroup(String groupName) async {
     try {
-      // "전체" 그룹만 기본 그룹으로 간주
-      if (groupName == '전체') {
-        _error = '"전체" 그룹은 삭제할 수 없습니다';
-        notifyListeners();
-        return false;
-      }
-
       // 그룹과 해당 버튼들 모두 삭제
       final count = await _databaseService.deleteGroupAndButtons(groupName);
       
@@ -576,8 +561,9 @@ class SpeedDialProvider extends ChangeNotifier {
         await loadGroups();
         await loadButtons();
         
+        // 🔧 수정: 삭제된 그룹이 선택된 그룹이면 첫 번째 그룹 선택
         if (_selectedGroup == groupName) {
-          _selectedGroup = '전체';
+          _selectedGroup = _groups.isNotEmpty ? _groups.first : '';
         }
         
         return true;
@@ -592,9 +578,9 @@ class SpeedDialProvider extends ChangeNotifier {
     }
   }
 
-  // 기본 그룹 확인 - "전체"만 기본 그룹
+  // 🔧 수정: 기본 그룹 확인 - 더 이상 기본 그룹 없음
   bool isDefaultGroup(String groupName) {
-    return groupName == '전체';
+    return false; // 모든 그룹 편집/삭제 가능
   }
 
   // 위젯 관련 추가 메서드들
