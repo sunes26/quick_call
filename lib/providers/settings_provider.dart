@@ -13,7 +13,7 @@ class SettingsProvider extends ChangeNotifier {
   bool _isInitialized = false;
 
   // 설정 값들
-  ThemeMode _themeMode = ThemeMode.system;
+  ThemeMode _themeMode = ThemeMode.light; // 🆕 항상 라이트 모드로 고정 (ThemeMode.system → ThemeMode.light)
   SortOption _sortOption = SortOption.custom;
   bool _autoBackupEnabled = true;
   bool _showLastCalled = true;
@@ -127,7 +127,7 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> resetAllSettings() async {
     try {
       await _prefs.clear();
-      _themeMode = ThemeMode.system;
+      _themeMode = ThemeMode.light; // 🆕 초기화 시에도 라이트 모드로 (ThemeMode.system → ThemeMode.light)
       _sortOption = SortOption.custom;
       _autoBackupEnabled = true;
       _showLastCalled = true;

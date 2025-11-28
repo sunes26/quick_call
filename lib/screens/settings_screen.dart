@@ -46,11 +46,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           return ListView(
             padding: EdgeInsets.symmetric(vertical: 8.h),
             children: [
-              // 화면 설정
-              _buildSectionHeader('화면'),
-              _buildThemeModeTile(settings, cardColor),
-              
-              SizedBox(height: 16.h),
+              // 🆕 다크모드 토글 제거 - 항상 라이트 모드로 고정
+              // _buildSectionHeader('화면'),
+              // _buildThemeModeTile(settings, cardColor),
+              // SizedBox(height: 16.h),
               
               // 정렬 설정
               _buildSectionHeader('정렬'),
