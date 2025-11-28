@@ -242,277 +242,281 @@ class _AddButtonScreenState extends State<AddButtonScreen> {
     final cardColor = theme.cardTheme.color ?? theme.cardColor;
     final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black87;
 
-    return Center(
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          margin: EdgeInsets.symmetric(horizontal: 32.w),
-          decoration: BoxDecoration(
-            color: cardColor, // 🆕 테마 색상 사용
-            borderRadius: BorderRadius.circular(20.r),
-          ),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(24.w),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 제목
-                  Text(
-                    '단축 버튼 추가',
-                    style: TextStyle(
-                      fontSize: 22.sp,
-                      fontWeight: FontWeight.bold,
-                      color: textColor, // 🆕 명시적 텍스트 색상
-                    ),
-                  ),
-                  SizedBox(height: 24.h),
-
-                  // 색상 선택 버튼
-                  GestureDetector(
-                    onTap: _openColorPicker,
-                    child: Container(
-                      width: 96.w,
-                      height: 96.w,
-                      decoration: BoxDecoration(
-                        color: _selectedColor,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.grey[300]!,
-                          width: 2,
-                        ),
+    // 🆕 Scaffold 추가 (Z-index 문제 해결)
+    return Scaffold(
+      backgroundColor: Colors.transparent, // 투명 배경으로 블러 효과 유지
+      body: Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            margin: EdgeInsets.symmetric(horizontal: 32.w),
+            decoration: BoxDecoration(
+              color: cardColor, // 🆕 테마 색상 사용
+              borderRadius: BorderRadius.circular(20.r),
+            ),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(24.w),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 제목
+                    Text(
+                      '단축 버튼 추가',
+                      style: TextStyle(
+                        fontSize: 22.sp,
+                        fontWeight: FontWeight.bold,
+                        color: textColor, // 🆕 명시적 텍스트 색상
                       ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Icon(
-                            Icons.palette,
-                            size: 40.sp,
-                            color: _getTextColorForBackground(_selectedColor),
+                    ),
+                    SizedBox(height: 24.h),
+
+                    // 색상 선택 버튼
+                    GestureDetector(
+                      onTap: _openColorPicker,
+                      child: Container(
+                        width: 96.w,
+                        height: 96.w,
+                        decoration: BoxDecoration(
+                          color: _selectedColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.grey[300]!,
+                            width: 2,
                           ),
-                          Positioned(
-                            bottom: 8.h,
-                            child: Text(
-                              '색상 변경',
-                              style: TextStyle(
-                                fontSize: 11.sp,
-                                color: _getTextColorForBackground(_selectedColor),
-                                fontWeight: FontWeight.w600,
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Icon(
+                              Icons.palette,
+                              size: 40.sp,
+                              color: _getTextColorForBackground(_selectedColor),
+                            ),
+                            Positioned(
+                              bottom: 8.h,
+                              child: Text(
+                                '색상 변경',
+                                style: TextStyle(
+                                  fontSize: 11.sp,
+                                  color: _getTextColorForBackground(_selectedColor),
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  SizedBox(height: 24.h),
+                    SizedBox(height: 24.h),
 
-                  // 이름 입력 + 연락처 버튼 (🆕 버튼 위치 변경)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _nameController,
-                          decoration: InputDecoration(
-                            labelText: '이름',
-                            hintText: '예: 엄마, 119',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                            counterText: '',
-                          ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return '이름을 입력해주세요';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      SizedBox(width: 8.w),
-                      Container(
-                        height: 56.h,
-                        width: 56.w,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                        child: IconButton(
-                          icon: Icon(
-                            Icons.contact_phone,
-                            color: Colors.grey[700],
-                            size: 24.sp,
-                          ),
-                          onPressed: _openContactPicker,
-                          tooltip: '연락처에서 가져오기',
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 16.h),
-
-                  // 전화번호 입력 (🆕 버튼 제거됨)
-                  TextFormField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s]')),
-                    ],
-                    decoration: InputDecoration(
-                      labelText: '전화번호',
-                      hintText: '010-1234-5678',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return '전화번호를 입력해주세요';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 16.h),
-
-                  // 그룹 선택
-                  Consumer<SpeedDialProvider>(
-                    builder: (context, provider, child) {
-                      final availableGroups = provider.groups
-                          .where((g) => g != '전체')
-                          .toList();
-                      
-                      // _selectedGroup이 null이고 아직 초기화되지 않은 경우에만 기본값 설정
-                      if (_selectedGroup == null && availableGroups.isNotEmpty && !_isAddingNewGroup) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (mounted && _selectedGroup == null) {
-                            setState(() {
-                              // initialGroup이 유효하면 해당 그룹, 아니면 첫 번째 그룹
-                              if (widget.initialGroup != null && 
-                                  widget.initialGroup != '전체' && 
-                                  availableGroups.contains(widget.initialGroup)) {
-                                _selectedGroup = widget.initialGroup;
-                              } else {
-                                _selectedGroup = availableGroups.first;
-                              }
-                            });
-                          }
-                        });
-                      }
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          DropdownButtonFormField<String>(
-                            initialValue: _isAddingNewGroup ? null : _selectedGroup,
+                    // 이름 입력 + 연락처 버튼 (🆕 버튼 위치 변경)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _nameController,
                             decoration: InputDecoration(
-                              labelText: '그룹',
+                              labelText: '이름',
+                              hintText: '예: 엄마, 119',
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12.r),
                               ),
+                              counterText: '',
                             ),
-                            items: [
-                              ...availableGroups.map((group) {
-                                return DropdownMenuItem(
-                                  value: group,
-                                  child: Text(group),
-                                );
-                              }),
-                              const DropdownMenuItem(
-                                value: '__new__',
-                                child: Text('새 그룹 추가...'),
-                              ),
-                            ],
-                            onChanged: (value) {
-                              if (value == '__new__') {
-                                setState(() {
-                                  _isAddingNewGroup = true;
-                                });
-                              } else {
-                                setState(() {
-                                  _selectedGroup = value!;
-                                  _isAddingNewGroup = false;
-                                });
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return '이름을 입력해주세요';
                               }
+                              return null;
                             },
                           ),
-                          
-                          if (_isAddingNewGroup) ...[
-                            SizedBox(height: 16.h),
-                            TextFormField(
-                              controller: _newGroupController,
+                        ),
+                        SizedBox(width: 8.w),
+                        Container(
+                          height: 56.h,
+                          width: 56.w,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          child: IconButton(
+                            icon: Icon(
+                              Icons.contact_phone,
+                              color: Colors.grey[700],
+                              size: 24.sp,
+                            ),
+                            onPressed: _openContactPicker,
+                            tooltip: '연락처에서 가져오기',
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 16.h),
+
+                    // 전화번호 입력 (🆕 버튼 제거됨)
+                    TextFormField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s]')),
+                      ],
+                      decoration: InputDecoration(
+                        labelText: '전화번호',
+                        hintText: '010-1234-5678',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return '전화번호를 입력해주세요';
+                        }
+                        return null;
+                      },
+                    ),
+                    SizedBox(height: 16.h),
+
+                    // 그룹 선택
+                    Consumer<SpeedDialProvider>(
+                      builder: (context, provider, child) {
+                        final availableGroups = provider.groups
+                            .where((g) => g != '전체')
+                            .toList();
+                        
+                        // _selectedGroup이 null이고 아직 초기화되지 않은 경우에만 기본값 설정
+                        if (_selectedGroup == null && availableGroups.isNotEmpty && !_isAddingNewGroup) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted && _selectedGroup == null) {
+                              setState(() {
+                                // initialGroup이 유효하면 해당 그룹, 아니면 첫 번째 그룹
+                                if (widget.initialGroup != null && 
+                                    widget.initialGroup != '전체' && 
+                                    availableGroups.contains(widget.initialGroup)) {
+                                  _selectedGroup = widget.initialGroup;
+                                } else {
+                                  _selectedGroup = availableGroups.first;
+                                }
+                              });
+                            }
+                          });
+                        }
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            DropdownButtonFormField<String>(
+                              initialValue: _isAddingNewGroup ? null : _selectedGroup,
                               decoration: InputDecoration(
-                                labelText: '새 그룹 이름',
-                                hintText: '그룹 이름 입력',
+                                labelText: '그룹',
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12.r),
                                 ),
-                                suffixIcon: IconButton(
-                                  icon: const Icon(Icons.close),
-                                  onPressed: () {
-                                    setState(() {
-                                      _isAddingNewGroup = false;
-                                      _newGroupController.clear();
-                                    });
-                                  },
-                                ),
                               ),
-                              autofocus: true,
+                              items: [
+                                ...availableGroups.map((group) {
+                                  return DropdownMenuItem(
+                                    value: group,
+                                    child: Text(group),
+                                  );
+                                }),
+                                const DropdownMenuItem(
+                                  value: '__new__',
+                                  child: Text('새 그룹 추가...'),
+                                ),
+                              ],
+                              onChanged: (value) {
+                                if (value == '__new__') {
+                                  setState(() {
+                                    _isAddingNewGroup = true;
+                                  });
+                                } else {
+                                  setState(() {
+                                    _selectedGroup = value!;
+                                    _isAddingNewGroup = false;
+                                  });
+                                }
+                              },
                             ),
+                            
+                            if (_isAddingNewGroup) ...[
+                              SizedBox(height: 16.h),
+                              TextFormField(
+                                controller: _newGroupController,
+                                decoration: InputDecoration(
+                                  labelText: '새 그룹 이름',
+                                  hintText: '그룹 이름 입력',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12.r),
+                                  ),
+                                  suffixIcon: IconButton(
+                                    icon: const Icon(Icons.close),
+                                    onPressed: () {
+                                      setState(() {
+                                        _isAddingNewGroup = false;
+                                        _newGroupController.clear();
+                                      });
+                                    },
+                                  ),
+                                ),
+                                autofocus: true,
+                              ),
+                            ],
                           ],
-                        ],
-                      );
-                    },
-                  ),
-                  SizedBox(height: 24.h),
+                        );
+                      },
+                    ),
+                    SizedBox(height: 24.h),
 
-                  // 저장 버튼
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isSaving ? null : _saveButton,
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 16.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
+                    // 저장 버튼
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : _saveButton,
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 16.h),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          backgroundColor: Colors.blue[600],
                         ),
-                        backgroundColor: Colors.blue[600],
-                      ),
-                      child: Text(
-                        _isSaving ? '저장 중...' : '저장',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 12.h),
-                  
-                  // 취소 버튼
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-                      style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 16.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                        side: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      child: Text(
-                        '취소',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          color: Colors.grey[700],
+                        child: Text(
+                          _isSaving ? '저장 중...' : '저장',
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                    SizedBox(height: 12.h),
+                    
+                    // 취소 버튼
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 16.h),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          side: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        child: Text(
+                          '취소',
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
