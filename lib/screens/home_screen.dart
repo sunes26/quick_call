@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:quick_call/providers/speed_dial_provider.dart';
 import 'package:quick_call/providers/settings_provider.dart';
-// 🔧 수정: 미사용 import 제거 - database_service.dart
 import 'package:quick_call/widgets/dial_button_widget.dart';
 import 'package:quick_call/widgets/loading_widget.dart';
 import 'package:quick_call/widgets/empty_state_widget.dart';
@@ -875,13 +874,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final isHovered = _hoveredTabIndex == gapIndex;
     
     return DragTarget<int>(
-      // 🔧 수정: onWillAccept -> onWillAcceptWithDetails
       onWillAcceptWithDetails: (details) {
         final willAccept = details.data != null;
         debugPrint('onWillAcceptWithDetails: draggedIndex=${details.data}, gapIndex=$gapIndex, willAccept=$willAccept');
         return willAccept;
       },
-      // 🔧 수정: onAccept -> onAcceptWithDetails
       onAcceptWithDetails: (details) {
         final draggedIndex = details.data;
         // onAccept 호출됨을 표시
@@ -891,13 +888,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         debugPrint('onAcceptWithDetails 호출: draggedIndex=$draggedIndex, gapIndex=$gapIndex');
         
         // 갭 인덱스를 그대로 전달 (provider에서 조정함)
-        // 마지막 갭(gapIndex == _cachedGroups.length)도 그대로 전달
         int targetIndex = gapIndex;
         
         debugPrint('드롭: oldIndex=$draggedIndex, targetIndex=$targetIndex (gapIndex=$gapIndex)');
         
         if (draggedIndex != targetIndex) {
-          // async 함수는 별도로 호출
           _applyGroupReorder(provider, draggedIndex, targetIndex);
         }
       },
@@ -911,7 +906,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       },
       onLeave: (data) {
         // 드래그가 완전히 끝났을 때만 호버 해제
-        // (드래그 중에는 다른 갭으로 이동할 때 자동으로 업데이트됨)
       },
       builder: (context, candidateData, rejectedData) {
         return AnimatedContainer(
@@ -920,7 +914,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           height: 48.h,
           child: Center(
             child: isHovered && _draggingTabIndex != null
-                // 🔧 수정: const 키워드 추가
                 ? Container(
                     width: 4.w,
                     height: 30.h,
@@ -929,7 +922,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       borderRadius: BorderRadius.circular(2.r),
                     ),
                   )
-                // 🔧 수정: const 키워드 추가
                 : const SizedBox.shrink(),
           ),
         );
@@ -958,7 +950,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         setState(() {
           _draggingTabIndex = originalIndex;
           _reorderedGroups = List<String>.from(_cachedGroups);
-          _onAcceptCalled = false; // 플래그 초기화
+          _onAcceptCalled = false;
         });
       },
       onDragEnd: (details) {
@@ -969,7 +961,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           final draggedIndex = _draggingTabIndex!;
           final gapIndex = _hoveredTabIndex!;
           
-          // 갭 인덱스를 그대로 전달 (provider에서 조정함)
           int targetIndex = gapIndex;
           
           debugPrint('백업 처리: oldIndex=$draggedIndex, targetIndex=$targetIndex (gapIndex=$gapIndex)');
@@ -999,17 +990,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 갭 인덱스 기준으로 그룹 재배열 (provider의 reorderGroups와 동일한 로직)
+  // 갭 인덱스 기준으로 그룹 재배열
   void _updateReorderedGroupsByGap(int draggedIndex, int gapIndex) {
     final newGroups = List<String>.from(_cachedGroups);
     
-    // provider의 reorderGroups와 동일한 로직
     int adjustedNewIndex = gapIndex;
     if (draggedIndex < gapIndex) {
       adjustedNewIndex = gapIndex - 1;
     }
     
-    // 순서 변경
     final draggedGroup = newGroups.removeAt(draggedIndex);
     newGroups.insert(adjustedNewIndex, draggedGroup);
     
@@ -1019,7 +1008,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // 그룹 순서 변경 적용
   Future<void> _applyGroupReorder(SpeedDialProvider provider, int oldIndex, int newIndex) async {
     debugPrint('_applyGroupReorder 호출: oldIndex=$oldIndex, newIndex=$newIndex');
-    // 🔧 수정: 불필요한 중괄호 제거
     debugPrint('현재 그룹 순서: $_cachedGroups');
     
     final success = await provider.reorderGroups(oldIndex, newIndex);
@@ -1029,7 +1017,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (success && mounted) {
       _showSnackBar('그룹 순서가 변경되었습니다', Colors.green[700]!);
       
-      // TabController 인덱스 조정
       if (_tabController != null) {
         final currentGroup = provider.selectedGroup;
         final newTabIndex = provider.groups.indexOf(currentGroup);
@@ -1093,18 +1080,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Consumer2<SpeedDialProvider, SettingsProvider>(
       builder: (context, provider, settings, child) {
-        // 🔧 핵심 수정: build() 시작 시 TabController 동기화
-        // 이렇게 하면 TabBar와 TabBarView가 항상 동일한 그룹 목록을 사용
-        _syncTabController(provider.groups, provider.selectedGroup);
-        
-        // TabController가 아직 없으면 로딩 표시
-        if (_tabController == null || _cachedGroups.isEmpty) {
+        // 🔧 핵심 수정: 로딩 중일 때만 로딩 화면 표시
+        if (provider.isLoading) {
           return Scaffold(
             backgroundColor: Colors.grey[100],
             body: const LoadingWidget(
               message: '로딩 중...',
             ),
           );
+        }
+
+        // 🔧 수정: 그룹이 있을 때만 TabController 동기화
+        if (provider.groups.isNotEmpty) {
+          _syncTabController(provider.groups, provider.selectedGroup);
+        } else {
+          // 🔧 추가: 그룹이 없을 때는 TabController를 null로 유지
+          _tabController?.dispose();
+          _tabController = null;
+          _cachedGroups = [];
         }
 
         return Scaffold(
@@ -1114,7 +1107,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             backgroundColor: Colors.white,
             centerTitle: false,
             titleSpacing: 16.w,
-            // 검색 모드에 따라 다른 타이틀 표시
             title: provider.isSearching
                 ? TextField(
                     controller: _searchController,
@@ -1154,8 +1146,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   },
                 ),
               
-              // 정렬 버튼 (검색 중이 아니고 편집 모드가 아닐 때만)
-              if (!provider.isSearching && !provider.isEditMode)
+              // 정렬 버튼 (검색 중이 아니고 편집 모드가 아니고 그룹이 있을 때만)
+              if (!provider.isSearching && !provider.isEditMode && provider.groups.isNotEmpty)
                 PopupMenuButton<SortOption>(
                   icon: const Icon(Icons.sort, color: Colors.black87),
                   onSelected: (option) {
@@ -1212,8 +1204,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   },
                 ),
               
-              // 편집/완료 버튼
-              if (!provider.isSearching)
+              // 편집/완료 버튼 (그룹이 있을 때만)
+              if (!provider.isSearching && provider.groups.isNotEmpty)
                 TextButton(
                   onPressed: () {
                     provider.toggleEditMode();
@@ -1228,8 +1220,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
             ],
-            // 🆕 편집 모드일 때는 드래그 가능한 TabBar, 아닐 때는 일반 TabBar
-            bottom: provider.isSearching
+            // 🔧 수정: 그룹이 없을 때도 TabBar 숨김
+            bottom: provider.isSearching || provider.groups.isEmpty
                 ? null
                 : PreferredSize(
                     preferredSize: Size.fromHeight(48.h),
@@ -1256,7 +1248,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               
                               final clickedGroup = _cachedGroups[index];
                               
-                              // 일반 모드 + 재클릭: 그룹 편집
                               if (!provider.isEditMode &&
                                   provider.selectedGroup == clickedGroup && 
                                   clickedGroup != '전체') {
@@ -1327,12 +1318,85 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       );
     }
 
-    // 검색 모드: 스와이프 없이 단일 그리드
+    // 🔧 핵심 추가: 그룹이 없을 때 빈 그룹 상태 UI
+    if (provider.groups.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.w),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: EdgeInsets.all(24.w),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.folder_open,
+                  size: 80.sp,
+                  color: Colors.blue[400],
+                ),
+              ),
+              SizedBox(height: 24.h),
+              Text(
+                '그룹이 없습니다',
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+              SizedBox(height: 12.h),
+              Text(
+                '새 그룹을 만들어서\n단축키를 관리해보세요',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: Colors.grey[600],
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 32.h),
+              ElevatedButton.icon(
+                onPressed: () => _showAddGroupDialog(context, provider),
+                icon: const Icon(Icons.create_new_folder, color: Colors.white),
+                label: Text(
+                  '새 그룹 만들기',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue[600],
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 32.w,
+                    vertical: 16.h,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  elevation: 2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 검색 모드
     if (provider.isSearching) {
       return _buildSearchResultGrid(context, provider);
     }
 
-    // 🔧 핵심 수정: 캐싱된 그룹으로 TabBarView 생성
+    // 🔧 추가: TabController null 체크
+    if (_tabController == null) {
+      return const LoadingWidget(message: '잠시만 기다려주세요...');
+    }
+
     return TabBarView(
       controller: _tabController,
       physics: const ClampingScrollPhysics(),
@@ -1342,11 +1406,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 검색 결과 그리드 (스와이프 없음)
+  // 검색 결과 그리드
   Widget _buildSearchResultGrid(BuildContext context, SpeedDialProvider provider) {
     final searchButtons = provider.buttons;
 
-    // 검색 결과 없음
     if (searchButtons.isEmpty && provider.searchQuery.isNotEmpty) {
       return Center(
         child: Padding(
@@ -1383,7 +1446,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       );
     }
 
-    // 버튼이 없는 경우
     if (searchButtons.isEmpty) {
       return NoSpeedDialsWidget(
         groupName: provider.selectedGroup,
@@ -1420,11 +1482,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 그룹별 페이지 (TabBarView의 각 페이지)
+  // 그룹별 페이지
   Widget _buildGroupPage(BuildContext context, SpeedDialProvider provider, String group) {
     final groupButtons = provider.getButtonsForGroup(group);
 
-    // 버튼이 없는 경우
     if (groupButtons.isEmpty) {
       return NoSpeedDialsWidget(
         groupName: group,
@@ -1432,23 +1493,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       );
     }
 
-    // 편집 모드: 드래그 앤 드롭 그리드 (+ 버튼 없음)
     if (provider.isEditMode) {
       return _buildReorderableGrid(context, provider, groupButtons);
     }
 
-    // 일반 모드: 기본 그리드 (+ 버튼 포함, 애니메이션 제거)
     return _buildNormalGrid(context, provider, groupButtons, group);
   }
 
-  // ✨ 애니메이션 제거된 일반 모드 그리드
+  // 일반 모드 그리드
   Widget _buildNormalGrid(
     BuildContext context, 
     SpeedDialProvider provider, 
     List<SpeedDialButton> groupButtons,
     String group,
   ) {
-    // 일반 모드에서는 + 버튼 추가
     final itemCount = groupButtons.length + 1;
 
     return RefreshIndicator(
@@ -1467,7 +1525,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           itemCount: itemCount,
           itemBuilder: (context, index) {
-            // 마지막 아이템은 + 버튼
             if (index == groupButtons.length) {
               return _buildAddButtonPlaceholder(group);
             }
@@ -1486,7 +1543,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 점선 테두리의 + 버튼 (단축키 추가용)
+  // + 버튼
   Widget _buildAddButtonPlaceholder(String group) {
     return GestureDetector(
       onTap: () => _showAddButtonDialog(initialGroup: group),
@@ -1515,7 +1572,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 편집 모드 그리드 (드래그 앤 드롭 + 가장자리 감지)
+  // 편집 모드 그리드
   Widget _buildReorderableGrid(
     BuildContext context, 
     SpeedDialProvider provider,
@@ -1523,7 +1580,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   ) {
     return Stack(
       children: [
-        // 메인 그리드
         Listener(
           onPointerDown: _onPointerDown,
           onPointerMove: (event) => _onPointerMove(event, provider),
@@ -1545,7 +1601,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 itemCount: groupButtons.length,
                 onReorder: (oldIndex, newIndex) {
-                  // 인덱스 유효성 검사
                   if (oldIndex < 0 || oldIndex >= groupButtons.length ||
                       newIndex < 0 || newIndex >= groupButtons.length) {
                     debugPrint('Invalid reorder index: old=$oldIndex, new=$newIndex, length=${groupButtons.length}');
@@ -1554,7 +1609,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   provider.reorderButtons(oldIndex, newIndex);
                 },
                 dragWidgetBuilder: (index, child) {
-                  // 드래그 시작 시 버튼 객체 저장
                   if (index >= 0 && index < groupButtons.length) {
                     _draggedButton = groupButtons[index];
                   }
@@ -1583,7 +1637,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ),
 
-        // 왼쪽 가장자리 인디케이터
         if (_showLeftEdgeIndicator)
           Positioned(
             left: 0,
@@ -1592,7 +1645,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             child: _buildEdgeIndicator(EdgeSide.left, provider),
           ),
 
-        // 오른쪽 가장자리 인디케이터
         if (_showRightEdgeIndicator)
           Positioned(
             right: 0,
@@ -1604,7 +1656,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 가장자리 인디케이터 위젯
+  // 가장자리 인디케이터
   Widget _buildEdgeIndicator(EdgeSide side, SpeedDialProvider provider) {
     if (_tabController == null) return const SizedBox.shrink();
     
@@ -1612,7 +1664,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     
     int targetIndex = side == EdgeSide.left ? currentIndex - 1 : currentIndex + 1;
     
-    // 🔧 수정: 캐싱된 그룹 사용
     bool canMove = targetIndex >= 0 && 
                    targetIndex < _cachedGroups.length && 
                    _cachedGroups[targetIndex] != '전체';
@@ -1672,13 +1723,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 버튼 탭 처리 (모든 모드에서 편집 화면 열기)
+  // 버튼 탭 처리
   Future<void> _handleButtonTap(
     BuildContext context,
     SpeedDialProvider provider,
     SpeedDialButton button,
   ) async {
-    // 모든 모드에서 편집 화면으로 이동
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -1687,14 +1737,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 버튼 롱프레스 처리 (일반 모드 전용 - 전화 걸기)
+  // 버튼 롱프레스 처리
   Future<void> _handleButtonLongPress(
     BuildContext context,
     SpeedDialProvider provider,
     SpeedDialButton button,
   ) async {
     if (!provider.isEditMode) {
-      // 일반 모드: 전화 걸기
       final scaffoldMessenger = ScaffoldMessenger.of(context);
 
       try {
@@ -1731,7 +1780,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  // 삭제 처리 - Undo 기능 포함
+  // 삭제 처리
   void _handleDelete(
     BuildContext context,
     SpeedDialProvider provider,
@@ -1860,7 +1909,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Undo 기능 - 삭제 취소
+  // Undo 기능
   Future<void> _undoDelete(SpeedDialProvider provider) async {
     if (_deletedButton != null) {
       final success = await provider.addButton(_deletedButton!);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert'; // jsonDecode 사용을 위해 필요
+import 'dart:async'; // 🔧 추가: timeout용
 import 'package:quick_call/models/speed_dial_button.dart';
 import 'package:quick_call/services/database_service.dart';
 import 'package:quick_call/services/phone_service.dart';
@@ -87,17 +88,42 @@ class SpeedDialProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _databaseService.initialize();
-      await loadButtons();
-      await loadGroups();
+      // 🔧 수정: 데이터베이스 초기화에 타임아웃 추가 (10초)
+      await _databaseService.initialize().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('데이터베이스 초기화 시간 초과');
+        },
+      );
       
-      // 위젯 설정 화면을 위해 전체 버튼 데이터 저장
-      await _updateAllWidgetsData();
+      // 🔧 수정: 버튼 및 그룹 로드에 타임아웃 추가 (5초)
+      await loadButtons().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          throw TimeoutException('버튼 로드 시간 초과');
+        },
+      );
+      
+      await loadGroups().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          throw TimeoutException('그룹 로드 시간 초과');
+        },
+      );
+      
+      // 🔧 핵심 수정: 위젯 데이터 업데이트를 백그라운드에서 실행 (블로킹하지 않음)
+      // 초기화 완료를 방해하지 않도록 별도로 실행
+      _updateAllWidgetsDataInBackground();
       
       _error = null;
     } catch (e) {
       _error = '초기화 중 오류가 발생했습니다: $e';
       debugPrint(_error);
+      // 🔧 추가: 에러 발생 시에도 기본 그룹 설정
+      if (_groups.isEmpty) {
+        debugPrint('그룹이 없어서 기본 그룹 생성 시도');
+        // 기본 그룹이 없으면 빈 상태로 유지 (사용자가 그룹 생성할 수 있음)
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -110,14 +136,28 @@ class SpeedDialProvider extends ChangeNotifier {
       _buttons = await _databaseService.getAllButtons();
       _buttons.sort((a, b) => a.position.compareTo(b.position));
       
-      // 전체 버튼 데이터 업데이트
-      await _updateAllWidgetsData();
-      
       notifyListeners();
     } catch (e) {
       _error = '버튼을 불러오는 중 오류가 발생했습니다: $e';
       debugPrint(_error);
     }
+  }
+
+  // 🔧 수정: 백그라운드에서 위젯 데이터 업데이트 (블로킹하지 않음)
+  void _updateAllWidgetsDataInBackground() {
+    // Future.microtask를 사용하여 현재 실행 흐름을 방해하지 않음
+    Future.microtask(() async {
+      try {
+        await _updateAllWidgetsData().timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            debugPrint('위젯 데이터 업데이트 시간 초과 (무시됨)');
+          },
+        );
+      } catch (e) {
+        debugPrint('위젯 데이터 업데이트 오류 (무시됨): $e');
+      }
+    });
   }
 
   // 모든 위젯 데이터 업데이트 (위젯 설정 화면용)
@@ -293,6 +333,8 @@ class SpeedDialProvider extends ChangeNotifier {
       if (id > 0) {
         await loadButtons();
         await loadGroups();
+        // 🔧 수정: 백그라운드에서 위젯 업데이트
+        _updateAllWidgetsDataInBackground();
         return true;
       }
       return false;
@@ -319,6 +361,8 @@ class SpeedDialProvider extends ChangeNotifier {
       if (success) {
         await loadButtons();
         await loadGroups();
+        // 🔧 수정: 백그라운드에서 위젯 업데이트
+        _updateAllWidgetsDataInBackground();
         return true;
       }
       return false;
@@ -337,6 +381,8 @@ class SpeedDialProvider extends ChangeNotifier {
       if (success) {
         await loadButtons();
         await loadGroups();
+        // 🔧 수정: 백그라운드에서 위젯 업데이트
+        _updateAllWidgetsDataInBackground();
         return true;
       }
       return false;
@@ -417,8 +463,8 @@ class SpeedDialProvider extends ChangeNotifier {
         _buttons[i] = updatedButton;
       }
       
-      // 위젯 데이터 업데이트
-      await _updateAllWidgetsData();
+      // 🔧 수정: 백그라운드에서 위젯 업데이트
+      _updateAllWidgetsDataInBackground();
       
       debugPrint('Background DB update completed');
     } catch (e) {

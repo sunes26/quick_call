@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';  // ← 추가: 화면 방향 제어용
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:quick_call/providers/speed_dial_provider.dart';
@@ -7,6 +8,11 @@ import 'package:quick_call/screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 화면 방향을 세로 모드로 고정
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,  // 정방향 세로만 허용
+  ]);
   
   runApp(const QuickCallApp());
 }

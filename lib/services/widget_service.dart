@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:quick_call/models/speed_dial_button.dart';
 import 'dart:convert';
+import 'dart:async'; // 🔧 추가: timeout용
 
 /// 홈 화면 위젯과 Flutter 앱 간 통신을 담당하는 서비스
 /// 다양한 위젯 크기 지원: 2×2(4), 3×2(6), 4×2(8), 3×3(9), 4×3(12), 4×4(16)
 class WidgetService {
   // 🔧 수정: 채널명을 MainActivity.kt와 일치시킴
   static const MethodChannel _channel = MethodChannel('com.oceancode.quick_call/widget');
+  
+  // 🔧 추가: 네이티브 호출 타임아웃 시간
+  static const Duration _nativeCallTimeout = Duration(seconds: 5);
   
   /// 전체 버튼 데이터 저장 (위젯 설정 화면용)
   /// 
@@ -25,12 +29,25 @@ class WidgetService {
       
       final jsonData = jsonEncode(data);
       
+      // 🔧 추가: 타임아웃 적용
       final result = await _channel.invokeMethod('saveAllButtonsData', {
         'data': jsonData,
-      });
+      }).timeout(
+        _nativeCallTimeout,
+        onTimeout: () {
+          debugPrint('saveAllButtonsData 타임아웃 (5초)');
+          return false;
+        },
+      );
       
       debugPrint('전체 버튼 데이터 저장 완료: ${buttons.length}개');
       return result == true;
+    } on PlatformException catch (e) {
+      debugPrint('전체 버튼 데이터 저장 PlatformException: ${e.code} - ${e.message}');
+      return false;
+    } on MissingPluginException catch (e) {
+      debugPrint('전체 버튼 데이터 저장 MissingPluginException: $e (네이티브 코드 미구현)');
+      return false;
     } catch (e) {
       debugPrint('전체 버튼 데이터 저장 오류: $e');
       return false;
@@ -67,13 +84,26 @@ class WidgetService {
       
       final jsonData = jsonEncode(data);
       
+      // 🔧 추가: 타임아웃 적용
       final result = await _channel.invokeMethod('updateWidgetData', {
         'widgetId': widgetId,
         'data': jsonData,
-      });
+      }).timeout(
+        _nativeCallTimeout,
+        onTimeout: () {
+          debugPrint('updateWidgetData 타임아웃 (5초)');
+          return false;
+        },
+      );
       
       debugPrint('위젯 $widgetId 업데이트 완료: ${limitedButtons.length}개 버튼 (최대 $maxButtons개)');
       return result == true;
+    } on PlatformException catch (e) {
+      debugPrint('위젯 업데이트 PlatformException: ${e.code} - ${e.message}');
+      return false;
+    } on MissingPluginException catch (e) {
+      debugPrint('위젯 업데이트 MissingPluginException: $e (네이티브 코드 미구현)');
+      return false;
     } catch (e) {
       debugPrint('위젯 업데이트 오류: $e');
       return false;
@@ -83,8 +113,18 @@ class WidgetService {
   /// 모든 위젯 새로고침
   Future<void> refreshAllWidgets() async {
     try {
-      await _channel.invokeMethod('refreshAllWidgets');
+      // 🔧 추가: 타임아웃 적용
+      await _channel.invokeMethod('refreshAllWidgets').timeout(
+        _nativeCallTimeout,
+        onTimeout: () {
+          debugPrint('refreshAllWidgets 타임아웃 (5초)');
+        },
+      );
       debugPrint('모든 위젯 새로고침 완료');
+    } on PlatformException catch (e) {
+      debugPrint('위젯 새로고침 PlatformException: ${e.code} - ${e.message}');
+    } on MissingPluginException catch (e) {
+      debugPrint('위젯 새로고침 MissingPluginException: $e (네이티브 코드 미구현)');
     } catch (e) {
       debugPrint('위젯 새로고침 오류: $e');
     }
@@ -93,10 +133,24 @@ class WidgetService {
   /// 설치된 위젯 ID 목록 가져오기
   Future<List<int>> getWidgetIds() async {
     try {
-      final result = await _channel.invokeMethod('getWidgetIds');
+      // 🔧 추가: 타임아웃 적용
+      final result = await _channel.invokeMethod('getWidgetIds').timeout(
+        _nativeCallTimeout,
+        onTimeout: () {
+          debugPrint('getWidgetIds 타임아웃 (5초)');
+          return <int>[];
+        },
+      );
+      
       if (result is List) {
         return result.cast<int>();
       }
+      return [];
+    } on PlatformException catch (e) {
+      debugPrint('위젯 ID 조회 PlatformException: ${e.code} - ${e.message}');
+      return [];
+    } on MissingPluginException catch (e) {
+      debugPrint('위젯 ID 조회 MissingPluginException: $e (네이티브 코드 미구현)');
       return [];
     } catch (e) {
       debugPrint('위젯 ID 조회 오류: $e');
@@ -107,10 +161,24 @@ class WidgetService {
   /// 특정 위젯의 데이터 가져오기
   Future<String?> getWidgetData(int widgetId) async {
     try {
+      // 🔧 추가: 타임아웃 적용
       final result = await _channel.invokeMethod('getWidgetData', {
         'widgetId': widgetId,
-      });
+      }).timeout(
+        _nativeCallTimeout,
+        onTimeout: () {
+          debugPrint('getWidgetData 타임아웃 (5초)');
+          return null;
+        },
+      );
+      
       return result as String?;
+    } on PlatformException catch (e) {
+      debugPrint('위젯 데이터 조회 PlatformException: ${e.code} - ${e.message}');
+      return null;
+    } on MissingPluginException catch (e) {
+      debugPrint('위젯 데이터 조회 MissingPluginException: $e (네이티브 코드 미구현)');
+      return null;
     } catch (e) {
       debugPrint('위젯 데이터 조회 오류: $e');
       return null;
@@ -125,9 +193,16 @@ class WidgetService {
   /// - maxButtons: 해당 크기에서 지원하는 최대 버튼 개수
   Future<Map<String, int>> getWidgetSize(int widgetId) async {
     try {
+      // 🔧 추가: 타임아웃 적용
       final result = await _channel.invokeMethod('getWidgetSize', {
         'widgetId': widgetId,
-      });
+      }).timeout(
+        _nativeCallTimeout,
+        onTimeout: () {
+          debugPrint('getWidgetSize 타임아웃 (5초)');
+          return {'width': 180, 'height': 180, 'maxButtons': 4};
+        },
+      );
       
       if (result is Map) {
         return {
@@ -137,6 +212,12 @@ class WidgetService {
         };
       }
       
+      return {'width': 180, 'height': 180, 'maxButtons': 4};
+    } on PlatformException catch (e) {
+      debugPrint('위젯 크기 조회 PlatformException: ${e.code} - ${e.message}');
+      return {'width': 180, 'height': 180, 'maxButtons': 4};
+    } on MissingPluginException catch (e) {
+      debugPrint('위젯 크기 조회 MissingPluginException: $e (네이티브 코드 미구현)');
       return {'width': 180, 'height': 180, 'maxButtons': 4};
     } catch (e) {
       debugPrint('위젯 크기 조회 오류: $e');
@@ -166,8 +247,22 @@ class WidgetService {
   /// 위젯이 설치되어 있는지 확인
   Future<bool> hasWidgets() async {
     try {
-      final result = await _channel.invokeMethod('hasWidgets');
+      // 🔧 추가: 타임아웃 적용
+      final result = await _channel.invokeMethod('hasWidgets').timeout(
+        _nativeCallTimeout,
+        onTimeout: () {
+          debugPrint('hasWidgets 타임아웃 (5초)');
+          return false;
+        },
+      );
+      
       return result == true;
+    } on PlatformException catch (e) {
+      debugPrint('위젯 확인 PlatformException: ${e.code} - ${e.message}');
+      return false;
+    } on MissingPluginException catch (e) {
+      debugPrint('위젯 확인 MissingPluginException: $e (네이티브 코드 미구현)');
+      return false;
     } catch (e) {
       debugPrint('위젯 확인 오류: $e');
       return false;
@@ -177,8 +272,18 @@ class WidgetService {
   /// 모든 위젯 데이터 삭제
   Future<void> clearAllWidgets() async {
     try {
-      await _channel.invokeMethod('clearAllWidgets');
+      // 🔧 추가: 타임아웃 적용
+      await _channel.invokeMethod('clearAllWidgets').timeout(
+        _nativeCallTimeout,
+        onTimeout: () {
+          debugPrint('clearAllWidgets 타임아웃 (5초)');
+        },
+      );
       debugPrint('모든 위젯 데이터 삭제 완료');
+    } on PlatformException catch (e) {
+      debugPrint('위젯 데이터 삭제 PlatformException: ${e.code} - ${e.message}');
+    } on MissingPluginException catch (e) {
+      debugPrint('위젯 데이터 삭제 MissingPluginException: $e (네이티브 코드 미구현)');
     } catch (e) {
       debugPrint('위젯 데이터 삭제 오류: $e');
     }
